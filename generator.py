@@ -127,6 +127,9 @@ def retrieve_generation_context(query: str,):
 
     rows = hybrid_retrieve(query, k=24)
 
+    for row in rows[:20]:
+        logger.info("GLOBAL | %s | metadata_id=%s | dependency=%s", row.chunk_id, id(row.metadata), row.metadata.get("_dependency"))
+
     logger.info("Global retrieval returned " f"{len(rows)} rows")
 
     logger.info("RETRIEVED ENTITY COUNTS=%s", Counter(r.metadata.get("entity") for r in rows))
@@ -219,6 +222,23 @@ def _get_client() -> OpenAI:
 
     return _client
 
+def get_generation_deps(resource: str) -> list[str]:
+    """
+    Dependencies used for generation ordering.
+
+    Terraform optional dependencies often become required
+    when generating a complete architecture because later
+    resources should reference earlier resources.
+
+    Generation dependencies = hard + optional.
+    """
+
+    deps = RESOURCE_DEPENDENCIES.get(resource, {})
+
+    hard = deps.get("hard", [])
+    optional = deps.get("optional", [])
+
+    return list(dict.fromkeys(hard + optional))
 
 # ======================================================
 # TOPOLOGICAL SORT
@@ -235,8 +255,10 @@ def _topo_sort(entities: list[str]) -> list[str]:
     # Build adjacency: node → list of nodes it depends on (within entity_set)
     deps_within: dict[str, list[str]] = {}
     for e in entities:
-        known = RESOURCE_DEPENDENCIES.get(e, {})
-        deps_within[e] = [d for d in known.get("hard", []) if d in entity_set]
+        #known = RESOURCE_DEPENDENCIES.get(e, {})
+        #deps_within[e] = [d for d in known.get("hard", []) if d in entity_set]
+        logger.info("GEN DEPS %s -> %s", e, get_generation_deps(e))
+        deps_within[e] = [d for d in get_generation_deps(e) if d in entity_set]
 
     # In-degree = number of dependencies within the set
     in_degree = {e: len(deps_within[e]) for e in entities}
@@ -335,6 +357,7 @@ def build_plan(query: str) -> GenerationPlan:
 
     # Step 5: Topological sort — dependencies come before dependents
     ordered = _topo_sort(all_entities)
+    logger.info("TOPO ORDER=%s", ordered)
 
     # Step 6: Build ResourceNode list
     used_labels = set()
@@ -357,16 +380,60 @@ def build_plan(query: str) -> GenerationPlan:
 
                 is_root=(e in root_set),
 
-                hard_deps=[d for d in RESOURCE_DEPENDENCIES.get(e, {}).get("hard", []) if d in set(all_entities)]
+                #hard_deps=[d for d in RESOURCE_DEPENDENCIES.get(e, {}).get("hard", []) if d in set(all_entities)]
+
+                hard_deps = [d for d in get_generation_deps(e) if d in set(all_entities)]
             )
         )
+    
+    for node in nodes:
+        logger.info("NODE=%s HARD_DEPS=%s", node.entity, node.hard_deps)
 
-    return GenerationPlan(
-        query=query,
-        root_entities=root_entities,
-        ordered_nodes=nodes,
-    )
+    return GenerationPlan(query=query, root_entities=root_entities, ordered_nodes=nodes)
 
+# ======================================================
+# DEPENDENCY REFERENCE CONTEXT
+# ======================================================
+
+def build_dependency_reference_context(node, symbol_table: dict[str, str],) -> str:
+
+    if not node.hard_deps:
+        return ""
+
+    lines = [
+        "DEPENDENCY REFERENCES",
+        "",
+        "Use these generated Terraform resources instead of variables whenever appropriate.",
+        "",
+    ]
+
+    for dep in node.hard_deps:
+
+        label = symbol_table.get(dep)
+
+        if not label:
+            continue
+
+        if dep == "aws_vpc":
+            lines.append(f"{dep}.{label}.id")
+
+        elif dep == "aws_subnet":
+            lines.append(f"{dep}.{label}.id")
+
+        elif dep == "aws_security_group":
+            lines.append(f"{dep}.{label}.id")
+
+        elif dep == "aws_db_subnet_group":
+            lines.append(f"{dep}.{label}.name")
+
+        elif dep == "aws_iam_role":
+            lines.append(f"{dep}.{label}.arn")
+
+        else:
+            lines.append(f"{dep}.{label}")
+
+    logger.info("REFERENCE CONTEXT FOR %s:\n%s", node.entity, "\n".join(lines))
+    return "\n".join(lines)
 
 # ======================================================
 # CONTEXT ASSEMBLY
@@ -412,6 +479,12 @@ def assemble_context(query: str, node: ResourceNode, symbol_table: dict[str, str
 
         filtered_rows.extend(fallback_rows)
 
+        for r in fallback_rows:
+
+            logger.info("FALLBACK %s metadata_id=%s", r.chunk_id, id(r.metadata))
+
+        r.metadata["_dependency"] = True
+
     logger.info("%s -> rows=%s", node.entity, len(filtered_rows))
 
     for row in filtered_rows:
@@ -438,6 +511,8 @@ def assemble_context(query: str, node: ResourceNode, symbol_table: dict[str, str
 
     xml_context = build_xml_context(filtered_rows)
 
+    reference_context = build_dependency_reference_context(node, symbol_table)
+
     if node.entity in {"aws_eks_node_group", "aws_appautoscaling_policy"}:
 
         logger.info("\n%s XML CONTEXT\n%s\n", node.entity, xml_context[:10000])
@@ -461,11 +536,9 @@ def assemble_context(query: str, node: ResourceNode, symbol_table: dict[str, str
             + "\n".join(references)
         )
 
-    final_context = xml_context + ref_block
+    final_context = xml_context + ref_block + reference_context
 
     logger.info("Context chars for %s = %s", node.entity, len(final_context))
-
-    
 
     return final_context
 
@@ -520,6 +593,8 @@ Rules:
     resource "aws_instance" "example" {
     ...
     }
+
+26. Only use arguments explicitly present in the Argument Reference sections of the provided context. Do not invent deprecated or legacy Terraform arguments.
 
 Use the exact Terraform Resource Type and Terraform Resource Label provided above."""
 
@@ -590,7 +665,9 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = raw.strip()
 
     var_refs = _extract_var_refs(raw)
-    symbol_table[node.entity] = (f"{node.entity}.{node.label}")
+    #symbol_table[node.entity] = (f"{node.entity}.{node.label}")
+    symbol_table[node.entity] = node.label
+    logger.info("SYMBOL TABLE NOW=%s", symbol_table)
 
     logger.info("Generated %s — vars: %s", node.entity, var_refs)
 
