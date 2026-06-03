@@ -1,0 +1,1179 @@
+{
+  "timestamp": "2026-05-28T07:40:06.124294",
+  "dataset": "C:\\Users\\Suryaday Nath\\Downloads\\Projects\\RAG\\evaluation\\golden_quick.json",
+  "top_k": 8,
+  "metrics": {
+    "recall_at_k": 0.95,
+    "mrr": 0.7583333333333333,
+    "success_at_1": 0.65,
+    "ndcg": 0.7568016485900219,
+    "total_failures": 7,
+    "category_metrics": {
+      "EFS": 1,
+      "ECS": 1,
+      "EC2": 1,
+      "Lambda": 1,
+      "Networking": 0,
+      "KMS": 1,
+      "VPC": 0.5,
+      "S3": 0,
+      "EventBridge": 1,
+      "StepFunctions": 1,
+      "IAM": 0,
+      "DNS": 1,
+      "DynamoDB": 1,
+      "Terraform": 0
+    },
+    "type_metrics": {
+      "operational": 1,
+      "argument": 1,
+      "security": 0.25,
+      "networking": 0.5,
+      "dependency": 0,
+      "lifecycle": 0.3333333333333333,
+      "architecture": 1,
+      "scheduling": 1,
+      "dns": 1
+    }
+  },
+  "failures": [
+    {
+      "query": "security group ingress rules",
+      "primary": [
+        "aws_security_group_rule"
+      ],
+      "acceptable": [
+        "aws_security_group"
+      ],
+      "category": "Networking",
+      "type": "security",
+      "success_at_1": 0,
+      "recall_at_k": 1,
+      "reciprocal_rank": 0.3333333333333333,
+      "ndcg": 0.5346627285615513,
+      "rank1": "aws_vpc_security_group_ingress_rule",
+      "top_results": [
+        {
+          "entity": "aws_vpc_security_group_ingress_rule",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_vpc_security_group_egress_rule",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_security_group_rule",
+          "section": "import",
+          "score": null
+        },
+        {
+          "entity": "aws_vpc_security_group_rules_exclusive",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_security_group",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "internet gateway vpc",
+      "primary": [
+        "aws_internet_gateway"
+      ],
+      "acceptable": [],
+      "category": "VPC",
+      "type": "networking",
+      "success_at_1": 0,
+      "recall_at_k": 1,
+      "reciprocal_rank": 0.5,
+      "ndcg": 0.6309297535714575,
+      "rank1": "aws_egress_only_internet_gateway",
+      "top_results": [
+        {
+          "entity": "aws_egress_only_internet_gateway",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_internet_gateway",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_internet_gateway",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_internet_gateway_attachment",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_nat_gateway",
+          "section": "example usage",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "transit gateway attachment",
+      "primary": [
+        "aws_ec2_transit_gateway_vpc_attachment"
+      ],
+      "acceptable": [
+        "aws_ec2_transit_gateway_attachment"
+      ],
+      "category": "Networking",
+      "type": "dependency",
+      "success_at_1": 0,
+      "recall_at_k": 1,
+      "reciprocal_rank": 0.5,
+      "ndcg": 0.6467608705498555,
+      "rank1": "aws_ec2_transit_gateway_dx_gateway_attachment",
+      "top_results": [
+        {
+          "entity": "aws_ec2_transit_gateway_dx_gateway_attachment",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_ec2_transit_gateway_vpc_attachment",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_ec2_transit_gateway_vpc_attachment_accepter",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_ec2_transit_gateway_attachment",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_ec2_transit_gateway_attachments",
+          "section": "overview",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "delete s3 objects after 30 days",
+      "primary": [
+        "aws_s3_bucket_lifecycle_configuration"
+      ],
+      "acceptable": [],
+      "category": "S3",
+      "type": "lifecycle",
+      "success_at_1": 0,
+      "recall_at_k": 1,
+      "reciprocal_rank": 0.25,
+      "ndcg": 0.43067655807339306,
+      "rank1": "aws_s3tables_table_bucket",
+      "top_results": [
+        {
+          "entity": "aws_s3tables_table_bucket",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_s3_bucket",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_s3control_bucket_lifecycle_configuration",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_s3_bucket_lifecycle_configuration",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_s3_bucket",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "cross account iam role",
+      "primary": [
+        "aws_iam_role"
+      ],
+      "acceptable": [],
+      "category": "IAM",
+      "type": "security",
+      "success_at_1": 0,
+      "recall_at_k": 1,
+      "reciprocal_rank": 0.25,
+      "ndcg": 0.43067655807339306,
+      "rank1": "aws_glue_crawler",
+      "top_results": [
+        {
+          "entity": "aws_glue_crawler",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_arcregionswitch_plan",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_arcregionswitch_plan",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role",
+          "section": "import",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role_policy",
+          "section": "import",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "assume role policy",
+      "primary": [
+        "aws_iam_policy_document"
+      ],
+      "acceptable": [
+        "aws_iam_role_policy"
+      ],
+      "category": "IAM",
+      "type": "security",
+      "success_at_1": 0,
+      "recall_at_k": 1,
+      "reciprocal_rank": 0.3333333333333333,
+      "ndcg": 0.2427772337958826,
+      "rank1": "aws_iam_role",
+      "top_results": [
+        {
+          "entity": "aws_iam_role",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role_policy_attachment",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role_policy",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role_policy_attachment",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role_policy",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "terraform ignore changes",
+      "primary": [
+        "meta_argument_lifecycle"
+      ],
+      "acceptable": [],
+      "category": "Terraform",
+      "type": "lifecycle",
+      "success_at_1": 0,
+      "recall_at_k": 0,
+      "reciprocal_rank": 0,
+      "ndcg": 0.0,
+      "rank1": "aws_dataexchange_revision",
+      "top_results": [
+        {
+          "entity": "aws_dataexchange_revision",
+          "section": "import",
+          "score": null
+        },
+        {
+          "entity": "aws_dataexchange_event_action",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_dataexchange_revision_assets",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_dataexchange_data_set",
+          "section": "import",
+          "score": null
+        },
+        {
+          "entity": "aws_dataexchange_event_action",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    }
+  ],
+  "results": [
+    {
+      "query": "efs mount ec2",
+      "primary": [
+        "aws_efs_mount_target"
+      ],
+      "acceptable": [
+        "aws_efs_file_system"
+      ],
+      "category": "EFS",
+      "type": "operational",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 0.881487348269955,
+      "rank1": "aws_efs_mount_target",
+      "top_results": [
+        {
+          "entity": "aws_efs_mount_target",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_efs_mount_target",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_lambda_function",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_m2_environment",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_efs_file_system",
+          "section": "overview",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "ecs cluster arguments",
+      "primary": [
+        "aws_ecs_cluster"
+      ],
+      "acceptable": [],
+      "category": "ECS",
+      "type": "argument",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 1.0,
+      "rank1": "aws_ecs_cluster",
+      "top_results": [
+        {
+          "entity": "aws_ecs_cluster",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_ecs_cluster",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_ecs_clusters",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_eks_cluster",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_rds_cluster",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "jump box ec2 ssh",
+      "primary": [
+        "aws_instance"
+      ],
+      "acceptable": [
+        "aws_security_group"
+      ],
+      "category": "EC2",
+      "type": "operational",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 0.93642647321269,
+      "rank1": "aws_instance",
+      "top_results": [
+        {
+          "entity": "aws_instance",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_instance",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_security_group",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_rekognition_stream_processor",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "lambda timeout",
+      "primary": [
+        "aws_lambda_function"
+      ],
+      "acceptable": [],
+      "category": "Lambda",
+      "type": "argument",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 1.0,
+      "rank1": "aws_lambda_function",
+      "top_results": [
+        {
+          "entity": "aws_lambda_function",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_lambda_function",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "security group ingress rules",
+      "primary": [
+        "aws_security_group_rule"
+      ],
+      "acceptable": [
+        "aws_security_group"
+      ],
+      "category": "Networking",
+      "type": "security",
+      "success_at_1": 0,
+      "recall_at_k": 1,
+      "reciprocal_rank": 0.3333333333333333,
+      "ndcg": 0.5346627285615513,
+      "rank1": "aws_vpc_security_group_ingress_rule",
+      "top_results": [
+        {
+          "entity": "aws_vpc_security_group_ingress_rule",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_vpc_security_group_egress_rule",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_security_group_rule",
+          "section": "import",
+          "score": null
+        },
+        {
+          "entity": "aws_vpc_security_group_rules_exclusive",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_security_group",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "kms key rotation",
+      "primary": [
+        "aws_kms_key"
+      ],
+      "acceptable": [],
+      "category": "KMS",
+      "type": "security",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 1.0,
+      "rank1": "aws_kms_key",
+      "top_results": [
+        {
+          "entity": "aws_kms_key",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_kms_external_key",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_kms_key_policy",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_kms_public_key",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_kms_alias",
+          "section": "overview",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "internet gateway vpc",
+      "primary": [
+        "aws_internet_gateway"
+      ],
+      "acceptable": [],
+      "category": "VPC",
+      "type": "networking",
+      "success_at_1": 0,
+      "recall_at_k": 1,
+      "reciprocal_rank": 0.5,
+      "ndcg": 0.6309297535714575,
+      "rank1": "aws_egress_only_internet_gateway",
+      "top_results": [
+        {
+          "entity": "aws_egress_only_internet_gateway",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_internet_gateway",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_internet_gateway",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_internet_gateway_attachment",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_nat_gateway",
+          "section": "example usage",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "transit gateway attachment",
+      "primary": [
+        "aws_ec2_transit_gateway_vpc_attachment"
+      ],
+      "acceptable": [
+        "aws_ec2_transit_gateway_attachment"
+      ],
+      "category": "Networking",
+      "type": "dependency",
+      "success_at_1": 0,
+      "recall_at_k": 1,
+      "reciprocal_rank": 0.5,
+      "ndcg": 0.6467608705498555,
+      "rank1": "aws_ec2_transit_gateway_dx_gateway_attachment",
+      "top_results": [
+        {
+          "entity": "aws_ec2_transit_gateway_dx_gateway_attachment",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_ec2_transit_gateway_vpc_attachment",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_ec2_transit_gateway_vpc_attachment_accepter",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_ec2_transit_gateway_attachment",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_ec2_transit_gateway_attachments",
+          "section": "overview",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "delete s3 objects after 30 days",
+      "primary": [
+        "aws_s3_bucket_lifecycle_configuration"
+      ],
+      "acceptable": [],
+      "category": "S3",
+      "type": "lifecycle",
+      "success_at_1": 0,
+      "recall_at_k": 1,
+      "reciprocal_rank": 0.25,
+      "ndcg": 0.43067655807339306,
+      "rank1": "aws_s3tables_table_bucket",
+      "top_results": [
+        {
+          "entity": "aws_s3tables_table_bucket",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_s3_bucket",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_s3control_bucket_lifecycle_configuration",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_s3_bucket_lifecycle_configuration",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_s3_bucket",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "lambda eventbridge trigger",
+      "primary": [
+        "aws_lambda_permission"
+      ],
+      "acceptable": [
+        "aws_cloudwatch_event_rule",
+        "aws_cloudwatch_event_target"
+      ],
+      "category": "Lambda",
+      "type": "architecture",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 0.8820216307170239,
+      "rank1": "aws_cloudwatch_event_target",
+      "top_results": [
+        {
+          "entity": "aws_cloudwatch_event_target",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_lambda_permission",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_lambda_function",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_s3_bucket_notification",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_lambda_function",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "eventbridge cron schedule",
+      "primary": [
+        "aws_scheduler_schedule"
+      ],
+      "acceptable": [
+        "aws_cloudwatch_event_rule"
+      ],
+      "category": "EventBridge",
+      "type": "scheduling",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 1.0,
+      "rank1": "aws_scheduler_schedule",
+      "top_results": [
+        {
+          "entity": "aws_scheduler_schedule",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_cloudwatch_event_rule",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_cloudwatch_event_target",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_cloudwatch_event_bus",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_cloudwatch_event_rule",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "step function lambda workflow",
+      "primary": [
+        "aws_sfn_state_machine"
+      ],
+      "acceptable": [
+        "aws_lambda_function"
+      ],
+      "category": "StepFunctions",
+      "type": "architecture",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 0.9027661662763876,
+      "rank1": "aws_sfn_state_machine",
+      "top_results": [
+        {
+          "entity": "aws_sfn_state_machine",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_transfer_workflow",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_transfer_workflow",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_lambda_function",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_lambda_function",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "cross account iam role",
+      "primary": [
+        "aws_iam_role"
+      ],
+      "acceptable": [],
+      "category": "IAM",
+      "type": "security",
+      "success_at_1": 0,
+      "recall_at_k": 1,
+      "reciprocal_rank": 0.25,
+      "ndcg": 0.43067655807339306,
+      "rank1": "aws_glue_crawler",
+      "top_results": [
+        {
+          "entity": "aws_glue_crawler",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_arcregionswitch_plan",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_arcregionswitch_plan",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role",
+          "section": "import",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role_policy",
+          "section": "import",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "assume role policy",
+      "primary": [
+        "aws_iam_policy_document"
+      ],
+      "acceptable": [
+        "aws_iam_role_policy"
+      ],
+      "category": "IAM",
+      "type": "security",
+      "success_at_1": 0,
+      "recall_at_k": 1,
+      "reciprocal_rank": 0.3333333333333333,
+      "ndcg": 0.2427772337958826,
+      "rank1": "aws_iam_role",
+      "top_results": [
+        {
+          "entity": "aws_iam_role",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role_policy_attachment",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role_policy",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role_policy_attachment",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role_policy",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "nat gateway private subnet",
+      "primary": [
+        "aws_nat_gateway"
+      ],
+      "acceptable": [
+        "aws_route_table"
+      ],
+      "category": "VPC",
+      "type": "networking",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 0.6936492394168075,
+      "rank1": "aws_nat_gateway",
+      "top_results": [
+        {
+          "entity": "aws_nat_gateway",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_nat_gateway",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_nat_gateways",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_nat_gateway_eip_association",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_internet_gateway",
+          "section": "overview",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "route53 cname record",
+      "primary": [
+        "aws_route53_record"
+      ],
+      "acceptable": [],
+      "category": "DNS",
+      "type": "dns",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 1.0,
+      "rank1": "aws_route53_record",
+      "top_results": [
+        {
+          "entity": "aws_route53_record",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_route53_records_exclusive",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_route53_record",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_api_gateway_domain_name",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_route53recoveryreadiness_resource_set",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "ecs service autoscaling",
+      "primary": [
+        "aws_appautoscaling_target"
+      ],
+      "acceptable": [
+        "aws_appautoscaling_policy"
+      ],
+      "category": "ECS",
+      "type": "architecture",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 0.9231984112820404,
+      "rank1": "aws_appautoscaling_policy",
+      "top_results": [
+        {
+          "entity": "aws_appautoscaling_policy",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_appautoscaling_target",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_autoscaling_policy",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_ecs_service",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_autoscaling_group",
+          "section": "example usage",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "lambda environment variables",
+      "primary": [
+        "aws_lambda_function"
+      ],
+      "acceptable": [],
+      "category": "Lambda",
+      "type": "argument",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 1.0,
+      "rank1": "aws_lambda_function",
+      "top_results": [
+        {
+          "entity": "aws_lambda_function",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_lambda_function",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_lambda_code_signing_config",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_iam_role",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "dynamodb ttl",
+      "primary": [
+        "aws_dynamodb_table"
+      ],
+      "acceptable": [],
+      "category": "DynamoDB",
+      "type": "lifecycle",
+      "success_at_1": 1,
+      "recall_at_k": 1,
+      "reciprocal_rank": 1.0,
+      "ndcg": 1.0,
+      "rank1": "aws_dynamodb_table",
+      "top_results": [
+        {
+          "entity": "aws_dynamodb_table",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_dynamodb_table",
+          "section": "argument reference",
+          "score": null
+        },
+        {
+          "entity": "aws_dynamodb_resource_policy",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_dynamodb_table_export",
+          "section": "import",
+          "score": null
+        },
+        {
+          "entity": "aws_dynamodb_global_table",
+          "section": "overview",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    },
+    {
+      "query": "terraform ignore changes",
+      "primary": [
+        "meta_argument_lifecycle"
+      ],
+      "acceptable": [],
+      "category": "Terraform",
+      "type": "lifecycle",
+      "success_at_1": 0,
+      "recall_at_k": 0,
+      "reciprocal_rank": 0,
+      "ndcg": 0.0,
+      "rank1": "aws_dataexchange_revision",
+      "top_results": [
+        {
+          "entity": "aws_dataexchange_revision",
+          "section": "import",
+          "score": null
+        },
+        {
+          "entity": "aws_dataexchange_event_action",
+          "section": "example usage",
+          "score": null
+        },
+        {
+          "entity": "aws_dataexchange_revision_assets",
+          "section": "overview",
+          "score": null
+        },
+        {
+          "entity": "aws_dataexchange_data_set",
+          "section": "import",
+          "score": null
+        },
+        {
+          "entity": "aws_dataexchange_event_action",
+          "section": "argument reference",
+          "score": null
+        }
+      ],
+      "failure_type": null
+    }
+  ]
+}

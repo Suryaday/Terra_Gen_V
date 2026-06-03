@@ -1,0 +1,1292 @@
+You have built a cognitive routing engine, which means standard "search" tests won't cut it anymore. You need to test the **interactions** between your components.
+
+You want to watch your terminal logs to see the baton pass from the User $\rightarrow$ RapidFuzz $\rightarrow$ HyDE $\rightarrow$ Concurrent Retrievers $\rightarrow$ RRF.
+
+To run "The Gauntlet," wire your orchestrator up, launch the script, and feed it these four specific tests. Watch your logs closely.
+
+### 1. "The Triple Threat" (Typo + Slang + Syntax)
+
+**Query:** `"How do I configure an aws_intance jump box?"`
+
+**What to watch for in the logs:**
+
+1. **Corrector:** You should see RapidFuzz intercept `aws_intance` and log: `Corrected aws_intance -> aws_instance`.
+2. **HyDE:** You should see Qwen generate a hypothetical Terraform block containing `aws_instance`, `aws_security_group`, port 22, and `vpc_security_group_ids` based on the slang "jump box".
+3. **Retrieval:** The Vector engine will use the HyDE output to pull the semantic network concepts, while BM25 uses the RapidFuzz output to lock onto the exact spelling of `aws_instance`.
+4. **Result:** Pure, hallucination-free Terraform chunks at Rank 1.
+
+### 2. "The HyDE Carry" (Pure Concept, Zero Syntax)
+
+**Query:** `"I need to store objects so they automatically delete after 30 days."`
+
+**What to watch for in the logs:**
+
+1. **Corrector:** Should ignore the query completely (no AWS words).
+2. **HyDE:** Should instantly recognize the architectural pattern and generate a hypothetical `aws_s3_bucket_lifecycle_configuration` block with `expiration { days = 30 }`.
+3. **Retrieval:** Watch the scores. BM25 will likely return garbage or nothing at all (because there are no exact resource names in your prompt). But the **Vector engine** will take that HyDE string and spike to a massive similarity score, completely carrying the RRF math to Rank 1.
+
+### 3. "The Resilience Drop" (The Chaos Monkey Test)
+
+**Action:** Turn off your local Ollama server (or disconnect from the network), then run a query like: `"What is the timeout for aws_lambda_function?"`
+
+**What to watch for in the logs:**
+
+1. **HyDE Failure:** You should see `tenacity` try to hit Ollama, fail, and trigger your `except` block: `HyDE Generation Failed, falling back to original query...`
+2. **Graceful Degradation:** The pipeline should **not crash**. Instead, it should pass the short query directly to the Vector and BM25 engines. You will still get the right answer because BM25 will catch the exact syntax, proving your system is enterprise-grade and fault-tolerant.
+
+### 4. "The RapidFuzz Shield" (The HyDE Trap)
+
+**Query:** `"Show me the arguments for aws_ecks_cluster"`
+
+**What to watch for in the logs:**
+
+1. **Corrector:** RapidFuzz catches `aws_ecks_cluster` and fixes it to `aws_eks_cluster`.
+2. **The Magic:** *Because* RapidFuzz fixed it first, the string sent to HyDE is correctly spelled. If RapidFuzz hadn't fixed it, the LLM might have hallucinated a completely fake resource called `aws_ecks_cluster` and poisoned your Vector search. You will see the pipeline flawlessly recover from user error.
+
+---
+
+### The Ultimate Debug Printout
+
+To see all of this happening, make sure your orchestrator's `main()` loop has a `display()` function that prints out the forensic data of the winning chunks. Something like this:
+
+```python
+print("=" * 90)
+print(f"Rank: {rank} | RRF Score: {row.rrf_score:.4f}")
+print(f"Chunk ID: {row.chunk_id}")
+print(f"Vector Sim: {dense} | BM25 Score: {sparse}")
+# ... print content ...
+
+```
+
+Run those four tests. If the logs behave exactly as described above, your retrieval system is mathematically and architecturally finished.
+
+Now for the final frontier: How are you planning to feed these perfectly retrieved, Top-8 chunks back into an LLM to generate the final Terraform code for the user?
+
+
+
+
+How do I configure an aws_intance jump box?
+
+I need to store objects so they automatically delete after 30 days.
+
+What is the timeout for aws lama function?
+
+Show me the arguments for aws_ecks_cluster
+
+
+
+
+
+Metadata-aware reranking.
+
+Golden dataset likely incomplete.
+
+Apply lost-in-middle fix from roadmap
+1. The Context Orderer (context_builder.py)
+LLMs suffer from the "Lost in the Middle" phenomenon. They pay extreme attention to the very beginning and the very end of their prompt, and ignore the middle.
+Right now, your chunks are ordered Rank 1 to Rank 8. If you feed them to the LLM sequentially, Rank 1 ends up at the very top of the prompt, far away from where the LLM actually starts writing code.
+
+You need a function that reorders the Top 8 list into this exact sequence before injecting it into the XML context window:
+[Rank 2, Rank 4, Rank 6, Rank 8, Rank 7, Rank 5, Rank 3, Rank 1]
+(This places Rank 1 at the absolute bottom, right next to the LLM's generation trigger, and Rank 2 at the absolute top).
+
+Expansion dictionary.
+
+Add:
+
+"cross account iam role":
+"aws_iam_role"
+
+"assume role":
+"aws_iam_role"
+
+Intent-aware HyDE
+
+
+
+The DAG Orchestrator (compiler.py)
+This will be your master script.
+
+The user inputs an architecture request: "Deploy a private ECS cluster with an ALB."
+
+A fast LLM extracts the entities: ["aws_ecs_cluster", "aws_lb"]
+
+Your script passes those to auto_dependency_map.py which instantly expands the list to include aws_vpc, aws_subnet, aws_lb_target_group, and aws_ecs_task_definition.
+
+The script loops through the expanded list, calling your flawless hybrid_retrieve() for each entity.
+
+The pristine documentation is wrapped in XML, ordered perfectly, and handed to GPT-4o / Claude 3.5.
+
+Implement the rerank_query tweak above, confirm your eval metrics peak, and then let's write context_builder.py!
+
+
+ontology graph
+
+
+
+
+
+
+
+jump box ec2 ssh
+
+ecs service autoscaling
+
+lambda eventbridge trigger
+
+
+
+
+
+
+
+jump box ec2 ssh
+2026-05-29 16:00:19,201 | INFO | Dense resource_aws_batch_compute_environment_example_usage_001 dist=1.3253
+2026-05-29 16:00:19,202 | INFO | Dense data_source_aws_ec2_serial_console_access_timeouts_004 dist=1.3455
+2026-05-29 16:00:19,202 | INFO | Dense resource_aws_launch_template_argument_reference_005 dist=1.3461
+2026-05-29 16:00:19,202 | INFO | Dense resource_aws_cloud9_environment_ec2_overview_000 dist=1.3484
+2026-05-29 16:00:19,202 | INFO | Dense resource_aws_ec2_image_block_public_access_timeouts_004 dist=1.3575
+2026-05-29 16:00:19,202 | INFO | Dense resource_aws_cloud9_environment_ec2_example_usage_001 dist=1.3585
+2026-05-29 16:00:19,202 | INFO | Dense resource_aws_ec2_host_overview_000 dist=1.3595
+2026-05-29 16:00:19,202 | INFO | Dense data_source_aws_ec2_host_timeouts_006 dist=1.3637
+2026-05-29 16:00:19,203 | INFO | Dense data_source_aws_ec2_host_overview_000 dist=1.3671
+2026-05-29 16:00:19,203 | INFO | Dense resource_aws_ec2_image_block_public_access_overview_000 dist=1.3693
+2026-05-29 16:00:19,203 | INFO | Dense resource_aws_ecs_cluster_example_usage_002 dist=1.3711
+2026-05-29 16:00:19,203 | INFO | Dense resource_aws_ami_copy_overview_000 dist=1.3731
+2026-05-29 16:00:19,203 | INFO | Dense resource_aws_ec2_host_example_usage_001 dist=1.3772
+2026-05-29 16:00:19,204 | INFO | Dense resource_aws_ec2_image_block_public_access_example_usage_001 dist=1.3785
+2026-05-29 16:00:19,204 | INFO | Dense resource_aws_ec2_host_timeouts_004 dist=1.3789
+2026-05-29 16:00:19,204 | INFO | Dense resource_aws_instance_argument_reference_016 dist=1.3818
+2026-05-29 16:00:19,204 | INFO | Dense resource_aws_launch_template_example_usage_001 dist=1.3838
+2026-05-29 16:00:19,204 | INFO | Dense resource_aws_ecs_service_example_usage_006 dist=1.3858
+2026-05-29 16:00:19,204 | INFO | Dense resource_aws_instance_argument_reference_017 dist=1.3874
+2026-05-29 16:00:19,204 | INFO | Dense resource_aws_ec2_instance_connect_endpoint_overview_000 dist=1.3884
+2026-05-29 16:00:19,204 | INFO | Dense resource_aws_ec2_instance_connect_endpoint_timeouts_003 dist=1.3889
+2026-05-29 16:00:19,204 | INFO | Dense data_source_aws_ec2_host_example_usage_001 dist=1.3943
+2026-05-29 16:00:19,204 | INFO | Dense data_source_aws_ec2_serial_console_access_argument_reference_002 dist=1.3944
+2026-05-29 16:00:19,204 | INFO | Dense data_source_aws_instance_timeouts_007 dist=1.3954
+2026-05-29 16:00:19,205 | INFO | Dense data_source_aws_eips_timeouts_004 dist=1.3963
+2026-05-29 16:00:19,205 | INFO | Dense data_source_aws_eip_timeouts_007 dist=1.3996
+2026-05-29 16:00:19,205 | INFO | Dense resource_aws_eip_timeouts_008 dist=1.4002
+2026-05-29 16:00:19,205 | INFO | Dense resource_aws_ec2_serial_console_access_example_usage_001 dist=1.4033
+2026-05-29 16:00:19,205 | INFO | Dense resource_aws_eip_example_usage_004 dist=1.4041
+2026-05-29 16:00:19,205 | INFO | Dense resource_aws_batch_job_definition_example_usage_005 dist=1.4043
+2026-05-29 16:00:19,206 | INFO | Dense resource_aws_batch_compute_environment_argument_reference_007 dist=1.4056
+2026-05-29 16:00:19,206 | INFO | Dense data_source_aws_ec2_serial_console_access_overview_000 dist=1.4064
+2026-05-29 16:00:19,206 | INFO | Dense resource_aws_ecs_service_example_usage_010 dist=1.4066
+2026-05-29 16:00:19,206 | INFO | Dense data_source_aws_eip_example_usage_003 dist=1.4068
+2026-05-29 16:00:19,206 | INFO | Dense resource_aws_ami_copy_timeouts_004 dist=1.4072
+2026-05-29 16:00:19,206 | INFO | Dense resource_aws_ec2_secondary_network_timeouts_004 dist=1.4080
+2026-05-29 16:00:19,206 | INFO | Dense resource_aws_codebuild_project_example_usage_002 dist=1.4117
+2026-05-29 16:00:19,206 | INFO | Dense resource_aws_ecs_express_gateway_service_argument_reference_010 dist=1.4125
+2026-05-29 16:00:19,206 | INFO | Dense resource_aws_ec2_serial_console_access_overview_000 dist=1.4126
+2026-05-29 16:00:19,207 | INFO | Dense resource_aws_ami_from_instance_overview_000 dist=1.4141
+2026-05-29 16:00:19,207 | INFO | Dense resource_aws_ecs_cluster_example_usage_001 dist=1.4146
+2026-05-29 16:00:19,207 | INFO | Dense resource_aws_instance_timeouts_030 dist=1.4146
+2026-05-29 16:00:19,207 | INFO | Dense resource_aws_instance_argument_reference_007 dist=1.4150
+2026-05-29 16:00:19,207 | INFO | Dense resource_aws_ec2_image_block_public_access_import_005 dist=1.4156
+2026-05-29 16:00:19,207 | INFO | Dense resource_aws_ec2_secondary_subnet_overview_000 dist=1.4157
+2026-05-29 16:00:19,207 | INFO | Dense resource_aws_batch_job_definition_example_usage_004 dist=1.4161
+2026-05-29 16:00:19,208 | INFO | Dense data_source_aws_launch_template_timeouts_006 dist=1.4187
+2026-05-29 16:00:19,208 | INFO | Dense resource_aws_ebs_snapshot_import_argument_reference_003 dist=1.4195
+2026-05-29 16:00:19,208 | INFO | Dense resource_aws_ami_from_instance_timeouts_003 dist=1.4213
+2026-05-29 16:00:19,208 | INFO | Dense resource_aws_ebs_volume_copy_timeouts_004 dist=1.4217
+2026-05-29 16:00:19,208 | INFO | Dense data_source_aws_ebs_encryption_by_default_timeouts_004 dist=1.4220
+2026-05-29 16:00:19,208 | INFO | Dense data_source_aws_ec2_instance_type_timeouts_007 dist=1.4240
+2026-05-29 16:00:19,209 | INFO | Dense data_source_aws_ec2_serial_console_access_example_usage_001 dist=1.4241
+2026-05-29 16:00:19,209 | INFO | Dense resource_aws_ec2_secondary_network_overview_000 dist=1.4243
+2026-05-29 16:00:19,209 | INFO | Dense resource_aws_ecs_cluster_argument_reference_005 dist=1.4250
+2026-05-29 16:00:19,209 | INFO | Dense resource_aws_key_pair_overview_000 dist=1.4255
+2026-05-29 16:00:19,209 | INFO | Dense data_source_aws_ec2_instance_types_timeouts_005 dist=1.4281
+2026-05-29 16:00:19,209 | INFO | Dense resource_aws_ec2_instance_connect_endpoint_example_usage_001 dist=1.4281
+2026-05-29 16:00:19,209 | INFO | Dense resource_aws_instance_argument_reference_011 dist=1.4284
+2026-05-29 16:00:19,209 | INFO | Dense resource_aws_instance_overview_000 dist=1.4306
+2026-05-29 16:00:19,210 | INFO | Dense resource_aws_ecs_express_gateway_service_timeouts_015 dist=1.4311
+2026-05-29 16:00:19,210 | INFO | Dense resource_aws_ec2_host_import_005 dist=1.4312
+2026-05-29 16:00:19,210 | INFO | Dense resource_aws_m2_environment_example_usage_003 dist=1.4312
+2026-05-29 16:00:19,210 | INFO | Dense resource_aws_instance_example_usage_004 dist=1.4327
+2026-05-29 16:00:19,210 | INFO | Dense resource_aws_ec2_serial_console_access_import_004 dist=1.4330
+2026-05-29 16:00:19,210 | INFO | Dense resource_aws_ami_overview_000 dist=1.4330
+2026-05-29 16:00:19,210 | INFO | Dense data_source_aws_ami_timeouts_010 dist=1.4334
+2026-05-29 16:00:19,210 | INFO | Dense resource_aws_ec2_instance_state_timeouts_004 dist=1.4334
+2026-05-29 16:00:19,210 | INFO | Dense data_source_aws_ebs_snapshot_timeouts_004 dist=1.4335
+2026-05-29 16:00:19,211 | INFO | Dense resource_aws_ami_argument_reference_003 dist=1.4353
+2026-05-29 16:00:19,211 | INFO | Dense resource_aws_ami_timeouts_006 dist=1.4363
+2026-05-29 16:00:19,211 | INFO | Dense resource_aws_codebuild_project_example_usage_001 dist=1.4370
+2026-05-29 16:00:19,211 | INFO | Retrieved=[]
+2026-05-29 16:00:19,212 | INFO | Hybrid 3.983s | Dense = 0 Sparse = 72 Final = ['resource_aws_security_group_example_usage_004', 'resource_aws_security_group_example_usage_006', 'data_source_aws_instance_overview_000', 'resource_aws_instance_overview_000', 'resource_aws_instance_import_032', 'data_source_aws_instance_timeouts_007', 'data_source_aws_instance_example_usage_001', 'resource_aws_instance_timeouts_030', 'resource_aws_instance_import_031', 'resource_aws_rekognition_stream_processor_argument_reference_011', 'resource_aws_instance_argument_reference_019', 'resource_aws_instance_argument_reference_015', 'data_source_aws_instance_argument_reference_003', 'resource_aws_instance_argument_reference_023', 'resource_aws_instance_example_usage_002', 'resource_aws_instance_argument_reference_020', 'resource_aws_instance_argument_reference_013', 'resource_aws_instance_argument_reference_018', 'resource_aws_instance_example_usage_003', 'resource_aws_instance_example_usage_001', 'resource_aws_instance_import_033', 'resource_aws_instance_example_usage_004', 'resource_aws_instance_attribute_reference_029', 'resource_aws_instance_argument_reference_025']
+2026-05-29 16:00:19,213 | INFO | PRE RERANK resource_aws_security_group_example_usage_004 | example usage
+2026-05-29 16:00:19,213 | INFO | PRE RERANK resource_aws_security_group_example_usage_006 | example usage
+2026-05-29 16:00:19,213 | INFO | PRE RERANK data_source_aws_instance_overview_000 | overview
+2026-05-29 16:00:19,213 | INFO | PRE RERANK resource_aws_instance_overview_000 | overview
+2026-05-29 16:00:19,213 | INFO | PRE RERANK resource_aws_instance_import_032 | import
+2026-05-29 16:00:19,213 | INFO | PRE RERANK data_source_aws_instance_timeouts_007 | timeouts
+2026-05-29 16:00:19,213 | INFO | PRE RERANK data_source_aws_instance_example_usage_001 | example usage
+2026-05-29 16:00:19,213 | INFO | PRE RERANK resource_aws_instance_timeouts_030 | timeouts
+2026-05-29 16:00:19,214 | INFO | PRE RERANK resource_aws_instance_import_031 | import
+2026-05-29 16:00:19,214 | INFO | PRE RERANK resource_aws_rekognition_stream_processor_argument_reference_011 | argument reference
+2026-05-29 16:00:19,214 | INFO | PRE RERANK resource_aws_instance_argument_reference_019 | argument reference
+2026-05-29 16:00:19,214 | INFO | PRE RERANK resource_aws_instance_argument_reference_015 | argument reference
+2026-05-29 16:00:19,214 | INFO | PRE RERANK data_source_aws_instance_argument_reference_003 | argument reference
+2026-05-29 16:00:19,214 | INFO | PRE RERANK resource_aws_instance_argument_reference_023 | argument reference
+2026-05-29 16:00:19,214 | INFO | PRE RERANK resource_aws_instance_example_usage_002 | example usage
+2026-05-29 16:00:19,214 | INFO | PRE RERANK resource_aws_instance_argument_reference_020 | argument reference
+2026-05-29 16:00:19,214 | INFO | PRE RERANK resource_aws_instance_argument_reference_013 | argument reference
+2026-05-29 16:00:19,214 | INFO | PRE RERANK resource_aws_instance_argument_reference_018 | argument reference
+2026-05-29 16:00:19,215 | INFO | PRE RERANK resource_aws_instance_example_usage_003 | example usage
+2026-05-29 16:00:19,215 | INFO | PRE RERANK resource_aws_instance_example_usage_001 | example usage
+2026-05-29 16:00:19,215 | INFO | PRE RERANK resource_aws_instance_import_033 | import
+2026-05-29 16:00:19,215 | INFO | PRE RERANK resource_aws_instance_example_usage_004 | example usage
+2026-05-29 16:00:19,215 | INFO | PRE RERANK resource_aws_instance_attribute_reference_029 | attribute reference
+2026-05-29 16:00:19,215 | INFO | PRE RERANK resource_aws_instance_argument_reference_025 | argument reference
+2026-05-29 16:01:04,921 | INFO | Global retrieval returned 4 rows
+2026-05-29 16:01:04,921 | INFO | Plan: 2 resources in order: ['aws_instance', 'aws_security_group']
+2026-05-29 16:01:04,921 | INFO | Built XML context | primary=1 support=0 examples=1 chars=2018
+2026-05-29 16:01:05,247 | INFO | Generating: aws_instance
+2026-05-29 16:01:26,841 | INFO | HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-29 16:01:26,847 | INFO | RAW RESPONSE aws_instance:
+resource "aws_instance" "instance" {
+  ami                         = var.ami_id
+  instance_type               = var.instance_type
+  subnet_id                   = var.subnet_id
+  vpc_security_group_ids      = var.vpc_security_group_ids
+  key_name                    = var.ssh_key_name
+  associate_public_ip_address = var.associate_public_ip_address
+
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  root_block_device {
+    volume_size = var.root_volume_size
+    volume_type = var.root_volume_type
+    encrypted   = true
+  }
+
+  tags = var.tags
+}
+2026-05-29 16:01:26,848 | INFO | Generated aws_instance — vars: ['ami_id', 'associate_public_ip_address', 'instance_type', 'root_volume_size', 'root_volume_type', 'ssh_key_name', 'subnet_id', 'tags', 'vpc_security_group_ids']
+2026-05-29 16:01:26,848 | INFO | Built XML context | primary=0 support=0 examples=1 chars=2456
+2026-05-29 16:01:26,849 | INFO | Generating: aws_security_group
+2026-05-29 16:01:50,911 | INFO | HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-29 16:01:50,912 | INFO | RAW RESPONSE aws_security_group:
+
+2026-05-29 16:01:50,913 | INFO | Generated aws_security_group — vars: []
+
+========================================================================
+Query:     jump box ec2 ssh
+Resources: ['aws_instance', 'aws_security_group']
+========================================================================
+
+────────────────────────────── providers.tf ──────────────────────────────
+
+terraform {
+required_version = ">= 1.5"
+
+required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+    region = var.region
+
+    default_tags {
+      tags = var.tags
+    }
+}
+
+
+────────────────────────────── variables.tf ──────────────────────────────
+
+variable "ami_id" {
+  description = "TODO: describe ami_id"
+  type        = string
+}
+
+variable "associate_public_ip_address" {
+  description = "TODO: describe associate_public_ip_address"
+  type        = string
+}
+
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+  default     = "dev"
+}
+
+variable "instance_type" {
+  description = "EC2 instance type"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "project" {
+  description = "Project name"
+  type        = string
+  default     = "myproject"
+}
+
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "root_volume_size" {
+  description = "TODO: describe root_volume_size"
+  type        = string
+}
+
+variable "root_volume_type" {
+  description = "TODO: describe root_volume_type"
+  type        = string
+}
+
+variable "ssh_key_name" {
+  description = "TODO: describe ssh_key_name"
+  type        = string
+}
+
+variable "subnet_id" {
+  description = "TODO: describe subnet_id"
+  type        = string
+}
+
+variable "tags" {
+  description = "Resource tags"
+  type        = map(string)
+  default     = {
+    Environment = "dev"
+    Project     = "myproject"
+  }
+}
+
+variable "vpc_security_group_ids" {
+  description = "TODO: describe vpc_security_group_ids"
+  type        = string
+}
+
+
+────────────────────────────── main.tf ──────────────────────────────
+
+# aws_instance
+resource "aws_instance" "instance" {
+  ami                         = var.ami_id
+  instance_type               = var.instance_type
+  subnet_id                   = var.subnet_id
+  vpc_security_group_ids      = var.vpc_security_group_ids
+  key_name                    = var.ssh_key_name
+  associate_public_ip_address = var.associate_public_ip_address
+
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  root_block_device {
+    volume_size = var.root_volume_size
+    volume_type = var.root_volume_type
+    encrypted   = true
+  }
+
+  tags = var.tags
+}
+
+# aws_security_group
+
+
+
+────────────────────────────── outputs.tf ──────────────────────────────
+
+output "instance_id" {
+  description = "aws_instance id"
+  value       = aws_instance.instance.id
+}
+
+output "instance_public_ip" {
+  description = "aws_instance public_ip"
+  value       = aws_instance.instance.public_ip
+}
+
+output "security_group_id" {
+  description = "aws_security_group id"
+  value       = aws_security_group.security_group.id
+}
+
+
+
+
+
+eks cluster with node group
+ "aws_eks_access_entry": {
+        "hard": [
+            "aws_ecs_cluster"
+        ],
+        "optional": []
+    },
+    "aws_eks_access_policy_association": {
+        "hard": [
+            "aws_ecs_cluster",
+            "aws_iam_policy"
+        ],
+        "optional": []
+    },
+    "aws_eks_addon": {
+        "hard": [
+            "aws_ecs_cluster"
+        ],
+        "optional": [
+            "aws_iam_role"
+        ]
+    },
+    "aws_eks_cluster": {
+        "hard": [
+            "aws_iam_role",
+            "aws_subnet"
+        ],
+        "optional": [
+            "aws_acm_certificate",
+            "aws_ecs_cluster",
+            "aws_security_group",
+            "aws_vpc"
+        ]
+    },
+    "aws_eks_fargate_profile": {
+        "hard": [
+            "aws_ecs_cluster",
+            "aws_iam_role"
+        ],
+        "optional": [
+            "aws_subnet"
+        ]
+    },
+    "aws_eks_identity_provider_config": {
+        "hard": [
+            "aws_ecs_cluster"
+        ],
+        "optional": []
+    },
+    "aws_eks_node_group": {
+        "hard": [
+            "aws_ecs_cluster",
+            "aws_iam_role",
+            "aws_subnet"
+        ],
+        "optional": []
+    },
+    "aws_eks_pod_identity_association": {
+        "hard": [
+            "aws_ecs_cluster",
+            "aws_iam_role"
+        ],
+        "optional": []
+
+RESOURCE_DEPENDENCIES["aws_eks_node_group"]
+RESOURCE_DEPENDENCIES["aws_ecs_service"]
+RESOURCE_DEPENDENCIES["aws_nat_gateway"]
+RESOURCE_DEPENDENCIES["aws_cloudwatch_event_target"]
+RESOURCE_DEPENDENCIES["aws_lb"]
+
+DYNAMO DB
+2026-05-29 16:16:07,312 | INFO | Dense resource_aws_dynamodb_table_export_timeouts_007 dist=0.9504
+2026-05-29 16:16:07,312 | INFO | Dense resource_aws_dynamodb_table_replica_timeouts_004 dist=0.9512
+2026-05-29 16:16:07,312 | INFO | Dense resource_aws_dynamodb_table_timeouts_024 dist=0.9608
+2026-05-29 16:16:07,312 | INFO | Dense resource_aws_dax_cluster_timeouts_004 dist=0.9799
+2026-05-29 16:16:07,312 | INFO | Dense resource_aws_elasticache_serverless_cache_timeouts_011 dist=1.0707
+2026-05-29 16:16:07,313 | INFO | Dense resource_aws_db_event_subscription_timeouts_004 dist=1.0716
+2026-05-29 16:16:07,313 | INFO | Dense resource_aws_dms_event_subscription_timeouts_004 dist=1.0725
+2026-05-29 16:16:07,313 | INFO | Dense resource_aws_dms_replication_instance_timeouts_008 dist=1.0756
+2026-05-29 16:16:07,313 | INFO | Dense resource_aws_db_snapshot_timeouts_004 dist=1.0801
+2026-05-29 16:16:07,313 | INFO | Dense resource_aws_dms_endpoint_timeouts_017 dist=1.0811
+2026-05-29 16:16:07,313 | INFO | Dense resource_aws_dms_s3_endpoint_timeouts_008 dist=1.0854
+2026-05-29 16:16:07,313 | INFO | Dense resource_aws_qldb_stream_timeouts_005 dist=1.0855
+2026-05-29 16:16:07,313 | INFO | Dense resource_aws_elasticache_user_timeouts_006 dist=1.0867
+2026-05-29 16:16:07,313 | INFO | Dense resource_aws_qldb_ledger_timeouts_004 dist=1.0897
+2026-05-29 16:16:07,313 | INFO | Dense resource_aws_shield_drt_access_log_bucket_association_timeouts_004 dist=1.0946
+2026-05-29 16:16:07,313 | INFO | Dense resource_aws_networkmanager_dx_gateway_attachment_timeouts_004 dist=1.0967
+2026-05-29 16:16:07,313 | INFO | Dense resource_aws_route53_hosted_zone_dnssec_timeouts_004 dist=1.0979
+2026-05-29 16:16:07,314 | INFO | Dense resource_aws_db_instance_automated_backups_replication_timeouts_006 dist=1.0985
+2026-05-29 16:16:07,314 | INFO | Dense resource_aws_datazone_domain_timeouts_005 dist=1.1005
+2026-05-29 16:16:07,314 | INFO | Dense resource_aws_db_instance_timeouts_025 dist=1.1006
+2026-05-29 16:16:07,314 | INFO | Dense resource_aws_dms_replication_config_timeouts_005 dist=1.1019
+2026-05-29 16:16:07,314 | INFO | Dense data_source_aws_lb_trust_store_timeouts_004 dist=1.1062
+2026-05-29 16:16:07,314 | INFO | Dense resource_aws_elasticache_reserved_cache_node_timeouts_004 dist=1.1090
+2026-05-29 16:16:07,314 | INFO | Dense resource_aws_datasync_agent_timeouts_005 dist=1.1092
+2026-05-29 16:16:07,314 | INFO | Dense resource_aws_db_cluster_snapshot_timeouts_004 dist=1.1101
+2026-05-29 16:16:07,314 | INFO | Dense resource_drs_replication_configuration_template_timeouts_005 dist=1.1115
+2026-05-29 16:16:07,315 | INFO | Dense resource_aws_elasticsearch_domain_timeouts_023 dist=1.1115
+2026-05-29 16:16:07,315 | INFO | Dense resource_aws_docdb_event_subscription_timeouts_004 dist=1.1118
+2026-05-29 16:16:07,315 | INFO | Dense resource_aws_glue_trigger_timeouts_013 dist=1.1121
+2026-05-29 16:16:07,315 | INFO | Dense resource_aws_dsql_cluster_timeouts_004 dist=1.1128
+2026-05-29 16:16:07,315 | INFO | Dense resource_aws_rds_custom_db_engine_version_timeouts_007 dist=1.1142
+2026-05-29 16:16:07,315 | INFO | Dense resource_aws_route53domains_domain_timeouts_006 dist=1.1144
+2026-05-29 16:16:07,315 | INFO | Dense resource_aws_elasticache_cluster_timeouts_012 dist=1.1157
+2026-05-29 16:16:07,315 | INFO | Dense resource_aws_memorydb_snapshot_timeouts_004 dist=1.1168
+2026-05-29 16:16:07,315 | INFO | Dense resource_aws_elasticache_replication_group_timeouts_015 dist=1.1182
+2026-05-29 16:16:07,315 | INFO | Dense data_source_aws_ebs_default_kms_key_timeouts_004 dist=1.1186
+2026-05-29 16:16:07,316 | INFO | Dense resource_aws_route53_record_timeouts_017 dist=1.1199
+2026-05-29 16:16:07,316 | INFO | Dense resource_aws_route53_records_exclusive_timeouts_013 dist=1.1211
+2026-05-29 16:16:07,316 | INFO | Dense resource_aws_s3_bucket_timeouts_030 dist=1.1218
+2026-05-29 16:16:07,316 | INFO | Dense resource_aws_dx_gateway_association_timeouts_006 dist=1.1234
+2026-05-29 16:16:07,316 | INFO | Dense resource_aws_cloudfront_multitenant_distribution_timeouts_028 dist=1.1243
+2026-05-29 16:16:07,316 | INFO | Dense resource_aws_globalaccelerator_custom_routing_accelerator_timeouts_004 dist=1.1244
+2026-05-29 16:16:07,316 | INFO | Dense resource_aws_kinesis_firehose_delivery_stream_timeouts_053 dist=1.1245
+2026-05-29 16:16:07,316 | INFO | Dense resource_aws_lb_timeouts_015 dist=1.1252
+2026-05-29 16:16:07,316 | INFO | Dense resource_aws_dx_hosted_transit_virtual_interface_timeouts_004 dist=1.1252
+2026-05-29 16:16:07,316 | INFO | Dense resource_aws_elasticache_global_replication_group_timeouts_006 dist=1.1254
+2026-05-29 16:16:07,316 | INFO | Dense resource_aws_globalaccelerator_accelerator_timeouts_004 dist=1.1266
+2026-05-29 16:16:07,316 | INFO | Dense resource_aws_lexv2models_bot_locale_timeouts_006 dist=1.1276
+2026-05-29 16:16:07,317 | INFO | Dense resource_aws_dx_hosted_transit_virtual_interface_accepter_timeouts_004 dist=1.1283
+2026-05-29 16:16:07,317 | INFO | Dense data_source_aws_lb_timeouts_004 dist=1.1286
+2026-05-29 16:16:07,317 | INFO | Dense resource_aws_kms_custom_key_store_timeouts_007 dist=1.1294
+2026-05-29 16:16:07,317 | INFO | Dense resource_aws_route53_zone_timeouts_007 dist=1.1294
+2026-05-29 16:16:07,317 | INFO | Dense resource_aws_datasync_task_timeouts_015 dist=1.1296
+2026-05-29 16:16:07,317 | INFO | Dense resource_aws_cloudfront_trust_store_timeouts_007 dist=1.1296
+2026-05-29 16:16:07,317 | INFO | Dense data_source_aws_ec2_transit_gateway_dx_gateway_attachment_timeouts_005 dist=1.1304
+2026-05-29 16:16:07,317 | INFO | Dense resource_aws_route53domains_registered_domain_timeouts_006 dist=1.1312
+2026-05-29 16:16:07,318 | INFO | Dense resource_aws_cloudsearch_domain_timeouts_007 dist=1.1316
+2026-05-29 16:16:07,318 | INFO | Dense resource_aws_dx_gateway_timeouts_004 dist=1.1318
+2026-05-29 16:16:07,318 | INFO | Dense resource_aws_finspace_kx_database_timeouts_004 dist=1.1319
+2026-05-29 16:16:07,318 | INFO | Dense resource_aws_bedrockagent_agent_alias_timeouts_005 dist=1.1324
+2026-05-29 16:16:07,318 | INFO | Dense resource_aws_route53domains_delegation_signer_record_timeouts_004 dist=1.1333
+2026-05-29 16:16:07,318 | INFO | Dense resource_aws_cloudfront_key_value_store_timeouts_004 dist=1.1337
+2026-05-29 16:16:07,318 | INFO | Dense resource_aws_api_gateway_domain_name_timeouts_012 dist=1.1345
+2026-05-29 16:16:07,318 | INFO | Dense resource_aws_lex_bot_alias_timeouts_006 dist=1.1348
+2026-05-29 16:16:07,318 | INFO | Dense resource_aws_dms_replication_subnet_group_timeouts_005 dist=1.1355
+2026-05-29 16:16:07,318 | INFO | Dense resource_aws_dx_hosted_public_virtual_interface_accepter_timeouts_005 dist=1.1358
+2026-05-29 16:16:07,319 | INFO | Dense resource_aws_docdb_cluster_timeouts_008 dist=1.1358
+2026-05-29 16:16:07,319 | INFO | Dense resource_aws_docdb_cluster_snapshot_timeouts_004 dist=1.1359
+2026-05-29 16:16:07,319 | INFO | Dense resource_aws_eip_domain_name_timeouts_004 dist=1.1365
+2026-05-29 16:16:07,319 | INFO | Dense resource_aws_dx_transit_virtual_interface_timeouts_004 dist=1.1367
+2026-05-29 16:16:07,319 | INFO | Dense resource_aws_lexv2models_bot_timeouts_006 dist=1.1369
+2026-05-29 16:16:07,319 | INFO | Dense resource_aws_apigatewayv2_domain_name_timeouts_007 dist=1.1372
+2026-05-29 16:16:07,319 | INFO | Retrieved=['resource_aws_dynamodb_table_export_timeouts_007', 'resource_aws_dynamodb_table_replica_timeouts_004', 'resource_aws_dynamodb_table_timeouts_024', 'resource_aws_dax_cluster_timeouts_004', 'resource_aws_elasticache_serverless_cache_timeouts_011', 'resource_aws_db_event_subscription_timeouts_004', 'resource_aws_dms_event_subscription_timeouts_004', 'resource_aws_dms_replication_instance_timeouts_008', 'resource_aws_db_snapshot_timeouts_004', 'resource_aws_dms_endpoint_timeouts_017', 'resource_aws_dms_s3_endpoint_timeouts_008', 'resource_aws_qldb_stream_timeouts_005', 'resource_aws_elasticache_user_timeouts_006', 'resource_aws_qldb_ledger_timeouts_004', 'resource_aws_shield_drt_access_log_bucket_association_timeouts_004', 'resource_aws_networkmanager_dx_gateway_attachment_timeouts_004', 'resource_aws_route53_hosted_zone_dnssec_timeouts_004', 'resource_aws_db_instance_automated_backups_replication_timeouts_006', 'resource_aws_datazone_domain_timeouts_005', 'resource_aws_db_instance_timeouts_025', 'resource_aws_dms_replication_config_timeouts_005', 'data_source_aws_lb_trust_store_timeouts_004', 'resource_aws_elasticache_reserved_cache_node_timeouts_004', 'resource_aws_datasync_agent_timeouts_005', 'resource_aws_db_cluster_snapshot_timeouts_004', 'resource_drs_replication_configuration_template_timeouts_005', 'resource_aws_elasticsearch_domain_timeouts_023', 'resource_aws_docdb_event_subscription_timeouts_004', 'resource_aws_glue_trigger_timeouts_013', 'resource_aws_dsql_cluster_timeouts_004', 'resource_aws_rds_custom_db_engine_version_timeouts_007', 'resource_aws_route53domains_domain_timeouts_006', 'resource_aws_elasticache_cluster_timeouts_012', 'resource_aws_memorydb_snapshot_timeouts_004', 'resource_aws_elasticache_replication_group_timeouts_015', 'data_source_aws_ebs_default_kms_key_timeouts_004', 'resource_aws_route53_record_timeouts_017', 'resource_aws_route53_records_exclusive_timeouts_013', 'resource_aws_s3_bucket_timeouts_030', 'resource_aws_dx_gateway_association_timeouts_006', 'resource_aws_cloudfront_multitenant_distribution_timeouts_028', 'resource_aws_globalaccelerator_custom_routing_accelerator_timeouts_004', 'resource_aws_kinesis_firehose_delivery_stream_timeouts_053', 'resource_aws_lb_timeouts_015', 'resource_aws_dx_hosted_transit_virtual_interface_timeouts_004', 'resource_aws_elasticache_global_replication_group_timeouts_006', 'resource_aws_globalaccelerator_accelerator_timeouts_004', 'resource_aws_lexv2models_bot_locale_timeouts_006', 'resource_aws_dx_hosted_transit_virtual_interface_accepter_timeouts_004', 'data_source_aws_lb_timeouts_004', 'resource_aws_kms_custom_key_store_timeouts_007', 'resource_aws_route53_zone_timeouts_007', 'resource_aws_datasync_task_timeouts_015', 'resource_aws_cloudfront_trust_store_timeouts_007', 'data_source_aws_ec2_transit_gateway_dx_gateway_attachment_timeouts_005', 'resource_aws_route53domains_registered_domain_timeouts_006', 'resource_aws_cloudsearch_domain_timeouts_007', 'resource_aws_dx_gateway_timeouts_004', 'resource_aws_finspace_kx_database_timeouts_004', 'resource_aws_bedrockagent_agent_alias_timeouts_005', 'resource_aws_route53domains_delegation_signer_record_timeouts_004', 'resource_aws_cloudfront_key_value_store_timeouts_004', 'resource_aws_api_gateway_domain_name_timeouts_012', 'resource_aws_lex_bot_alias_timeouts_006', 'resource_aws_dms_replication_subnet_group_timeouts_005', 'resource_aws_dx_hosted_public_virtual_interface_accepter_timeouts_005', 'resource_aws_docdb_cluster_timeouts_008', 'resource_aws_docdb_cluster_snapshot_timeouts_004', 'resource_aws_eip_domain_name_timeouts_004', 'resource_aws_dx_transit_virtual_interface_timeouts_004', 'resource_aws_lexv2models_bot_timeouts_006', 'resource_aws_apigatewayv2_domain_name_timeouts_007']
+2026-05-29 16:16:07,321 | INFO | Hybrid 2.723s | Dense = 72 Sparse = 72 Final = ['resource_aws_dynamodb_table_export_timeouts_007', 'resource_aws_dynamodb_table_replica_timeouts_004', 'resource_aws_dax_cluster_timeouts_004', 'resource_aws_dynamodb_table_argument_reference_021', 'resource_aws_dynamodb_table_example_usage_002', 'resource_aws_dynamodb_table_timeouts_024', 'resource_aws_dynamodb_table_argument_reference_008', 'resource_aws_dynamodb_contributor_insights_overview_000', 'resource_aws_elasticache_serverless_cache_timeouts_011', 'resource_aws_dynamodb_global_table_overview_000', 'resource_aws_db_event_subscription_timeouts_004', 'resource_aws_dynamodb_resource_policy_import_005', 'resource_aws_dms_event_subscription_timeouts_004', 'resource_aws_dynamodb_table_item_import_004', 'resource_aws_dms_replication_instance_timeouts_008', 'resource_aws_dynamodb_table_export_import_009', 'resource_aws_db_snapshot_timeouts_004', 'resource_aws_dynamodb_global_table_attribute_reference_004', 'resource_aws_dms_endpoint_timeouts_017', 'resource_aws_dynamodb_resource_policy_overview_000', 'resource_aws_dms_s3_endpoint_timeouts_008', 'data_source_aws_dynamodb_table_overview_000', 'resource_aws_qldb_stream_timeouts_005', 'data_source_aws_dynamodb_backups_overview_000']
+2026-05-29 16:16:07,321 | INFO | PRE RERANK resource_aws_dynamodb_table_export_timeouts_007 | timeouts
+2026-05-29 16:16:07,321 | INFO | PRE RERANK resource_aws_dynamodb_table_replica_timeouts_004 | timeouts
+2026-05-29 16:16:07,321 | INFO | PRE RERANK resource_aws_dax_cluster_timeouts_004 | timeouts
+2026-05-29 16:16:07,322 | INFO | PRE RERANK resource_aws_dynamodb_table_argument_reference_021 | argument reference
+2026-05-29 16:16:07,322 | INFO | PRE RERANK resource_aws_dynamodb_table_example_usage_002 | example usage
+2026-05-29 16:16:07,322 | INFO | PRE RERANK resource_aws_dynamodb_table_timeouts_024 | timeouts
+2026-05-29 16:16:07,322 | INFO | PRE RERANK resource_aws_dynamodb_table_argument_reference_008 | argument reference
+2026-05-29 16:16:07,322 | INFO | PRE RERANK resource_aws_dynamodb_contributor_insights_overview_000 | overview
+2026-05-29 16:16:07,322 | INFO | PRE RERANK resource_aws_elasticache_serverless_cache_timeouts_011 | timeouts
+2026-05-29 16:16:07,322 | INFO | PRE RERANK resource_aws_dynamodb_global_table_overview_000 | overview
+2026-05-29 16:16:07,323 | INFO | PRE RERANK resource_aws_db_event_subscription_timeouts_004 | timeouts
+2026-05-29 16:16:07,323 | INFO | PRE RERANK resource_aws_dynamodb_resource_policy_import_005 | import
+2026-05-29 16:16:07,323 | INFO | PRE RERANK resource_aws_dms_event_subscription_timeouts_004 | timeouts
+2026-05-29 16:16:07,323 | INFO | PRE RERANK resource_aws_dynamodb_table_item_import_004 | import
+2026-05-29 16:16:07,323 | INFO | PRE RERANK resource_aws_dms_replication_instance_timeouts_008 | timeouts
+2026-05-29 16:16:07,323 | INFO | PRE RERANK resource_aws_dynamodb_table_export_import_009 | import
+2026-05-29 16:16:07,323 | INFO | PRE RERANK resource_aws_db_snapshot_timeouts_004 | timeouts
+2026-05-29 16:16:07,323 | INFO | PRE RERANK resource_aws_dynamodb_global_table_attribute_reference_004 | attribute reference
+2026-05-29 16:16:07,323 | INFO | PRE RERANK resource_aws_dms_endpoint_timeouts_017 | timeouts
+2026-05-29 16:16:07,323 | INFO | PRE RERANK resource_aws_dynamodb_resource_policy_overview_000 | overview
+2026-05-29 16:16:07,324 | INFO | PRE RERANK resource_aws_dms_s3_endpoint_timeouts_008 | timeouts
+2026-05-29 16:16:07,324 | INFO | PRE RERANK data_source_aws_dynamodb_table_overview_000 | overview
+2026-05-29 16:16:07,324 | INFO | PRE RERANK resource_aws_qldb_stream_timeouts_005 | timeouts
+2026-05-29 16:16:07,324 | INFO | PRE RERANK data_source_aws_dynamodb_backups_overview_000 | overview
+2026-05-29 16:16:23,976 | INFO | Global retrieval returned 8 rows
+2026-05-29 16:16:23,976 | INFO | Plan: 1 resources in order: ['aws_dynamodb_table']
+2026-05-29 16:16:23,977 | INFO | Built XML context | primary=2 support=0 examples=0 chars=2686
+2026-05-29 16:16:24,272 | INFO | Generating: aws_dynamodb_table
+2026-05-29 16:16:49,322 | INFO | HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-29 16:16:49,328 | INFO | RAW RESPONSE aws_dynamodb_table:
+
+2026-05-29 16:16:49,329 | INFO | Generated aws_dynamodb_table — vars: []
+
+========================================================================
+Query:     dynamodb ttl
+Resources: ['aws_dynamodb_table']
+========================================================================
+
+────────────────────────────── providers.tf ──────────────────────────────
+
+terraform {
+required_version = ">= 1.5"
+
+required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+    region = var.region
+
+    default_tags {
+      tags = var.tags
+    }
+}
+
+
+────────────────────────────── variables.tf ──────────────────────────────
+
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+  default     = "dev"
+}
+
+variable "project" {
+  description = "Project name"
+  type        = string
+  default     = "myproject"
+}
+
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "tags" {
+  description = "Resource tags"
+  type        = map(string)
+  default     = {
+    Environment = "dev"
+    Project     = "myproject"
+  }
+}
+
+
+────────────────────────────── main.tf ──────────────────────────────
+
+# aws_dynamodb_table
+
+
+
+────────────────────────────── outputs.tf ──────────────────────────────
+
+# No outputs defined
+
+
+ecs fargate service behind alb
+
+2026-05-29 16:18:03,927 | INFO | HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+2026-05-29 16:18:03,928 | INFO | HyDE=**Resource:** `aws_alb`  
+**Example:** `aws_alb.example` with `name = "web-alb"`, `subnets = ["subnet-123"]`, `security_
+2026-05-29 16:18:05,614 | INFO | HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-05-29 16:18:06,045 | INFO | Dense resource_aws_lb_target_group_example_usage_004 dist=0.6910
+2026-05-29 16:18:06,046 | INFO | Dense resource_aws_lb_target_group_overview_000 dist=0.7528
+2026-05-29 16:18:06,046 | INFO | Dense resource_aws_lb_overview_000 dist=0.7560
+2026-05-29 16:18:06,046 | INFO | Dense resource_aws_lb_listener_example_usage_007 dist=0.7750
+2026-05-29 16:18:06,046 | INFO | Dense resource_aws_lb_target_group_example_usage_001 dist=0.7785
+2026-05-29 16:18:06,046 | INFO | Dense resource_aws_lb_example_usage_003 dist=0.7808
+2026-05-29 16:18:06,046 | INFO | Dense resource_aws_lb_listener_example_usage_001 dist=0.7903
+2026-05-29 16:18:06,046 | INFO | Dense resource_aws_lb_target_group_attachment_overview_000 dist=0.7915
+2026-05-29 16:18:06,047 | INFO | Dense resource_aws_elb_example_usage_001 dist=0.7949
+2026-05-29 16:18:06,047 | INFO | Dense resource_aws_lb_target_group_example_usage_002 dist=0.7958
+2026-05-29 16:18:06,047 | INFO | Dense data_source_aws_lb_overview_000 dist=0.7996
+2026-05-29 16:18:06,047 | INFO | Dense resource_aws_lb_example_usage_002 dist=0.7997
+2026-05-29 16:18:06,047 | INFO | Dense resource_aws_lb_target_group_example_usage_003 dist=0.8001
+2026-05-29 16:18:06,047 | INFO | Dense resource_aws_lb_example_usage_001 dist=0.8008
+2026-05-29 16:18:06,047 | INFO | Dense resource_aws_lambda_alias_example_usage_002 dist=0.8062
+2026-05-29 16:18:06,047 | INFO | Dense resource_aws_lambda_alias_example_usage_003 dist=0.8096
+2026-05-29 16:18:06,047 | INFO | Dense resource_aws_ecs_service_argument_reference_026 dist=0.8151
+2026-05-29 16:18:06,047 | INFO | Dense resource_aws_ecs_service_argument_reference_025 dist=0.8152
+2026-05-29 16:18:06,048 | INFO | Dense resource_aws_ecs_service_argument_reference_039 dist=0.8224
+2026-05-29 16:18:06,048 | INFO | Dense resource_aws_lb_listener_example_usage_002 dist=0.8269
+2026-05-29 16:18:06,048 | INFO | Dense resource_aws_lb_argument_reference_013 dist=0.8309
+2026-05-29 16:18:06,048 | INFO | Dense data_source_aws_lb_target_group_example_usage_001 dist=0.8358
+2026-05-29 16:18:06,048 | INFO | Dense resource_aws_eks_fargate_profile_example_usage_001 dist=0.8361
+2026-05-29 16:18:06,048 | INFO | Dense resource_aws_ecs_service_example_usage_006 dist=0.8367
+2026-05-29 16:18:06,048 | INFO | Dense data_source_aws_lb_target_group_overview_000 dist=0.8370
+2026-05-29 16:18:06,048 | INFO | Dense resource_aws_lb_listener_example_usage_004 dist=0.8428
+2026-05-29 16:18:06,048 | INFO | Dense resource_aws_lb_target_group_attachment_example_usage_001 dist=0.8446
+2026-05-29 16:18:06,049 | INFO | Dense resource_aws_lb_example_usage_004 dist=0.8448
+2026-05-29 16:18:06,049 | INFO | Dense resource_aws_lb_argument_reference_007 dist=0.8448
+2026-05-29 16:18:06,049 | INFO | Dense resource_aws_vpclattice_target_group_example_usage_003 dist=0.8460
+2026-05-29 16:18:06,049 | INFO | Dense resource_aws_lb_target_group_example_usage_006 dist=0.8522
+2026-05-29 16:18:06,049 | INFO | Dense resource_aws_lb_listener_overview_000 dist=0.8575
+2026-05-29 16:18:06,049 | INFO | Dense data_source_aws_lb_example_usage_001 dist=0.8580
+2026-05-29 16:18:06,049 | INFO | Dense resource_aws_elb_argument_reference_002 dist=0.8611
+2026-05-29 16:18:06,049 | INFO | Dense resource_aws_ecs_service_example_usage_001 dist=0.8612
+2026-05-29 16:18:06,049 | INFO | Dense resource_aws_ecs_cluster_example_usage_002 dist=0.8616
+2026-05-29 16:18:06,050 | INFO | Dense resource_aws_ecs_service_argument_reference_040 dist=0.8623
+2026-05-29 16:18:06,050 | INFO | Dense resource_aws_lb_listener_rule_overview_000 dist=0.8630
+2026-05-29 16:18:06,050 | INFO | Dense resource_aws_eks_fargate_profile_example_usage_002 dist=0.8633
+2026-05-29 16:18:06,050 | INFO | Dense resource_aws_lb_target_group_argument_reference_015 dist=0.8655
+2026-05-29 16:18:06,050 | INFO | Dense resource_aws_ecs_service_example_usage_004 dist=0.8669
+2026-05-29 16:18:06,050 | INFO | Dense resource_aws_batch_compute_environment_example_usage_002 dist=0.8686
+2026-05-29 16:18:06,050 | INFO | Dense data_source_aws_lambda_alias_example_usage_004 dist=0.8709
+2026-05-29 16:18:06,050 | INFO | Dense resource_aws_eks_fargate_profile_argument_reference_003 dist=0.8711
+2026-05-29 16:18:06,050 | INFO | Dense resource_aws_ecs_service_argument_reference_027 dist=0.8729
+2026-05-29 16:18:06,050 | INFO | Dense resource_aws_ecs_task_set_load_balancer_006 dist=0.8740
+2026-05-29 16:18:06,051 | INFO | Dense resource_aws_elb_import_006 dist=0.8762
+2026-05-29 16:18:06,051 | INFO | Dense data_source_aws_lambda_alias_example_usage_002 dist=0.8768
+2026-05-29 16:18:06,051 | INFO | Dense data_source_aws_elb_example_usage_001 dist=0.8772
+2026-05-29 16:18:06,051 | INFO | Dense resource_aws_placement_group_example_usage_001 dist=0.8783
+2026-05-29 16:18:06,051 | INFO | Dense resource_aws_lb_import_016 dist=0.8785
+2026-05-29 16:18:06,051 | INFO | Dense resource_aws_lb_listener_argument_reference_013 dist=0.8795
+2026-05-29 16:18:06,052 | INFO | Dense resource_aws_lb_listener_example_usage_008 dist=0.8803
+2026-05-29 16:18:06,052 | INFO | Dense resource_aws_elb_overview_000 dist=0.8811
+2026-05-29 16:18:06,052 | INFO | Dense resource_aws_lb_target_group_argument_reference_008 dist=0.8814
+2026-05-29 16:18:06,052 | INFO | Dense resource_aws_ecs_service_argument_reference_014 dist=0.8825
+2026-05-29 16:18:06,052 | INFO | Dense resource_aws_ecs_service_example_usage_005 dist=0.8833
+2026-05-29 16:18:06,052 | INFO | Dense resource_aws_lb_listener_example_usage_003 dist=0.8833
+2026-05-29 16:18:06,052 | INFO | Dense resource_aws_sfn_alias_example_usage_001 dist=0.8834
+2026-05-29 16:18:06,052 | INFO | Dense data_source_aws_elb_argument_reference_002 dist=0.8841
+2026-05-29 16:18:06,053 | INFO | Dense resource_aws_autoscaling_group_argument_reference_031 dist=0.8843
+2026-05-29 16:18:06,053 | INFO | Dense resource_aws_ecs_express_gateway_service_argument_reference_011 dist=0.8847
+2026-05-29 16:18:06,053 | INFO | Dense resource_aws_elb_attachment_overview_000 dist=0.8857
+2026-05-29 16:18:06,053 | INFO | Dense resource_aws_lb_target_group_argument_reference_009 dist=0.8859
+2026-05-29 16:18:06,053 | INFO | Dense resource_aws_ecs_cluster_argument_reference_007 dist=0.8863
+2026-05-29 16:18:06,053 | INFO | Dense resource_aws_lb_target_group_argument_reference_007 dist=0.8871
+2026-05-29 16:18:06,053 | INFO | Dense resource_aws_eks_fargate_profile_overview_000 dist=0.8874
+2026-05-29 16:18:06,053 | INFO | Dense resource_aws_lb_target_group_import_019 dist=0.8874
+2026-05-29 16:18:06,053 | INFO | Dense resource_aws_lambda_alias_example_usage_001 dist=0.8875
+2026-05-29 16:18:06,053 | INFO | Dense resource_aws_lb_target_group_attachment_example_usage_002 dist=0.8876
+2026-05-29 16:18:06,054 | INFO | Dense resource_aws_lb_listener_argument_reference_017 dist=0.8879
+2026-05-29 16:18:06,054 | INFO | Dense resource_aws_lb_target_group_argument_reference_012 dist=0.8895
+2026-05-29 16:18:06,054 | INFO | Retrieved=['resource_aws_lb_target_group_example_usage_004', 'resource_aws_lb_target_group_overview_000', 'resource_aws_lb_overview_000', 'resource_aws_lb_listener_example_usage_007', 'resource_aws_lb_target_group_example_usage_001', 'resource_aws_lb_example_usage_003', 'resource_aws_lb_listener_example_usage_001', 'resource_aws_lb_target_group_attachment_overview_000', 'resource_aws_elb_example_usage_001', 'resource_aws_lb_target_group_example_usage_002', 'data_source_aws_lb_overview_000', 'resource_aws_lb_example_usage_002', 'resource_aws_lb_target_group_example_usage_003', 'resource_aws_lb_example_usage_001', 'resource_aws_lambda_alias_example_usage_002', 'resource_aws_lambda_alias_example_usage_003', 'resource_aws_ecs_service_argument_reference_026', 'resource_aws_ecs_service_argument_reference_025', 'resource_aws_ecs_service_argument_reference_039', 'resource_aws_lb_listener_example_usage_002', 'resource_aws_lb_argument_reference_013', 'data_source_aws_lb_target_group_example_usage_001', 'resource_aws_eks_fargate_profile_example_usage_001', 'resource_aws_ecs_service_example_usage_006', 'data_source_aws_lb_target_group_overview_000', 'resource_aws_lb_listener_example_usage_004', 'resource_aws_lb_target_group_attachment_example_usage_001', 'resource_aws_lb_example_usage_004', 'resource_aws_lb_argument_reference_007', 'resource_aws_vpclattice_target_group_example_usage_003', 'resource_aws_lb_target_group_example_usage_006', 'resource_aws_lb_listener_overview_000', 'data_source_aws_lb_example_usage_001', 'resource_aws_elb_argument_reference_002', 'resource_aws_ecs_service_example_usage_001', 'resource_aws_ecs_cluster_example_usage_002', 'resource_aws_ecs_service_argument_reference_040', 'resource_aws_lb_listener_rule_overview_000', 'resource_aws_eks_fargate_profile_example_usage_002', 'resource_aws_lb_target_group_argument_reference_015', 'resource_aws_ecs_service_example_usage_004', 'resource_aws_batch_compute_environment_example_usage_002', 'data_source_aws_lambda_alias_example_usage_004', 'resource_aws_eks_fargate_profile_argument_reference_003', 'resource_aws_ecs_service_argument_reference_027', 'resource_aws_ecs_task_set_load_balancer_006', 'resource_aws_elb_import_006', 'data_source_aws_lambda_alias_example_usage_002', 'data_source_aws_elb_example_usage_001', 'resource_aws_placement_group_example_usage_001', 'resource_aws_lb_import_016', 'resource_aws_lb_listener_argument_reference_013', 'resource_aws_lb_listener_example_usage_008', 'resource_aws_elb_overview_000', 'resource_aws_lb_target_group_argument_reference_008', 'resource_aws_ecs_service_argument_reference_014', 'resource_aws_ecs_service_example_usage_005', 'resource_aws_lb_listener_example_usage_003', 'resource_aws_sfn_alias_example_usage_001', 'data_source_aws_elb_argument_reference_002', 'resource_aws_autoscaling_group_argument_reference_031', 'resource_aws_ecs_express_gateway_service_argument_reference_011', 'resource_aws_elb_attachment_overview_000', 'resource_aws_lb_target_group_argument_reference_009', 'resource_aws_ecs_cluster_argument_reference_007', 'resource_aws_lb_target_group_argument_reference_007', 'resource_aws_eks_fargate_profile_overview_000', 'resource_aws_lb_target_group_import_019', 'resource_aws_lambda_alias_example_usage_001', 'resource_aws_lb_target_group_attachment_example_usage_002', 'resource_aws_lb_listener_argument_reference_017', 'resource_aws_lb_target_group_argument_reference_012']
+2026-05-29 16:18:06,056 | INFO | Hybrid 2.128s | Dense = 72 Sparse = 72 Final = ['resource_aws_lb_overview_000', 'resource_aws_lb_target_group_example_usage_004', 'resource_aws_lb_example_usage_003', 'data_source_aws_lb_overview_000', 'resource_aws_ecs_cluster_example_usage_002', 'resource_aws_lb_example_usage_002', 'resource_aws_lb_example_usage_001', 'resource_aws_vpclattice_target_group_example_usage_003', 'resource_aws_ecs_service_argument_reference_027', 'resource_aws_ecs_cluster_argument_reference_007', 'data_source_aws_lb_example_usage_001', 'resource_aws_lb_example_usage_004', 'resource_aws_lb_argument_reference_013', 'resource_aws_lb_import_016', 'resource_aws_batch_compute_environment_example_usage_002', 'resource_aws_eks_fargate_profile_example_usage_002', 'resource_aws_ecs_service_argument_reference_014', 'resource_aws_ecs_cluster_capacity_providers_example_usage_001', 'resource_aws_lb_target_group_overview_000', 'resource_aws_ecs_task_definition_example_usage_007', 'resource_aws_lb_listener_example_usage_007', 'resource_aws_lb_target_group_example_usage_001', 'data_source_aws_ecs_task_execution_example_usage_001', 'data_source_aws_ecs_service_attribute_reference_003']
+2026-05-29 16:18:06,056 | INFO | PRE RERANK resource_aws_lb_overview_000 | overview
+2026-05-29 16:18:06,056 | INFO | PRE RERANK resource_aws_lb_target_group_example_usage_004 | example usage
+2026-05-29 16:18:06,056 | INFO | PRE RERANK resource_aws_lb_example_usage_003 | example usage
+2026-05-29 16:18:06,056 | INFO | PRE RERANK data_source_aws_lb_overview_000 | overview
+2026-05-29 16:18:06,056 | INFO | PRE RERANK resource_aws_ecs_cluster_example_usage_002 | example usage
+2026-05-29 16:18:06,056 | INFO | PRE RERANK resource_aws_lb_example_usage_002 | example usage
+2026-05-29 16:18:06,056 | INFO | PRE RERANK resource_aws_lb_example_usage_001 | example usage
+2026-05-29 16:18:06,057 | INFO | PRE RERANK resource_aws_vpclattice_target_group_example_usage_003 | example usage
+2026-05-29 16:18:06,057 | INFO | PRE RERANK resource_aws_ecs_service_argument_reference_027 | argument reference
+2026-05-29 16:18:06,057 | INFO | PRE RERANK resource_aws_ecs_cluster_argument_reference_007 | argument reference
+2026-05-29 16:18:06,057 | INFO | PRE RERANK data_source_aws_lb_example_usage_001 | example usage
+2026-05-29 16:18:06,058 | INFO | PRE RERANK resource_aws_lb_example_usage_004 | example usage
+2026-05-29 16:18:06,058 | INFO | PRE RERANK resource_aws_lb_argument_reference_013 | argument reference
+2026-05-29 16:18:06,058 | INFO | PRE RERANK resource_aws_lb_import_016 | import
+2026-05-29 16:18:06,058 | INFO | PRE RERANK resource_aws_batch_compute_environment_example_usage_002 | example usage
+2026-05-29 16:18:06,058 | INFO | PRE RERANK resource_aws_eks_fargate_profile_example_usage_002 | example usage
+2026-05-29 16:18:06,058 | INFO | PRE RERANK resource_aws_ecs_service_argument_reference_014 | argument reference
+2026-05-29 16:18:06,058 | INFO | PRE RERANK resource_aws_ecs_cluster_capacity_providers_example_usage_001 | example usage
+2026-05-29 16:18:06,058 | INFO | PRE RERANK resource_aws_lb_target_group_overview_000 | overview
+2026-05-29 16:18:06,058 | INFO | PRE RERANK resource_aws_ecs_task_definition_example_usage_007 | example usage
+2026-05-29 16:18:06,059 | INFO | PRE RERANK resource_aws_lb_listener_example_usage_007 | example usage
+2026-05-29 16:18:06,059 | INFO | PRE RERANK resource_aws_lb_target_group_example_usage_001 | example usage
+2026-05-29 16:18:06,059 | INFO | PRE RERANK data_source_aws_ecs_task_execution_example_usage_001 | example usage
+2026-05-29 16:18:06,059 | INFO | PRE RERANK data_source_aws_ecs_service_attribute_reference_003 | attribute reference
+2026-05-29 16:18:44,715 | INFO | Global retrieval returned 13 rows
+2026-05-29 16:18:44,716 | INFO | Plan: 6 resources in order: ['aws_ecs_cluster', 'aws_ecs_task_definition', 'aws_ecs_service', 'aws_security_group', 'aws_appautoscaling_target', 'aws_lb']
+2026-05-29 16:18:44,716 | INFO | Built XML context | primary=1 support=0 examples=1 chars=2967
+2026-05-29 16:18:45,027 | INFO | Generating: aws_ecs_cluster
+2026-05-29 16:19:11,593 | INFO | HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-29 16:19:11,603 | INFO | RAW RESPONSE aws_ecs_cluster:
+resource "aws_ecs_cluster" "ecs_cluster" {
+  name = var.ecs_cluster_name
+
+  configuration {
+    managed_storage_configuration {
+      fargate_ephemeral_storage_kms_key_id = var.fargate_ephemeral_storage_kms_key_arn
+    }
+  }
+
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+
+  tags = var.tags
+}
+2026-05-29 16:19:11,603 | INFO | Generated aws_ecs_cluster — vars: ['ecs_cluster_name', 'fargate_ephemeral_storage_kms_key_arn', 'tags']
+2026-05-29 16:19:11,603 | INFO | Built XML context | primary=0 support=0 examples=1 chars=948
+2026-05-29 16:19:11,603 | INFO | Generating: aws_ecs_task_definition
+2026-05-29 16:19:43,238 | INFO | HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-29 16:19:43,243 | INFO | RAW RESPONSE aws_ecs_task_definition:
+resource "aws_ecs_task_definition" "ecs_task_definition" {
+  family                   = var.task_family
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = var.task_cpu
+  memory                   = var.task_memory
+  execution_role_arn       = var.execution_role_arn
+  task_role_arn            = var.task_role_arn
+
+  container_definitions = jsonencode([
+    {
+      name      = var.container_name
+      image     = var.container_image
+      essential = true
+      portMappings = [
+        {
+          containerPort = var.container_port
+          hostPort      = var.container_port
+          protocol      = "tcp"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = var.log_group_name
+          awslogs-region        = var.region
+          awslogs-stream-prefix = var.log_stream_prefix
+        }
+      }
+    }
+  ])
+
+  tags = var.tags
+}
+2026-05-29 16:19:43,244 | INFO | Generated aws_ecs_task_definition — vars: ['container_image', 'container_name', 'container_port', 'execution_role_arn', 'log_group_name', 'log_stream_prefix', 'region', 'tags', 'task_cpu', 'task_family', 'task_memory', 'task_role_arn']
+2026-05-29 16:19:43,244 | INFO | Built XML context | primary=2 support=0 examples=0 chars=1707
+2026-05-29 16:19:43,244 | INFO | Generating: aws_ecs_service
+2026-05-29 16:20:06,973 | INFO | HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-29 16:20:06,975 | INFO | RAW RESPONSE aws_ecs_service:
+resource "aws_ecs_service" "ecs_service" {
+  name                               = var.service_name
+  cluster                            = aws_ecs_cluster.ecs_cluster.id
+  task_definition                    = aws_ecs_task_definition.ecs_task_definition.arn
+  desired_count                      = var.desired_count
+  launch_type                        = "FARGATE"
+  enable_execute_command             = var.enable_execute_command
+  health_check_grace_period_seconds  = var.health_check_grace_period_seconds
+
+  network_configuration {
+    subnets         = var.subnet_ids
+    security_groups = var.security_group_ids
+    assign_public_ip = var.assign_public_ip
+  }
+
+  load_balancer {
+    target_group_arn = var.target_group_arn
+    container_name   = var.container_name
+    container_port   = var.container_port
+  }
+
+  tags = var.tags
+}
+2026-05-29 16:20:06,975 | INFO | Generated aws_ecs_service — vars: ['assign_public_ip', 'container_name', 'container_port', 'desired_count', 'enable_execute_command', 'health_check_grace_period_seconds', 'security_group_ids', 'service_name', 'subnet_ids', 'tags', 'target_group_arn']
+2026-05-29 16:20:06,975 | WARNING | Global retrieval missed aws_security_group
+2026-05-29 16:20:06,984 | INFO | Built XML context | primary=3 support=0 examples=0 chars=1234
+2026-05-29 16:20:06,984 | INFO | Generating: aws_security_group
+2026-05-29 16:20:51,698 | INFO | HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-29 16:20:51,699 | INFO | RAW RESPONSE aws_security_group:
+
+2026-05-29 16:20:51,699 | INFO | Generated aws_security_group — vars: []
+2026-05-29 16:20:51,699 | WARNING | Global retrieval missed aws_appautoscaling_target
+2026-05-29 16:20:51,708 | INFO | Built XML context | primary=0 support=0 examples=3 chars=1685
+2026-05-29 16:20:51,708 | INFO | Generating: aws_appautoscaling_target
+2026-05-29 16:21:01,907 | INFO | HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-29 16:21:01,908 | INFO | RAW RESPONSE aws_appautoscaling_target:
+resource "aws_appautoscaling_target" "appautoscaling_target" {
+  max_capacity       = var.ecs_desired_count_max
+  min_capacity       = var.ecs_desired_count_min
+  resource_id        = "service/${aws_ecs_cluster.ecs_cluster.name}/${aws_ecs_service.ecs_service.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+2026-05-29 16:21:01,908 | INFO | Generated aws_appautoscaling_target — vars: ['ecs_desired_count_max', 'ecs_desired_count_min']
+2026-05-29 16:21:01,909 | INFO | Built XML context | primary=2 support=0 examples=0 chars=1286
+2026-05-29 16:21:01,909 | INFO | Generating: aws_lb
+2026-05-29 16:21:51,049 | INFO | HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-29 16:21:51,050 | INFO | RAW RESPONSE aws_lb:
+resource "aws_lb" "lb" {
+  name                       = var.lb_name
+  internal                   = var.lb_internal
+  security_groups            = [aws_security_group.security_group.id]
+  subnets                    = var.lb_subnet_ids
+  enable_deletion_protection = var.enable_deletion_protection
+  tags                       = var.tags
+}
+2026-05-29 16:21:51,051 | INFO | Generated aws_lb — vars: ['enable_deletion_protection', 'lb_internal', 'lb_name', 'lb_subnet_ids', 'tags']
+2026-05-29 16:21:51,051 | WARNING | Validation: Reference to aws_security_group found but not defined in main.tf
+
+========================================================================
+Query:     ecs fargate service behind alb
+Resources: ['aws_ecs_cluster', 'aws_ecs_task_definition', 'aws_ecs_service', 'aws_security_group', 'aws_appautoscaling_target', 'aws_lb']
+
+Warnings:
+  ⚠  Reference to aws_security_group found but not defined in main.tf
+========================================================================
+
+────────────────────────────── providers.tf ──────────────────────────────
+
+terraform {
+required_version = ">= 1.5"
+
+required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+    region = var.region
+
+    default_tags {
+      tags = var.tags
+    }
+}
+
+
+────────────────────────────── variables.tf ──────────────────────────────
+
+variable "assign_public_ip" {
+  description = "TODO: describe assign_public_ip"
+  type        = string
+}
+
+variable "container_image" {
+  description = "TODO: describe container_image"
+  type        = string
+}
+
+variable "container_name" {
+  description = "TODO: describe container_name"
+  type        = string
+}
+
+variable "container_port" {
+  description = "TODO: describe container_port"
+  type        = string
+}
+
+variable "desired_count" {
+  description = "Desired task/instance count"
+  type        = number
+  default     = 1
+}
+
+variable "ecs_cluster_name" {
+  description = "TODO: describe ecs_cluster_name"
+  type        = string
+}
+
+variable "ecs_desired_count_max" {
+  description = "TODO: describe ecs_desired_count_max"
+  type        = string
+}
+
+variable "ecs_desired_count_min" {
+  description = "TODO: describe ecs_desired_count_min"
+  type        = string
+}
+
+variable "enable_deletion_protection" {
+  description = "TODO: describe enable_deletion_protection"
+  type        = string
+}
+
+variable "enable_execute_command" {
+  description = "TODO: describe enable_execute_command"
+  type        = string
+}
+
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+  default     = "dev"
+}
+
+variable "execution_role_arn" {
+  description = "TODO: describe execution_role_arn"
+  type        = string
+}
+
+variable "fargate_ephemeral_storage_kms_key_arn" {
+  description = "TODO: describe fargate_ephemeral_storage_kms_key_arn"
+  type        = string
+}
+
+variable "health_check_grace_period_seconds" {
+  description = "TODO: describe health_check_grace_period_seconds"
+  type        = string
+}
+
+variable "lb_internal" {
+  description = "TODO: describe lb_internal"
+  type        = string
+}
+
+variable "lb_name" {
+  description = "TODO: describe lb_name"
+  type        = string
+}
+
+variable "lb_subnet_ids" {
+  description = "TODO: describe lb_subnet_ids"
+  type        = string
+}
+
+variable "log_group_name" {
+  description = "TODO: describe log_group_name"
+  type        = string
+}
+
+variable "log_stream_prefix" {
+  description = "TODO: describe log_stream_prefix"
+  type        = string
+}
+
+variable "project" {
+  description = "Project name"
+  type        = string
+  default     = "myproject"
+}
+
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "security_group_ids" {
+  description = "TODO: describe security_group_ids"
+  type        = string
+}
+
+variable "service_name" {
+  description = "TODO: describe service_name"
+  type        = string
+}
+
+variable "subnet_ids" {
+  description = "TODO: describe subnet_ids"
+  type        = string
+}
+
+variable "tags" {
+  description = "Resource tags"
+  type        = map(string)
+  default     = {
+    Environment = "dev"
+    Project     = "myproject"
+  }
+}
+
+variable "target_group_arn" {
+  description = "TODO: describe target_group_arn"
+  type        = string
+}
+
+variable "task_cpu" {
+  description = "TODO: describe task_cpu"
+  type        = string
+}
+
+variable "task_family" {
+  description = "TODO: describe task_family"
+  type        = string
+}
+
+variable "task_memory" {
+  description = "TODO: describe task_memory"
+  type        = string
+}
+
+variable "task_role_arn" {
+  description = "TODO: describe task_role_arn"
+  type        = string
+}
+
+
+────────────────────────────── main.tf ──────────────────────────────
+
+# aws_ecs_cluster
+resource "aws_ecs_cluster" "ecs_cluster" {
+  name = var.ecs_cluster_name
+
+  configuration {
+    managed_storage_configuration {
+      fargate_ephemeral_storage_kms_key_id = var.fargate_ephemeral_storage_kms_key_arn
+    }
+  }
+
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+
+  tags = var.tags
+}
+
+# aws_ecs_task_definition
+resource "aws_ecs_task_definition" "ecs_task_definition" {
+  family                   = var.task_family
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = var.task_cpu
+  memory                   = var.task_memory
+  execution_role_arn       = var.execution_role_arn
+  task_role_arn            = var.task_role_arn
+
+  container_definitions = jsonencode([
+    {
+      name      = var.container_name
+      image     = var.container_image
+      essential = true
+      portMappings = [
+        {
+          containerPort = var.container_port
+          hostPort      = var.container_port
+          protocol      = "tcp"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = var.log_group_name
+          awslogs-region        = var.region
+          awslogs-stream-prefix = var.log_stream_prefix
+        }
+      }
+    }
+  ])
+
+  tags = var.tags
+}
+
+# aws_ecs_service
+resource "aws_ecs_service" "ecs_service" {
+  name                               = var.service_name
+  cluster                            = aws_ecs_cluster.ecs_cluster.id
+  task_definition                    = aws_ecs_task_definition.ecs_task_definition.arn
+  desired_count                      = var.desired_count
+  launch_type                        = "FARGATE"
+  enable_execute_command             = var.enable_execute_command
+  health_check_grace_period_seconds  = var.health_check_grace_period_seconds
+
+  network_configuration {
+    subnets         = var.subnet_ids
+    security_groups = var.security_group_ids
+    assign_public_ip = var.assign_public_ip
+  }
+
+  load_balancer {
+    target_group_arn = var.target_group_arn
+    container_name   = var.container_name
+    container_port   = var.container_port
+  }
+
+  tags = var.tags
+}
+
+# aws_security_group
+
+
+# aws_appautoscaling_target
+resource "aws_appautoscaling_target" "appautoscaling_target" {
+  max_capacity       = var.ecs_desired_count_max
+  min_capacity       = var.ecs_desired_count_min
+  resource_id        = "service/${aws_ecs_cluster.ecs_cluster.name}/${aws_ecs_service.ecs_service.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+# aws_lb
+resource "aws_lb" "lb" {
+  name                       = var.lb_name
+  internal                   = var.lb_internal
+  security_groups            = [aws_security_group.security_group.id]
+  subnets                    = var.lb_subnet_ids
+  enable_deletion_protection = var.enable_deletion_protection
+  tags                       = var.tags
+}
+
+
+────────────────────────────── outputs.tf ──────────────────────────────
+
+output "ecs_cluster_arn" {
+  description = "aws_ecs_cluster arn"
+  value       = aws_ecs_cluster.ecs_cluster.arn
+}
+
+output "ecs_cluster_id" {
+  description = "aws_ecs_cluster id"
+  value       = aws_ecs_cluster.ecs_cluster.id
+}
+
+output "ecs_service_name" {
+  description = "aws_ecs_service name"
+  value       = aws_ecs_service.ecs_service.name
+}
+
+output "security_group_id" {
+  description = "aws_security_group id"
+  value       = aws_security_group.security_group.id
+}
+
+output "alb_arn" {
+  description = "aws_lb arn"
+  value       = aws_lb.lb.arn
+}
+
+output "alb_dns_name" {
+  description = "aws_lb dns_name"
+  value       = aws_lb.lb.dns_name
+}
+
+
+
+
+
+
+
+
+python generator.py "cross account iam role"
+python generator.py "dynamodb ttl"
+
+
+
+
+
+Bug 4 fix — max_completion_tokens too low for complex resources
+max_completion_tokens=MAX_TOKENS  # default 2048 — truncates ecs_task_definition
+COMPLEX_RESOURCES = {"aws_ecs_task_definition", "aws_eks_cluster", "aws_lb", "aws_rds_cluster"}
+max_tokens = 4096 if node.entity in COMPLEX_RESOURCES else MAX_TOKENS
+
+
+
+
+If this were my project
+
+The next change would NOT be:
+
+reranker
+embeddings
+prompt
+
+It would be:
+
+Entity enrichment
+
+After retrieval:
+
+for entity in planned_entities:
+
+not just missing ones.
+
+Inject:
+
+top 2 argument reference chunks
+top 1 example chunk
+
+for every planned entity.
+
+So:
+
+aws_lb_target_group
+
+always gets:
+
+argument_reference
+argument_reference
+example_usage
+
+even if retrieval found only:
+
+example_usage
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,198 @@
+[
+  {
+    "query": "efs mount ec2",
+    "primary": ["aws_efs_mount_target"],
+    "acceptable": [
+      "aws_efs_file_system"
+    ],
+    "category": "EFS",
+    "type": "operational"
+  },
+
+  {
+    "query": "ecs cluster arguments",
+    "primary": ["aws_ecs_cluster"],
+    "acceptable": [],
+    "category": "ECS",
+    "type": "argument"
+  },
+
+  {
+    "query": "jump box ec2 ssh",
+    "primary": ["aws_instance"],
+    "acceptable": [
+      "aws_security_group"
+    ],
+    "category": "EC2",
+    "type": "operational"
+  },
+
+  {
+    "query": "lambda timeout",
+    "primary": ["aws_lambda_function"],
+    "acceptable": [],
+    "category": "Lambda",
+    "type": "argument"
+  },
+
+  {
+    "query": "security group ingress rules",
+    "primary": ["aws_security_group_rule"],
+    "acceptable": [
+      "aws_security_group"
+    ],
+    "category": "Networking",
+    "type": "security"
+  },
+
+  {
+    "query": "kms key rotation",
+    "primary": ["aws_kms_key"],
+    "acceptable": [],
+    "category": "KMS",
+    "type": "security"
+  },
+
+  {
+    "query": "internet gateway vpc",
+    "primary": ["aws_internet_gateway"],
+    "acceptable": [],
+    "category": "VPC",
+    "type": "networking"
+  },
+
+  {
+    "query": "transit gateway attachment",
+    "primary": ["aws_ec2_transit_gateway_vpc_attachment"],
+    "acceptable": [
+      "aws_ec2_transit_gateway_attachment"
+    ],
+    "category": "Networking",
+    "type": "dependency"
+  },
+
+  {
+    "query": "delete s3 objects after 30 days",
+    "primary": ["aws_s3_bucket_lifecycle_configuration"],
+    "acceptable": [],
+    "category": "S3",
+    "type": "lifecycle"
+  },
+
+  {
+    "query": "lambda eventbridge trigger",
+    "primary": ["aws_lambda_permission"],
+    "acceptable": [
+      "aws_cloudwatch_event_rule",
+      "aws_cloudwatch_event_target"
+    ],
+    "category": "Lambda",
+    "type": "architecture"
+  },
+
+  {
+    "query": "eventbridge cron schedule",
+    "primary": ["aws_scheduler_schedule"],
+    "acceptable": [
+      "aws_cloudwatch_event_rule"
+    ],
+    "category": "EventBridge",
+    "type": "scheduling"
+  },
+
+  {
+    "query": "step function lambda workflow",
+    "primary": ["aws_sfn_state_machine"],
+    "acceptable": [
+      "aws_lambda_function"
+    ],
+    "category": "StepFunctions",
+    "type": "architecture"
+  },
+
+  {
+  "query": "cross account iam role",
+  "primary": [
+    "aws_iam_role"
+  ],
+  "acceptable": [],
+  "category": "IAM",
+  "type": "security"
+  },
+
+  {
+  "query": "assume role policy",
+  "primary": [
+    "aws_iam_policy_document"
+  ],
+  "acceptable": [
+    "aws_iam_role_policy"
+  ],
+  "category": "IAM",
+  "type": "security"
+  },
+
+  {
+  "query": "nat gateway private subnet",
+  "primary": [
+    "aws_nat_gateway"
+  ],
+  "acceptable": [
+    "aws_route_table"
+  ],
+  "category": "VPC",
+  "type": "networking"
+  },
+
+  {
+  "query": "route53 cname record",
+  "primary": [
+    "aws_route53_record"
+  ],
+  "acceptable": [],
+  "category": "DNS",
+  "type": "dns"
+  },
+
+  {
+  "query": "ecs service autoscaling",
+  "primary": [
+    "aws_appautoscaling_target"
+  ],
+  "acceptable": [
+    "aws_appautoscaling_policy"
+  ],
+  "category": "ECS",
+  "type": "architecture"
+  },
+
+  {
+  "query": "lambda environment variables",
+  "primary": [
+    "aws_lambda_function"
+  ],
+  "acceptable": [],
+  "category": "Lambda",
+  "type": "argument"
+  },
+
+  {
+  "query": "dynamodb ttl",
+  "primary": [
+    "aws_dynamodb_table"
+  ],
+  "acceptable": [],
+  "category": "DynamoDB",
+  "type": "lifecycle"
+  },
+
+  {
+  "query": "terraform ignore changes",
+  "primary": [
+    "meta_argument_lifecycle"
+  ],
+  "acceptable": [],
+  "category": "Terraform",
+  "type": "lifecycle"
+  }
+]

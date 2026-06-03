@@ -1,0 +1,1289 @@
+Query (exit/help): "How do I set up a jump box or bastion host?"
+2026-05-23 14:02:34,489 | INFO | Loading BM25 index from C:\Users\Suryaday Nath\Downloads\Projects\RAG\vectorstore\bm25.pkl into memory...
+2026-05-23 14:02:34,649 | INFO | BM25 index loaded successfully
+2026-05-23 14:02:35,841 | INFO | HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-05-23 14:02:35,963 | INFO | Retrieved=[]
+2026-05-23 14:02:35,963 | INFO | Hybrid 1.475s | Dense = 0 Sparse = 24 Final = ['resource_aws_rekognition_stream_processor_8', 'resource_aws_rekognition_stream_processor_9', 'resource_aws_codestarconnections_host_0', 'resource_aws_codeconnections_host_0', 'data_source_aws_instances_0', 'resource_aws_kendra_data_source_27', 'resource_aws_cloudwatch_event_bus_4', 'resource_aws_bedrockagent_data_source_20']
+==========================================================================================
+Rank: 1
+Chunk: resource_aws_rekognition_stream_processor_8
+Dense: N/A
+Sparse: 17.00
+RRF: 0.01639
+Service: Rekognition
+Entity: aws_rekognition_stream_processor
+Type: resource
+
+### `regions_of_interest`  
+* `bounding_box` - (Optional) Box representing a region of interest on screen. Only 1 per region is allowed. See [`bounding_box`](#bounding_box).
+* `polygon` - (Optional) Shape made up of up to 10 Point objects to define a region of interest. See [`polygon`](#polygon).
+
+==========================================================================================
+Rank: 2
+Chunk: resource_aws_rekognition_stream_processor_9
+Dense: N/A
+Sparse: 16.37
+RRF: 0.01613
+Service: Rekognition
+Entity: aws_rekognition_stream_processor
+Type: resource
+
+### `bounding_box`  
+A region can only have a single `bounding_box`  
+* `height` - (Required) Height of the bounding box as a ratio of the overall image height.
+* `wight` - (Required) Width of the bounding box as a ratio of the overall image width.
+* `left` - (Required) Left coordinate of the bounding box as a ratio of overall image width.
+* `top` - (Required) Top coordinate of the bounding box as a ratio of overall image height.
+
+==========================================================================================
+Rank: 3
+Chunk: resource_aws_codestarconnections_host_0
+Dense: N/A
+Sparse: 15.25
+RRF: 0.01587
+Service: CodeStar Connections
+Entity: aws_codestarconnections_host
+Type: resource
+
+# Resource: aws_codestarconnections_host  
+Provides a CodeStar Host.  
+~> **NOTE:** The `aws_codestarconnections_host` resource is created in the state `PENDING`. Authentication with the host provider must be completed in the AWS Console. For more information visit [Set up a pending host](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections-host-setup.html).
+
+==========================================================================================
+Rank: 4
+Chunk: resource_aws_codeconnections_host_0
+Dense: N/A
+Sparse: 15.15
+RRF: 0.01562
+Service: CodeConnections
+Entity: aws_codeconnections_host
+Type: resource
+
+# Resource: aws_codeconnections_host  
+Terraform resource for managing an AWS CodeConnections Host.  
+~> **NOTE:** The `aws_codeconnections_host` resource is created in the state `PENDING`. Authentication with the host provider must be completed in the AWS Console. For more information visit [Set up a pending host](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections-host-setup.html).
+
+==========================================================================================
+Rank: 5
+Chunk: data_source_aws_instances_0
+Dense: N/A
+Sparse: 14.11
+RRF: 0.01538
+Service: EC2 (Elastic Compute Cloud)
+Entity: aws_instances
+Type: data_source
+
+# Data Source: aws_instances  
+Use this data source to get IDs or IPs of Amazon EC2 instances to be referenced elsewhere,
+e.g., to allow easier migration from another management solution
+or to make it easier for an operator to connect through bastion host(s).  
+-> **Note:** It's a best practice to expose instance details via [outputs](https://www.terraform.io/docs/configuration/outputs.html)
+and [remote state](https://www.terraform.io/docs/state/remote.html) and
+**use [`terraform_remote_state`](https://www.terraform.io/docs/providers/terraform/d/remote_state.html)
+data source instead** if you manage referenced instances via Terraform.  
+~> **Note:** It's strongly discouraged to use this data...
+
+==========================================================================================
+Rank: 6
+Chunk: resource_aws_kendra_data_source_27
+Dense: N/A
+Sparse: 12.71
+RRF: 0.01515
+Service: Kendra
+Entity: aws_kendra_data_source
+Type: resource
+
+### urls Block  
+The `urls` configuration block supports the following arguments:  
+* `seed_url_configuration` - (Optional) A block that specifies the configuration of the seed or starting point URLs of the websites you want to crawl. You can choose to crawl only the website host names, or the website host names with subdomains, or the website host names with subdomains and other domains that the webpages link to. You can list up to `100` seed URLs. [Detailed below](#seed_url_configuration-block).
+* `site_maps_configuration` - (Optional) A block that specifies the configuration of the sitemap URLs of the websites you want to crawl. Only URLs belonging to the same website host names are crawl...
+
+==========================================================================================
+Rank: 7
+Chunk: resource_aws_cloudwatch_event_bus_4
+Dense: N/A
+Sparse: 11.40
+RRF: 0.01493
+Service: EventBridge
+Entity: aws_cloudwatch_event_bus
+Type: resource
+
+#### Example Usage  
+The following example demonstrates how to set up logging for an EventBridge event bus to all three destinations: CloudWatch Logs, S3, and Data Firehose.
+
+==========================================================================================
+Rank: 8
+Chunk: resource_aws_bedrockagent_data_source_20
+Dense: N/A
+Sparse: 11.29
+RRF: 0.01471
+Service: Bedrock Agents
+Entity: aws_bedrockagent_data_source
+Type: resource
+
+### `crawler_limits` block  
+The `crawler_limits` configuration block supports the following arguments:  
+* `max_pages` - (Optional) Max number of web pages crawled from your source URLs, up to 25,000 pages.
+* `rate_limit` - (Optional) Max rate at which pages are crawled, up to 300 per minute per host.
+
+
+Query (exit/help): I want to host a static website using storage. How do I 
+configure the routing?
+2026-05-23 14:03:18,664 | INFO | HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-05-23 14:03:18,682 | INFO | Retrieved=[]
+2026-05-23 14:03:18,682 | INFO | Hybrid 1.113s | Dense = 0 Sparse = 24 Final = ['resource_aws_kendra_data_source_25', 'resource_aws_kendra_data_source_27', 'resource_aws_kendra_data_source_26', 'resource_aws_s3_bucket_29', 'resource_aws_kendra_data_source_24', 'resource_aws_s3_bucket_website_configuration_12', 'resource_aws_kendra_data_source_28', 'resource_aws_kendra_data_source_20']
+==========================================================================================
+Rank: 1
+Chunk: resource_aws_kendra_data_source_25
+Dense: N/A
+Sparse: 23.66
+RRF: 0.01639
+Service: Kendra
+Entity: aws_kendra_data_source
+Type: resource
+
+### basic_authentication Block  
+The `basic_authentication` configuration block supports the following arguments:  
+* `credentials` - (Required) Your secret ARN, which you can create in AWS Secrets Manager. You use a secret if basic authentication credentials are required to connect to a website. The secret stores your credentials of user name and password.
+* `host` - (Required) The name of the website host you want to connect to using authentication credentials. For example, the host name of `https://a.example.com/page1.html` is `"a.example.com"`.
+* `port` - (Required) The port number of the website host you want to connect to using authentication credentials. For example, the port for `htt...
+
+==========================================================================================
+Rank: 2
+Chunk: resource_aws_kendra_data_source_27
+Dense: N/A
+Sparse: 21.97
+RRF: 0.01613
+Service: Kendra
+Entity: aws_kendra_data_source
+Type: resource
+
+### urls Block  
+The `urls` configuration block supports the following arguments:  
+* `seed_url_configuration` - (Optional) A block that specifies the configuration of the seed or starting point URLs of the websites you want to crawl. You can choose to crawl only the website host names, or the website host names with subdomains, or the website host names with subdomains and other domains that the webpages link to. You can list up to `100` seed URLs. [Detailed below](#seed_url_configuration-block).
+* `site_maps_configuration` - (Optional) A block that specifies the configuration of the sitemap URLs of the websites you want to crawl. Only URLs belonging to the same website host names are crawl...
+
+==========================================================================================
+Rank: 3
+Chunk: resource_aws_kendra_data_source_26
+Dense: N/A
+Sparse: 21.08
+RRF: 0.01587
+Service: Kendra
+Entity: aws_kendra_data_source
+Type: resource
+
+### proxy_configuration Block  
+The `proxy_configuration` configuration block supports the following arguments:  
+* `credentials` - (Optional) Your secret ARN, which you can create in AWS Secrets Manager. The credentials are optional. You use a secret if web proxy credentials are required to connect to a website host. Amazon Kendra currently support basic authentication to connect to a web proxy server. The secret stores your credentials.
+* `host` - (Required) The name of the website host you want to connect to via a web proxy server. For example, the host name of `https://a.example.com/page1.html` is `"a.example.com"`.
+* `port` - (Required) The port number of the website host you want to co...
+==========================================================================================
+Rank: 4
+Chunk: resource_aws_s3_bucket_29
+Dense: N/A
+Sparse: 19.14
+RRF: 0.01562
+Service: S3 (Simple Storage)
+Entity: aws_s3_bucket
+Type: resource
+
+### Website  
+~> **NOTE:** Currently, changes to the `website` configuration of *existing* resources cannot be automatically detected by Terraform. To manage changes to the website configuration of an S3 bucket, use the `aws_s3_bucket_website_configuration` resource instead. If you use `website` on an `aws_s3_bucket`, Terraform will assume management over the configuration of the website of the S3 bucket, treating additional website configuration changes as drift. For this reason, `website` cannot be mixed with the external `aws_s3_bucket_website_configuration` resource for a given S3 bucket.  
+The `website` configuration block supports the following arguments:  
+* `index_document` - (Requir...
+
+==========================================================================================
+Rank: 5
+Chunk: resource_aws_kendra_data_source_24
+Dense: N/A
+Sparse: 18.92
+RRF: 0.01538
+Service: Kendra
+Entity: aws_kendra_data_source
+Type: resource
+
+### authentication_configuration Block  
+The `authentication_configuration` configuration block supports the following arguments:  
+* `basic_authentication` - (Optional) The list of configuration information that's required to connect to and crawl a website host using basic authentication credentials. The list includes the name and port number of the website host. [Detailed below](#basic_authentication-block).
+
+==========================================================================================
+Rank: 6
+Chunk: resource_aws_s3_bucket_website_configuration_12
+Dense: N/A
+Sparse: 18.21
+RRF: 0.01515
+Service: S3 (Simple Storage)
+Entity: aws_s3_bucket_website_configuration
+Type: resource
+
+#### Optional  
+* `account_id` (String) AWS Account where this resource is managed.
+* `region` (String) Region where this resource is managed.  
+In Terraform v1.5.0 and later, use an [`import` block](https://developer.hashicorp.com/terraform/language/import) to import S3 bucket website configuration using the `bucket` or using the `bucket` and `expected_bucket_owner` separated by a comma (`,`). For example:  
+If the owner (account ID) of the source bucket is the same account used to configure the Terraform AWS Provider, import using the `bucket`:  
+```terraform
+import {
+to = aws_s3_bucket_website_configuration.example
+id = "bucket-name"
+}
+```  
+If the owner (account ID) of the source bucket ...
+
+==========================================================================================
+Rank: 7
+Chunk: resource_aws_kendra_data_source_28
+Dense: N/A
+Sparse: 18.20
+RRF: 0.01493
+Service: Kendra
+Entity: aws_kendra_data_source
+Type: resource
+
+### seed_url_configuration Block  
+The `seed_url_configuration` configuration block supports the following arguments:  
+* `seed_urls` - (Required) The list of seed or starting point URLs of the websites you want to crawl. The list can include a maximum of `100` seed URLs. Array Members: Minimum number of `0` items. Maximum number of `100` items. Length Constraints: Minimum length of `1`. Maximum length of `2048`.
+* `web_crawler_mode` - (Optional) The default mode is set to `HOST_ONLY`. You can choose one of the following modes:
+* `HOST_ONLY` - crawl only the website host names. For example, if the seed URL is `"abc.example.com"`, then only URLs with host name `"abc.example.com"` are crawled....
+
+==========================================================================================
+Rank: 8
+Chunk: resource_aws_kendra_data_source_20
+Dense: N/A
+Sparse: 17.31
+RRF: 0.01471
+Service: Kendra
+Entity: aws_kendra_data_source
+Type: resource
+
+### web_crawler_configuration Block  
+~> The `web_crawler_configuration` argument is deprecated. Use [`template_configuration`](#template_configuration-block) instead, which supports the Amazon Kendra Web Crawler connector v2.0. See the [Amazon Kendra documentation](https://docs.aws.amazon.com/kendra/latest/dg/data-source-web-crawler.html) for additional details.  
+The `web_crawler_configuration` configuration block supports the following arguments:  
+* `authentication_configuration` - (Optional) A block with the configuration information required to connect to websites using authentication. You can connect to websites using basic authentication of user name and password. You use a secret in...
+
+Query (exit/help): "Is there a way to force my database to take a snapshot 
+right before I delete it?"
+2026-05-23 14:03:55,092 | INFO | HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-05-23 14:03:55,109 | INFO | Retrieved=[]
+2026-05-23 14:03:55,109 | INFO | Hybrid 0.566s | Dense = 0 Sparse = 24 Final = ['resource_aws_odb_cloud_autonomous_vm_cluster_4', 'resource_aws_lightsail_database_7', 'resource_aws_db_snapshot_2', 'resource_aws_db_cluster_snapshot_2', 'data_source_aws_db_cluster_snapshot_1', 'resource_aws_lakeformation_resource_lf_tags_1', 'resource_aws_rds_cluster_snapshot_copy_0', 'resource_aws_qldb_ledger_0']
+==========================================================================================
+Rank: 1
+Chunk: resource_aws_odb_cloud_autonomous_vm_cluster_4
+Dense: N/A
+Sparse: 16.92
+RRF: 0.01639
+Service: Oracle Database@AWS
+Entity: aws_odb_cloud_autonomous_vm_cluster
+Type: resource
+
+### maintenance_window  
+* `preference` - (Required) The preference for the maintenance window scheduling. Changing this will force terraform to create new resource.
+* `days_of_week` - (Optional) The days of the week when maintenance can be performed. Changing this will force terraform to create new resource.
+* `hours_of_day` - (Optional) The hours of the day when maintenance can be performed. Changing this will force terraform to create new resource.
+* `lead_time_in_weeks` - (Optional) The lead time in weeks before the maintenance window. Changing this will force terraform to create new resource.
+* `months` - (Optional) The months when maintenance can be performed. Changing this will force ...
+
+==========================================================================================
+Rank: 2
+Chunk: resource_aws_lightsail_database_7
+Dense: N/A
+Sparse: 16.12
+RRF: 0.01613
+Service: Lightsail
+Entity: aws_lightsail_database
+Type: resource
+
+* `preferred_maintenance_window` - (Optional) Weekly time range during which system maintenance can occur on your database. Must be in the ddd:hh24:mi-ddd:hh24:mi format. Specified in Coordinated Universal Time (UTC). Example: `Tue:17:00-Tue:17:30`
+* `publicly_accessible` - (Optional) Whether the database is accessible to resources outside of your Lightsail account. A value of true specifies a database that is available to resources outside of your Lightsail account. A value of false specifies a database that is available only to your Lightsail resources in the same region as your database.
+* `region` - (Optional) Region where this resource will be [managed](https://docs.aws.amazon.com/gener...
+
+==========================================================================================
+Rank: 3
+Chunk: resource_aws_db_snapshot_2
+Dense: N/A
+Sparse: 15.25
+RRF: 0.01587
+Service: RDS (Relational Database)
+Entity: aws_db_snapshot
+Type: resource
+
+## Argument Reference  
+This resource supports the following arguments:  
+* `region` - (Optional) Region where this resource will be [managed](https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints). Defaults to the Region set in the [provider configuration](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#aws-configuration-reference).
+* `db_instance_identifier` - (Required) The DB Instance Identifier from which to take the snapshot.
+* `db_snapshot_identifier` - (Required) The Identifier for the snapshot.
+* `shared_accounts` - (Optional) List of AWS Account IDs to share the snapshot with. Use `all` to make the snapshot public.
+* `tags` - (Optional) Key-v...
+
+==========================================================================================
+Rank: 4
+Chunk: resource_aws_db_cluster_snapshot_2
+Dense: N/A
+Sparse: 15.19
+RRF: 0.01562
+Service: RDS (Relational Database)
+Entity: aws_db_cluster_snapshot
+Type: resource
+
+## Argument Reference  
+This resource supports the following arguments:  
+* `region` - (Optional) Region where this resource will be [managed](https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints). Defaults to the Region set in the [provider configuration](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#aws-configuration-reference).
+* `db_cluster_identifier` - (Required) The DB Cluster Identifier from which to take the snapshot.
+* `db_cluster_snapshot_identifier` - (Required) The Identifier for the snapshot.
+* `shared_accounts` - (Optional) List of AWS Account IDs to share the snapshot with. Use `all` to make the snapshot public.
+* `tags` - (Optional)...
+
+==========================================================================================
+Rank: 5
+Chunk: data_source_aws_db_cluster_snapshot_1
+Dense: N/A
+Sparse: 14.20
+RRF: 0.01538
+Service: RDS (Relational Database)
+Entity: aws_db_cluster_snapshot
+Type: data_source
+
+## Example Usage  
+```terraform
+data "aws_db_cluster_snapshot" "development_final_snapshot" {
+db_cluster_identifier = "development_cluster"
+most_recent           = true
+}
+
+# Use the last snapshot of the dev database before it was destroyed to create
+# a new dev database.
+resource "aws_rds_cluster" "aurora" {
+cluster_identifier   = "development_cluster"
+snapshot_identifier  = data.aws_db_cluster_snapshot.development_final_snapshot.id
+db_subnet_group_name = "my_db_subnet_group"
+
+lifecycle {
+ignore_changes = [snapshot_identifier]
+}
+}
+
+resource "aws_rds_cluster_instance" "aurora" {
+cluster_identifier   = aws_rds_cluster.aurora.id
+instance_class       = "db.t2.small"
+db_subnet_group_name = "my_db...
+
+==========================================================================================
+Rank: 6
+Chunk: resource_aws_lakeformation_resource_lf_tags_1
+Dense: N/A
+Sparse: 14.01
+RRF: 0.01515
+Service: Lake Formation
+Entity: aws_lakeformation_resource_lf_tags
+Type: resource
+
+## Example Usage  
+### Database Example  
+```terraform
+resource "aws_lakeformation_lf_tag" "example" {
+key    = "right"
+values = ["abbey", "village", "luffield", "woodcote", "copse", "chapel", "stowe", "club"]
+}
+
+resource "aws_lakeformation_resource_lf_tags" "example" {
+database {
+name = aws_glue_catalog_database.example.name
+}
+
+lf_tag {
+key   = aws_lakeformation_lf_tag.example.key
+value = "stowe"
+}
+}
+```
+
+==========================================================================================
+Rank: 7
+Chunk: resource_aws_rds_cluster_snapshot_copy_0
+Dense: N/A
+Sparse: 13.99
+RRF: 0.01493
+Service: RDS (Relational Database)
+Entity: aws_rds_cluster_snapshot_copy
+Type: resource
+
+# Resource: aws_rds_cluster_snapshot_copy  
+Manages an RDS database cluster snapshot copy. For managing RDS database instance snapshot copies, see the [`aws_db_snapshot_copy` resource](/docs/providers/aws/r/db_snapshot_copy.html).
+
+==========================================================================================
+Rank: 8
+Chunk: resource_aws_qldb_ledger_0
+Dense: N/A
+Sparse: 13.89
+RRF: 0.01471
+Service: QLDB (Quantum Ledger Database)
+Entity: aws_qldb_ledger
+Type: resource
+
+# Resource: aws_qldb_ledger  
+Provides an AWS Quantum Ledger Database (QLDB) resource  
+~> **NOTE:** Deletion protection is enabled by default. To successfully delete this resource via Terraform, `deletion_protection = false` must be applied before attempting deletion.
+
+
+Query (exit/help): 
+
+Query (exit/help): What are the valid values for the engine_version attribute in aws_db_instance when using postgres?
+2026-05-23 14:04:26,768 | INFO | HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-05-23 14:04:26,785 | INFO | Retrieved=[]
+2026-05-23 14:04:26,786 | INFO | Hybrid 0.442s | Dense = 0 Sparse = 24 Final = ['resource_aws_rds_cluster_13', 'resource_aws_rds_cluster_instance_3', 'resource_aws_db_instance_3', 'resource_aws_db_instance_27', 'data_source_aws_db_instance_3', 'resource_aws_db_instance_automated_backups_replication_3', 'resource_aws_db_instance_9', 'resource_aws_db_instance_26']
+==========================================================================================
+Rank: 1
+Chunk: resource_aws_rds_cluster_13
+Dense: N/A
+Sparse: 19.91
+RRF: 0.01639
+Service: RDS (Relational Database)
+Entity: aws_rds_cluster
+Type: resource
+
+* `enabled_cloudwatch_logs_exports` - (Optional) Set of log types to export to cloudwatch. If omitted, no logs will be exported. The following log types are supported: `audit`, `error`, `general`, `iam-db-auth-error`, `instance`, `postgresql` (PostgreSQL), `slowquery`.
+* `engine_mode` - (Optional) Database engine mode. Valid values: `global` (only valid for Aurora MySQL 1.21 and earlier), `parallelquery`, `provisioned`, `serverless`. Defaults to: `provisioned`. Specify an empty value (`""`) for no engine mode. See the [RDS User Guide](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless.html) for limitations when using `serverless`.
+* `engine_lifecycle_support` - (O...
+
+==========================================================================================
+Rank: 2
+Chunk: resource_aws_rds_cluster_instance_3
+Dense: N/A
+Sparse: 19.04
+RRF: 0.01613
+Service: RDS (Relational Database)
+Entity: aws_rds_cluster_instance
+Type: resource
+
+* `engine_version` - (Optional) Database engine version. Please note that to upgrade the `engine_version` of the instance, it must be done on the `aws_rds_cluster` `engine_version`. Trying to upgrade in `aws_cluster_instance` will not update the `engine_version`.
+* `engine` - (Required, Forces new resource) Name of the database engine to be used for the RDS cluster instance.
+Valid Values: `aurora-mysql`, `aurora-postgresql`, `mysql`, `postgres`.(Note that `mysql` and `postgres` are Multi-AZ RDS clusters).
+* `force_destroy` - (Optional) Forces an instance to be destroyed when a part of a read replica cluster. **Note:** will promote the read replica to a standalone cluster before instance dele...
+
+==========================================================================================
+Rank: 3
+Chunk: resource_aws_db_instance_3
+Dense: N/A
+Sparse: 17.94
+RRF: 0.01587
+Service: RDS (Relational Database)
+Entity: aws_db_instance
+Type: resource
+
+## Example Usage  
+### Basic Usage  
+```terraform
+resource "aws_db_instance" "default" {
+allocated_storage    = 10
+db_name              = "mydb"
+engine               = "mysql"
+engine_version       = "8.0"
+instance_class       = "db.t3.micro"
+username             = "foo"
+password             = "foobarbaz"
+parameter_group_name = "default.mysql8.0"
+skip_final_snapshot  = true
+}
+```
+
+==========================================================================================
+Rank: 4
+Chunk: resource_aws_db_instance_27
+Dense: N/A
+Sparse: 17.20
+RRF: 0.01562
+Service: RDS (Relational Database)
+Entity: aws_db_instance
+Type: resource
+
+### master_user_secret  
+The `master_user_secret` configuration block supports the following attributes:  
+* `kms_key_id` - The Amazon Web Services KMS key identifier that is used to encrypt the secret.
+* `secret_arn` - The Amazon Resource Name (ARN) of the secret.
+* `secret_status` - The status of the secret. Valid Values: `creating` | `active` | `rotating` | `impaired`.
+
+==========================================================================================
+Rank: 5
+Chunk: data_source_aws_db_instance_3
+Dense: N/A
+Sparse: 17.11
+RRF: 0.01538
+Service: RDS (Relational Database)
+Entity: aws_db_instance
+Type: data_source
+
+### master_user_secret  
+The `master_user_secret` configuration block supports the following attributes:  
+* `kms_key_id` - The Amazon Web Services KMS key identifier that is used to encrypt the secret.
+* `secret_arn` - The Amazon Resource Name (ARN) of the secret.
+* `secret_status` - The status of the secret. Valid Values: `creating` | `active` | `rotating` | `impaired`.
+
+==========================================================================================
+Rank: 6
+Chunk: resource_aws_db_instance_automated_backups_replication_3
+Dense: N/A
+Sparse: 16.84
+RRF: 0.01515
+Service: RDS (Relational Database)
+Entity: aws_db_instance_automated_backups_replication
+Type: resource
+
+## Example including a RDS DB instance  
+```terraform
+provider "aws" {
+region = "us-east-1"
+}
+
+provider "aws" {
+region = "us-west-2"
+alias  = "replica"
+}
+
+resource "aws_db_instance" "default" {
+allocated_storage       = 10
+identifier              = "mydb"
+engine                  = "postgres"
+engine_version          = "13.4"
+instance_class          = "db.t3.micro"
+db_name                 = "mydb"
+username                = "masterusername"
+password                = "mustbeeightcharacters"
+backup_retention_period = 7
+storage_encrypted       = true
+skip_final_snapshot     = true
+}
+
+resource "aws_kms_key" "default" {
+description = "Encryption key for automated backups"
+
+provider = aws.replica
+}
+
+...
+
+==========================================================================================
+Rank: 7
+Chunk: resource_aws_db_instance_9
+Dense: N/A
+Sparse: 15.90
+RRF: 0.01493
+Service: RDS (Relational Database)
+Entity: aws_db_instance
+Type: resource
+
+### Managed Master Passwords via Secrets Manager, default KMS Key  
+-> More information about RDS/Aurora Aurora integrates with Secrets Manager to manage master user passwords for your DB clusters can be found in the [RDS User Guide](https://aws.amazon.com/about-aws/whats-new/2022/12/amazon-rds-integration-aws-secrets-manager/) and [Aurora User Guide](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/rds-secrets-manager.html).  
+You can specify the `manage_master_user_password` attribute to enable managing the master password with Secrets Manager. You can also update an existing cluster to use Secrets Manager by specify the `manage_master_user_password` attribute and removing the ...
+
+==========================================================================================
+Rank: 8
+Chunk: resource_aws_db_instance_26
+Dense: N/A
+Sparse: 15.84
+RRF: 0.01471
+Service: RDS (Relational Database)
+Entity: aws_db_instance
+Type: resource
+
+### Endpoint  
+* `address` - Specifies the DNS address of the DB instance.
+* `hosted_zone_id` - Specifies the ID that Amazon Route 53 assigns when you create a hosted zone.
+* `port` - Specifies the port that the database engine is listening on.
+
+Query (exit/help): Does aws_iam_role_policy_attachment support inline policies, or do I need a different resource?
+2026-05-23 14:05:00,731 | INFO | HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-05-23 14:05:00,746 | INFO | Retrieved=['resource_aws_iam_role_policy_0', 'resource_aws_iam_role_3', 'resource_aws_iam_role_policy_attachment_0', 'resource_aws_iam_user_policy_attachment_0', 'resource_aws_iam_policy_attachment_0', 'resource_aws_iam_group_policy_attachment_0', 'resource_aws_ssoadmin_permission_set_inline_policy_0', 'resource_aws_iam_role_4', 'data_source_aws_iam_role_policies_0', 'data_source_aws_iam_role_policy_attachments_0', 'resource_aws_eks_cluster_4', 'resource_aws_iam_role_9', 'resource_aws_iam_role_5', 'resource_aws_iam_role_policies_exclusive_0', 'resource_aws_iam_role_0', 'resource_aws_organizations_policy_attachment_0']
+2026-05-23 14:05:00,747 | INFO | Hybrid 1.412s | Dense = 16 Sparse = 24 Final = ['resource_aws_iam_role_3', 'resource_aws_iam_role_policy_0', 'resource_aws_iam_role_4', 'resource_aws_iam_role_policies_exclusive_0', 'resource_aws_iam_role_policy_attachment_0', 'resource_aws_iam_policy_attachment_0', 'resource_aws_iam_role_0', 'resource_aws_iam_group_policies_exclusive_2']
+==========================================================================================
+Rank: 1
+Chunk: resource_aws_iam_role_3
+Dense: 69.16%
+Sparse: 19.78
+RRF: 0.03105
+Service: IAM (Identity & Access Management)
+Entity: aws_iam_role
+Type: resource
+
+### Example of Exclusive Inline Policies  
+~> The `inline_policy` argument is deprecated. Use the [`aws_iam_role_policy`](./iam_role_policy.html.markdown) resource instead. If Terraform should exclusively manage all inline policy associations (the current behavior of this argument), use the [`aws_iam_role_policies_exclusive`](./iam_role_policies_exclusive.html.markdown) resource as well.  
+This example creates an IAM role with two inline IAM policies. If someone adds another inline policy out-of-band, on the next apply, Terraform will remove that policy. If someone deletes these policies out-of-band, Terraform will recreate them.  
+```terraform
+resource "aws_iam_role" "example" {
+name       ...
+
+==========================================================================================
+Rank: 2
+Chunk: resource_aws_iam_role_policy_0
+Dense: 72.73%
+Sparse: 18.30
+RRF: 0.03068
+Service: IAM (Identity & Access Management)
+Entity: aws_iam_role_policy
+Type: resource
+
+# Resource: aws_iam_role_policy  
+Provides an IAM role inline policy.  
+~> **NOTE:** For a given role, this resource is incompatible with using the [`aws_iam_role` resource](/docs/providers/aws/r/iam_role.html) `inline_policy` argument. When using that argument and this resource, both will attempt to manage the role's inline policies and Terraform will show a permanent difference.  
+~> **NOTE:** We suggest using [`jsonencode()`](https://developer.hashicorp.com/terraform/language/functions/jsonencode) or [`aws_iam_policy_document`](/docs/providers/aws/d/iam_policy_document.html) when assigning a value to `policy`. They seamlessly translate Terraform language into JSON, enabling you to maintai...
+
+==========================================================================================
+Rank: 3
+Chunk: resource_aws_iam_role_4
+Dense: 63.84%
+Sparse: 18.59
+RRF: 0.02920
+Service: IAM (Identity & Access Management)
+Entity: aws_iam_role
+Type: resource
+
+### Example of Removing Inline Policies  
+~> The `inline_policy` argument is deprecated. Use the [`aws_iam_role_policy`](./iam_role_policy.html.markdown) resource instead. If Terraform should exclusively manage all inline policy associations (the current behavior of this argument), use the [`aws_iam_role_policies_exclusive`](./iam_role_policies_exclusive.html.markdown) resource as well.  
+This example creates an IAM role with what appears to be empty IAM `inline_policy` argument instead of using `inline_policy` as a configuration block. The result is that if someone were to add an inline policy out-of-band, on the next apply, Terraform will remove that policy.  
+```terraform
+resource "aws_ia...
+
+==========================================================================================
+Rank: 4
+Chunk: resource_aws_iam_role_policies_exclusive_0
+Dense: 61.40%
+Sparse: 21.34
+RRF: 0.02890
+Service: IAM (Identity & Access Management)
+Entity: aws_iam_role_policies_exclusive
+Type: resource
+
+# Resource: aws_iam_role_policies_exclusive  
+Terraform resource for maintaining exclusive management of inline policies assigned to an AWS IAM (Identity & Access Management) role.  
+!> This resource takes exclusive ownership over inline policies assigned to a role. This includes removal of inline policies which are not explicitly configured. To prevent persistent drift, ensure any `aws_iam_role_policy` resources managed alongside this resource are included in the `policy_names` argument.  
+~> Destruction of this resource means Terraform will no longer manage reconciliation of the configured inline policy assignments. It __will not__ delete the configured policies from the role.
+
+==========================================================================================
+Rank: 5
+Chunk: resource_aws_iam_role_policy_attachment_0
+Dense: 66.27%
+Sparse: 15.19
+RRF: 0.02869
+Service: IAM (Identity & Access Management)
+Entity: aws_iam_role_policy_attachment
+Type: resource
+
+# Resource: aws_iam_role_policy_attachment  
+Attaches a Managed IAM Policy to an IAM role  
+~> **NOTE:** The usage of this resource conflicts with the `aws_iam_policy_attachment` resource and will permanently show a difference if both are defined.  
+~> **NOTE:** For a given role, this resource is incompatible with using the [`aws_iam_role` resource](/docs/providers/aws/r/iam_role.html) `managed_policy_arns` argument. When using that argument and this resource, both will attempt to manage the role's managed policy attachments and Terraform will show a permanent difference.
+
+==========================================================================================
+Rank: 6
+Chunk: resource_aws_iam_policy_attachment_0
+Dense: 65.86%
+Sparse: 15.60
+RRF: 0.02854
+Service: IAM (Identity & Access Management)
+Entity: aws_iam_policy_attachment
+Type: resource
+
+# Resource: aws_iam_policy_attachment  
+Attaches a Managed IAM Policy to user(s), role(s), and/or group(s)  
+!> **WARNING:** The aws_iam_policy_attachment resource creates **exclusive** attachments of IAM policies. Across the entire AWS account, all of the users/roles/groups to which a single policy is attached must be declared by a single aws_iam_policy_attachment resource. This means that even any users/roles/groups that have the attached policy via any other mechanism (including other Terraform resources) will have that attached policy revoked by this resource. Consider `aws_iam_role_policy_attachment`, `aws_iam_user_policy_attachment`, or `aws_iam_group_policy_attachment` instead. These ...
+
+==========================================================================================
+Rank: 7
+Chunk: resource_aws_iam_role_0
+Dense: 61.06%
+Sparse: 19.42
+RRF: 0.02804
+Service: IAM (Identity & Access Management)
+Entity: aws_iam_role
+Type: resource
+
+# Resource: aws_iam_role  
+Provides an IAM role.  
+~> **NOTE:** If policies are attached to the role via the [`aws_iam_policy_attachment` resource](/docs/providers/aws/r/iam_policy_attachment.html) and you are modifying the role `name` or `path`, the `force_detach_policies` argument must be set to `true` and applied before attempting the operation otherwise you will encounter a `DeleteConflict` error. The [`aws_iam_role_policy_attachment` resource (recommended)](/docs/providers/aws/r/iam_role_policy_attachment.html) does not have this requirement.  
+~> **NOTE:** If you use this resource's `managed_policy_arns` argument or `inline_policy` configuration blocks, this resource will take over exc...
+
+==========================================================================================
+Rank: 8
+Chunk: resource_aws_iam_group_policies_exclusive_2
+Dense: N/A
+Sparse: 21.80
+RRF: 0.01639
+Service: IAM (Identity & Access Management)
+Entity: aws_iam_group_policies_exclusive
+Type: resource
+
+### Disallow Inline Policies  
+To automatically remove any configured inline policies, set the `policy_names` argument to an empty list.  
+~> This will not __prevent__ inline policies from being assigned to a group via Terraform (or any other interface). This resource enables bringing inline policy assignments into a configured state, however, this reconciliation happens only when `apply` is proactively run.  
+```terraform
+resource "aws_iam_group_policies_exclusive" "example" {
+group_name   = aws_iam_group.example.name
+policy_names = []
+}
+
+Query (exit/help): I am writing an aws_lambda_function. How do I attach it 
+to a VPC subnet?
+2026-05-23 14:05:30,562 | INFO | HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-05-23 14:05:30,577 | INFO | Retrieved=['resource_aws_lambda_function_8', 'resource_aws_lambda_function_5']
+2026-05-23 14:05:30,578 | INFO | Hybrid 0.562s | Dense = 2 Sparse = 24 Final = ['resource_aws_lambda_function_5', 'resource_aws_lambda_function_8', 'data_source_aws_lambda_function_14', 'resource_aws_vpc_endpoint_subnet_association_0', 'resource_aws_lambda_function_33', 'resource_aws_medialive_input_3', 'resource_aws_lambda_function_6', 'resource_aws_medialive_channel_91']==========================================================================================
+Rank: 1
+Chunk: resource_aws_lambda_function_5
+Dense: 60.33%
+Sparse: 13.64
+RRF: 0.03041
+Service: Lambda
+Entity: aws_lambda_function
+Type: resource
+
+### VPC Function with Enhanced Networking  
+```terraform
+resource "aws_lambda_function" "example" {
+filename      = "function.zip"
+function_name = "example_vpc_function"
+role          = aws_iam_role.example.arn
+handler       = "app.handler"
+runtime       = "python3.12"
+memory_size   = 1024
+timeout       = 30
+
+vpc_config {
+subnet_ids                  = [aws_subnet.example_private1.id, aws_subnet.example_private2.id]
+security_group_ids          = [aws_security_group.example_lambda.id]
+ipv6_allowed_for_dual_stack = true # Enable IPv6 support
+}
+
+# Increase /tmp storage to 5GB
+ephemeral_storage {
+size = 5120
+}
+
+# Enable SnapStart for faster cold starts
+snap_start {
+apply_on = "PublishedVersions"
+...
+
+==========================================================================================
+Rank: 2
+Chunk: resource_aws_lambda_function_8
+Dense: 61.50%
+Sparse: N/A
+RRF: 0.01639
+Service: Lambda
+Entity: aws_lambda_function
+Type: resource
+
+resource "aws_lambda_function" "example" {
+filename      = "function.zip"
+function_name = "example_s3files_function"
+# For required IAM permissions to use S3Files with Lambda,
+# see https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files-prereq-policies.html#s3-files-prereq-iam
+role    = aws_iam_role.iam_for_lambda.arn
+handler = "exports.example"
+runtime = "nodejs24.x"
+
+vpc_config {
+subnet_ids         = [aws_subnet.subnet_for_lambda_az1.id]
+security_group_ids = [aws_security_group.lambda_s3files.id]
+}
+
+file_system_config {
+arn              = aws_s3files_access_point.for_lambda.arn
+local_mount_path = "/mnt/s3files"
+}
+depends_on = [aws_s3files_mount_target.for_lambda]
+}
+
+==========================================================================================
+Rank: 3
+Chunk: data_source_aws_lambda_function_14
+Dense: N/A
+Sparse: 19.08
+RRF: 0.01639
+Service: Lambda
+Entity: aws_lambda_function
+Type: data_source
+
+### vpc_config  
+* `security_group_ids` - List of security group IDs associated with the Lambda function.
+* `subnet_ids` - List of subnet IDs associated with the Lambda function.
+* `vpc_id` - ID of the VPC.
+
+==========================================================================================
+Rank: 4
+Chunk: resource_aws_vpc_endpoint_subnet_association_0
+Dense: N/A
+Sparse: 16.57
+RRF: 0.01613
+Service: VPC (Virtual Private Cloud)
+Entity: aws_vpc_endpoint_subnet_association
+Type: resource
+
+# Resource: aws_vpc_endpoint_subnet_association  
+Provides a resource to create an association between a VPC endpoint and a subnet.  
+~> **NOTE on VPC Endpoints and VPC Endpoint Subnet Associations:** Terraform provides
+both a standalone VPC Endpoint Subnet Association (an association between a VPC endpoint
+and a single `subnet_id`) and a [VPC Endpoint](vpc_endpoint.html) resource with a `subnet_ids`
+attribute. Do not use the same subnet ID in both a VPC Endpoint resource and a VPC Endpoint Subnet
+Association resource. Doing so will cause a conflict of associations and will overwrite the association.
+
+==========================================================================================
+Rank: 5
+Chunk: resource_aws_lambda_function_33
+Dense: N/A
+Sparse: 16.45
+RRF: 0.01587
+Service: Lambda
+Entity: aws_lambda_function
+Type: resource
+
+### vpc_config Configuration Block  
+~> **NOTE:** If `subnet_ids`, `security_group_ids` and `ipv6_allowed_for_dual_stack` are empty then `vpc_config` is considered to be empty or unset.  
+* `ipv6_allowed_for_dual_stack` - (Optional) Whether to allow outbound IPv6 traffic on VPC functions connected to dual-stack subnets. Default: `false`.
+* `security_group_ids` - (Required) List of security group IDs associated with the Lambda function.
+* `subnet_ids` - (Required) List of subnet IDs associated with the Lambda function.
+
+==========================================================================================
+Rank: 6
+Chunk: resource_aws_medialive_input_3
+Dense: N/A
+Sparse: 16.42
+RRF: 0.01562
+Service: Elemental MediaLive
+Entity: aws_medialive_input
+Type: resource
+
+### VPC  
+* `subnet_ids` - A list of 2 VPC subnet IDs from the same VPC.
+* `security_group_ids` - A list of up to 5 EC2 VPC security group IDs to attach to the Input.
+
+==========================================================================================
+Rank: 7
+Chunk: resource_aws_lambda_function_6
+Dense: N/A
+Sparse: 14.71
+RRF: 0.01538
+Service: Lambda
+Entity: aws_lambda_function
+Type: resource
+
+### Function with EFS Integration  
+```terraform
+# EFS file system for Lambda
+resource "aws_efs_file_system" "example" {
+encrypted = true
+
+tags = {
+Name = "lambda-efs"
+}
+}
+
+# Example subnet IDs (replace with your actual subnet IDs)
+variable "subnet_ids" {
+description = "List of subnet IDs for EFS mount targets"
+type        = list(string)
+default     = ["subnet-12345678", "subnet-87654321"]
+}
+
+# Mount target in each subnet
+resource "aws_efs_mount_target" "example" {
+count = length(var.subnet_ids)
+
+file_system_id  = aws_efs_file_system.example.id
+subnet_id       = var.subnet_ids[count.index]
+security_groups = [aws_security_group.efs.id]
+}
+
+# Access point for Lambda
+resource "aws_efs_access_poi...
+
+==========================================================================================
+Rank: 8
+Chunk: resource_aws_medialive_channel_91
+Dense: N/A
+Sparse: 14.62
+RRF: 0.01515
+Service: Elemental MediaLive
+Entity: aws_medialive_channel
+Type: resource
+
+### VPC  
+* `subnet_ids` - (Required) A list of VPC subnet IDs from the same VPC. If STANDARD channel, subnet IDs must be mapped to two unique availability zones (AZ).
+* `public_address_allocation_ids` - (Required) List of public address allocation ids to associate with ENIs that will be created in Output VPC. Must specify one for SINGLE_PIPELINE, two for STANDARD channels.
+* `security_group_ids` - (Optional) A list of up to 5 EC2 VPC security group IDs to attach to the Output VPC network interfaces. If none are specified then the VPC default security group will be used.
+
+Query (exit/help): What is the difference between aws_route53_record and aws_route53_zone when setting up a custom domain?
+2026-05-23 14:05:56,339 | INFO | HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-05-23 14:05:56,351 | INFO | Retrieved=['resource_aws_route53_zone_1']
+2026-05-23 14:05:56,352 | INFO | Hybrid 1.032s | Dense = 1 Sparse = 24 Final = ['resource_aws_route53_zone_1', 'resource_aws_cognito_user_pool_domain_1', 'resource_aws_route53_record_5', 'resource_aws_route53_zone_association_0', 'resource_aws_route53_zone_0', 'data_source_aws_route53_zone_1', 'resource_aws_amplify_domain_association_1', 'resource_aws_route53_record_15']
+==========================================================================================
+Rank: 1
+Chunk: resource_aws_route53_zone_1
+Dense: 60.73%
+Sparse: 21.12
+RRF: 0.03252
+Service: Route 53
+Entity: aws_route53_zone
+Type: resource
+
+### Public Subdomain Zone  
+For use in subdomains, note that you need to create a
+`aws_route53_record` of type `NS` as well as the subdomain
+zone.  
+```terraform
+resource "aws_route53_zone" "main" {
+name = "example.com"
+}
+
+resource "aws_route53_zone" "dev" {
+name = "dev.example.com"
+
+tags = {
+Environment = "dev"
+}
+}
+
+resource "aws_route53_record" "dev-ns" {
+zone_id = aws_route53_zone.main.zone_id
+name    = "dev.example.com"
+type    = "NS"
+ttl     = "30"
+records = aws_route53_zone.dev.name_servers
+}
+```
+
+==========================================================================================
+Rank: 2
+Chunk: resource_aws_cognito_user_pool_domain_1
+Dense: N/A
+Sparse: 23.45
+RRF: 0.01639
+Service: Cognito IDP (Identity Provider)
+Entity: aws_cognito_user_pool_domain
+Type: resource
+
+### Custom Cognito domain  
+```terraform
+resource "aws_cognito_user_pool_domain" "main" {
+domain          = "auth.example.com"
+certificate_arn = aws_acm_certificate.cert.arn
+user_pool_id    = aws_cognito_user_pool.example.id
+}
+
+resource "aws_cognito_user_pool" "example" {
+name = "example-pool"
+}
+
+data "aws_route53_zone" "example" {
+name = "example.com"
+}
+
+resource "aws_route53_record" "auth-cognito-A" {
+name    = aws_cognito_user_pool_domain.main.domain
+type    = "A"
+zone_id = data.aws_route53_zone.example.zone_id
+alias {
+evaluate_target_health = false
+
+name    = aws_cognito_user_pool_domain.main.cloudfront_distribution
+zone_id = aws_cognito_user_pool_domain.main.cloudfront_distribution_zone...
+==========================================================================================
+Rank: 3
+Chunk: resource_aws_route53_record_5
+Dense: N/A
+Sparse: 18.57
+RRF: 0.01587
+Service: Route 53
+Entity: aws_route53_record
+Type: resource
+
+### NS and SOA Record Management  
+When creating Route 53 zones, the `NS` and `SOA` records for the zone are automatically created. Enabling the `allow_overwrite` argument will allow managing these records in a single Terraform run without the requirement for `terraform import`.  
+```terraform
+resource "aws_route53_zone" "example" {
+name = "test.example.com"
+}
+
+resource "aws_route53_record" "example" {
+allow_overwrite = true
+name            = "test.example.com"
+ttl             = 172800
+type            = "NS"
+zone_id         = aws_route53_zone.example.zone_id
+
+records = [
+aws_route53_zone.example.name_servers[0],
+aws_route53_zone.example.name_servers[1],
+aws_route53_zone.example.name_servers[...
+
+==========================================================================================
+Rank: 4
+Chunk: resource_aws_route53_zone_association_0
+Dense: N/A
+Sparse: 18.07
+RRF: 0.01562
+Service: Route 53
+Entity: aws_route53_zone_association
+Type: resource
+
+# Resource: aws_route53_zone_association  
+Manages a Route53 Hosted Zone VPC association. VPC associations can only be made on private zones. See the [`aws_route53_vpc_association_authorization` resource](route53_vpc_association_authorization.html) for setting up cross-account associations.  
+~> **NOTE:** Unless explicit association ordering is required (e.g., a separate cross-account association authorization), usage of this resource is not recommended. Use the `vpc` configuration blocks available within the [`aws_route53_zone` resource](/docs/providers/aws/r/route53_zone.html) instead.  
+~> **NOTE:** Terraform provides both this standalone Zone VPC Association resource and exclusive VPC as...
+
+==========================================================================================
+Rank: 5
+Chunk: resource_aws_route53_zone_0
+Dense: N/A
+Sparse: 17.74
+RRF: 0.01538
+Service: Route 53
+Entity: aws_route53_zone
+Type: resource
+
+# Resource: aws_route53_zone  
+Manages a Route53 Hosted Zone. For managing Domain Name System Security Extensions (DNSSEC), see the [`aws_route53_key_signing_key`](route53_key_signing_key.html) and [`aws_route53_hosted_zone_dnssec`](route53_hosted_zone_dnssec.html) resources.
+
+==========================================================================================
+Rank: 6
+Chunk: data_source_aws_route53_zone_1
+Dense: N/A
+Sparse: 17.26
+RRF: 0.01515
+Service: Route 53
+Entity: aws_route53_zone
+Type: data_source
+
+## Example Usage  
+The following example shows how to get a Hosted Zone from its name and from this data how to create a Record Set.  
+```terraform
+data "aws_route53_zone" "selected" {
+name         = "test.com."
+private_zone = true
+}
+
+resource "aws_route53_record" "www" {
+zone_id = data.aws_route53_zone.selected.zone_id
+name    = "www.${data.aws_route53_zone.selected.name}"
+type    = "A"
+ttl     = "300"
+records = ["10.0.0.1"]
+}
+```  
+The following example shows how to get a Hosted Zone from a unique combination of its tags:  
+```terraform
+data "aws_route53_zone" "selected" {
+tags = {
+scope    = "local"
+category = "api"
+}
+}
+
+output "local_api_zone" {
+value = data.aws_route53_zone.selected.zon...
+
+==========================================================================================
+Rank: 7
+Chunk: resource_aws_amplify_domain_association_1
+Dense: N/A
+Sparse: 17.00
+RRF: 0.01493
+Service: Amplify
+Entity: aws_amplify_domain_association
+Type: resource
+
+## Argument Reference  
+This resource supports the following arguments:  
+* `region` - (Optional) Region where this resource will be [managed](https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints). Defaults to the Region set in the [provider configuration](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#aws-configuration-reference).
+* `app_id` - (Required) Unique ID for an Amplify app.
+* `certificate_settings` - (Optional) The type of SSL/TLS certificate to use for your custom domain. If you don't specify a certificate type, Amplify uses the default certificate that it provisions and manages for you.
+* `domain_name` - (Required) Domain name for the do...
+
+==========================================================================================
+Rank: 8
+Chunk: resource_aws_route53_record_15
+Dense: N/A
+Sparse: 16.12
+RRF: 0.01471
+Service: Route 53
+Entity: aws_route53_record
+Type: resource
+
+## Attribute Reference  
+This resource exports the following attributes in addition to the arguments above:  
+* `name` - The name of the record.
+* `fqdn` - [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) built using the zone domain and `name`.
+
+Query (exit/help): How do I configure an aws_ecks_cluster?
+2026-05-23 14:06:25,360 | INFO | HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-05-23 14:06:25,372 | INFO | Retrieved=[]
+2026-05-23 14:06:25,373 | INFO | Hybrid 0.271s | Dense = 0 Sparse = 24 Final = ['resource_aws_codedeploy_deployment_group_8', 'resource_aws_redshift_cluster_iam_roles_0', 'resource_aws_db_proxy_2', 'resource_aws_docdb_global_cluster_2', 'resource_aws_neptune_global_cluster_2', 'resource_aws_sagemaker_workforce_4', 'resource_aws_rds_global_cluster_3', 'resource_aws_redshift_cluster_0']
+==========================================================================================
+Rank: 1
+Chunk: resource_aws_codedeploy_deployment_group_8
+Dense: N/A
+Sparse: 11.72
+RRF: 0.01639
+Service: CodeDeploy
+Entity: aws_codedeploy_deployment_group
+Type: resource
+
+### blue_green_deployment_config Argument Reference  
+You can configure options for a blue/green deployment. `blue_green_deployment_config` supports the following:  
+* `deployment_ready_option` - (Optional) Information about the action to take when newly provisioned instances are ready to receive traffic in a blue/green deployment (documented below).
+* `green_fleet_provisioning_option` - (Optional) Information about how instances are provisioned for a replacement environment in a blue/green deployment (documented below).
+* `terminate_blue_instances_on_deployment_success` - (Optional) Information about whether to terminate instances in the original fleet during a blue/green deployment (docume...
+
+==========================================================================================
+Rank: 2
+Chunk: resource_aws_redshift_cluster_iam_roles_0
+Dense: N/A
+Sparse: 10.07
+RRF: 0.01613
+Service: Redshift
+Entity: aws_redshift_cluster_iam_roles
+Type: resource
+
+# Resource: aws_redshift_cluster_iam_roles  
+Provides a Redshift Cluster IAM Roles resource.  
+~> **NOTE:** A Redshift cluster's default IAM role can be managed both by this resource's `default_iam_role_arn` argument and the [`aws_redshift_cluster`](redshift_cluster.html) resource's `default_iam_role_arn` argument. Do not configure different values for both arguments. Doing so will cause a conflict of default IAM roles.
+
+==========================================================================================
+Rank: 3
+Chunk: resource_aws_db_proxy_2
+Dense: N/A
+Sparse: 9.95
+RRF: 0.01587
+Service: RDS (Relational Database)
+Entity: aws_db_proxy
+Type: resource
+
+### Unsupported Availability Zones  
+Terraform may report constant differences if you use `vpc_subnet_ids` that correspond to Availability Zones (AZs) that do not support a DB proxy. While this typically does not result in an error, AWS only returns `vpc_subnet_ids` for AZs that support DB proxies. As a result, Terraform detects a mismatch between your configuration and the actual infrastructure, leading it to report that changes are required. Below are some ways to avoid this issue.  
+One solution is to exclude AZs that do not support DB proxies by using the [`aws_availability_zones` data source](/docs/providers/aws/d/availability_zones.html). The example below demonstrates how to configure...
+
+==========================================================================================
+Rank: 4
+Chunk: resource_aws_docdb_global_cluster_2
+Dense: N/A
+Sparse: 8.67
+RRF: 0.01562
+Service: DocumentDB
+Entity: aws_docdb_global_cluster
+Type: resource
+
+### New Global Cluster From Existing DB Cluster  
+```terraform
+resource "aws_docdb_cluster" "example" {
+# ... other configuration ...
+
+# NOTE: Using this DB Cluster to create a Global Cluster, the
+# global_cluster_identifier attribute will become populated and
+# Terraform will begin showing it as a difference. Do not configure:
+# global_cluster_identifier = aws_docdb_global_cluster.example.id
+# as it creates a circular reference. Use ignore_changes instead.
+lifecycle {
+ignore_changes = [global_cluster_identifier]
+}
+}
+
+resource "aws_docdb_global_cluster" "example" {
+global_cluster_identifier    = "example"
+source_db_cluster_identifier = aws_docdb_cluster.example.arn
+}
+```
+
+==========================================================================================
+Rank: 5
+Chunk: resource_aws_neptune_global_cluster_2
+Dense: N/A
+Sparse: 8.67
+RRF: 0.01538
+Service: Neptune
+Entity: aws_neptune_global_cluster
+Type: resource
+
+### New Global Cluster From Existing DB Cluster  
+```terraform
+resource "aws_neptune_cluster" "example" {
+# ... other configuration ...
+
+# NOTE: Using this DB Cluster to create a Global Cluster, the
+# global_cluster_identifier attribute will become populated and
+# Terraform will begin showing it as a difference. Do not configure:
+# global_cluster_identifier = aws_neptune_global_cluster.example.id
+# as it creates a circular reference. Use ignore_changes instead.
+lifecycle {
+ignore_changes = [global_cluster_identifier]
+}
+}
+
+resource "aws_neptune_global_cluster" "example" {
+global_cluster_identifier    = "example"
+source_db_cluster_identifier = aws_neptune_cluster.example.arn
+}
+```
+
+==========================================================================================
+Rank: 6
+Chunk: resource_aws_sagemaker_workforce_4
+Dense: N/A
+Sparse: 8.44
+RRF: 0.01515
+Service: SageMaker AI
+Entity: aws_sagemaker_workforce
+Type: resource
+
+### Oidc Config  
+* `authentication_request_extra_params` - (Optional) A string to string map of identifiers specific to the custom identity provider (IdP) being used.
+* `authorization_endpoint` - (Required) The OIDC IdP authorization endpoint used to configure your private workforce.
+* `client_id` - (Required) The OIDC IdP client ID used to configure your private workforce.
+* `client_secret` - (Required) The OIDC IdP client secret used to configure your private workforce.
+* `issuer` - (Required) The OIDC IdP issuer used to configure your private workforce.
+* `jwks_uri` - (Required) The OIDC IdP JSON Web Key Set (Jwks) URI used to configure your private workforce.
+* `logout_endpoint` - (Requ...
+
+==========================================================================================
+Rank: 7
+Chunk: resource_aws_rds_global_cluster_3
+Dense: N/A
+Sparse: 8.33
+RRF: 0.01493
+Service: RDS (Relational Database)
+Entity: aws_rds_global_cluster
+Type: resource
+
+### New Global Cluster From Existing DB Cluster  
+```terraform
+resource "aws_rds_cluster" "example" {
+# ... other configuration ...
+
+# NOTE: Using this DB Cluster to create a Global Cluster, the
+# global_cluster_identifier attribute will become populated and
+# Terraform will begin showing it as a difference. Do not configure:
+# global_cluster_identifier = aws_rds_global_cluster.example.id
+# as it creates a circular reference. Use ignore_changes instead.
+lifecycle {
+ignore_changes = [global_cluster_identifier]
+}
+}
+
+resource "aws_rds_global_cluster" "example" {
+force_destroy                = true
+global_cluster_identifier    = "example"
+source_db_cluster_identifier = aws_rds_cluster.example.ar...
+
+==========================================================================================
+Rank: 8
+Chunk: resource_aws_redshift_cluster_0
+Dense: N/A
+Sparse: 7.76
+RRF: 0.01471
+Service: Redshift
+Entity: aws_redshift_cluster
+Type: resource
+
+# Resource: aws_redshift_cluster  
+Provides a Redshift Cluster Resource.  
+~> **Note:** All arguments including the username and password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](https://www.terraform.io/docs/state/sensitive-data.html).  
+~> **NOTE:** A Redshift cluster's default IAM role can be managed both by this resource's `default_iam_role_arn` argument and the [`aws_redshift_cluster_iam_roles`](redshift_cluster_iam_roles.html) resource's `default_iam_role_arn` argument. Do not configure different values for both arguments. Doing so will cause a conflict of default IAM roles.  
+-> **Note:** Write-Only argument `master_password_wo` is avail...

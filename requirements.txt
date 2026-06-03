@@ -1,0 +1,15 @@
+crawl4ai
+trafilatura
+chromadb
+langchain
+openai
+rank-bm25
+sentence-transformers
+fastapi 
+uvicorn
+chainlit
+ragas
+pandas
+tiktoken
+langchain-text-splitters
+pyyaml

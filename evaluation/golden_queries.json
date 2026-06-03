@@ -1,0 +1,416 @@
+[
+  {
+    "query":"lambda timeout",
+    "primary":["aws_lambda_function"],
+    "acceptable":[]
+  },
+
+  {
+    "query":"security group ingress rules",
+    "primary":[
+      "aws_security_group",
+      "aws_security_group_rule"
+    ],
+    "acceptable":[
+      "aws_vpc_security_group_ingress_rule"
+    ]
+  },
+
+  {
+    "query":"delete s3 objects after 30 days",
+    "primary":[
+      "aws_s3_bucket_lifecycle_configuration"
+    ],
+    "acceptable":[
+      "aws_s3_bucket"
+    ]
+  },
+
+  {
+    "query":"ecs cluster arguments",
+    "primary":[
+      "aws_ecs_cluster"
+    ],
+    "acceptable":[
+      "aws_ecs_cluster_capacity_providers"
+    ]
+  },
+
+  {
+    "query":"jump box ec2 ssh",
+    "primary":[
+      "aws_instance"
+    ],
+    "acceptable":[
+      "aws_key_pair",
+      "aws_security_group"
+    ]
+  },
+
+  {
+    "query":"kms key rotation",
+    "primary":[
+      "aws_kms_key"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"network acl",
+    "primary":[
+      "aws_network_acl"
+    ],
+    "acceptable":[
+      "aws_default_network_acl",
+      "aws_network_acl_association"
+    ]
+  },
+
+  {
+    "query":"route53 zone",
+    "primary":[
+      "aws_route53_zone"
+    ],
+    "acceptable":[
+      "aws_route53_record"
+    ]
+  },
+
+  {
+    "query":"alb ecs fargate architecture",
+    "primary":[
+      "aws_lb",
+      "aws_ecs_service",
+      "aws_ecs_task_definition"
+    ],
+    "acceptable":[
+      "aws_lb_target_group",
+      "aws_ecs_cluster",
+      "aws_security_group"
+    ]
+  },
+
+  {
+    "query":"nat gateway private subnet",
+    "primary":[
+      "aws_nat_gateway",
+      "aws_route_table"
+    ],
+    "acceptable":[
+      "aws_subnet"
+    ]
+  },
+
+  {
+    "query":"internet gateway vpc",
+    "primary":[
+      "aws_internet_gateway"
+    ],
+    "acceptable":[
+      "aws_vpc"
+    ]
+  },
+
+  {
+    "query":"ecs service autoscaling",
+    "primary":[
+      "aws_ecs_service",
+      "aws_appautoscaling_target"
+    ],
+    "acceptable":[
+      "aws_appautoscaling_policy"
+    ]
+  },
+
+  {
+    "query":"ecs autoscaling",
+    "primary":[
+      "aws_ecs_service",
+      "aws_appautoscaling_target"
+    ],
+    "acceptable":[
+      "aws_appautoscaling_policy"
+    ]
+  },
+
+  {
+    "query":"ecs task execution role",
+    "primary":[
+      "aws_iam_role"
+    ],
+    "acceptable":[
+      "aws_iam_policy", "aws_ecs_task_definition"
+    ]
+  },
+
+  {
+    "query":"cloudfront s3 website",
+    "primary":[
+      "aws_cloudfront_distribution",
+      "aws_s3_bucket"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"rds mysql instance",
+    "primary":[
+      "aws_db_instance"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"aurora postgres cluster",
+    "primary":[
+      "aws_rds_cluster"
+    ],
+    "acceptable":[
+      "aws_rds_cluster_instance"
+    ]
+  },
+
+  {
+    "query":"eks worker node group",
+    "primary":[
+      "aws_eks_node_group"
+    ],
+    "acceptable":[
+      "aws_eks_cluster"
+    ]
+  },
+
+  {
+    "query":"eks cluster arguments",
+    "primary":[
+      "aws_eks_cluster"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"vpc peering",
+    "primary":[
+      "aws_vpc_peering_connection"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"transit gateway attachment",
+    "primary":[
+      "aws_ec2_transit_gateway_vpc_attachment"
+    ],
+    "acceptable":[
+      "aws_ec2_transit_gateway"
+    ]
+  },
+
+  {
+    "query":"lambda eventbridge trigger",
+    "primary":[
+      "aws_lambda_permission",
+      "aws_cloudwatch_event_rule"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"sns to sqs subscription",
+    "primary":[
+      "aws_sns_topic_subscription"
+    ],
+    "acceptable":[
+      "aws_sns_topic",
+      "aws_sqs_queue"
+    ]
+  },
+
+  {
+    "query":"kms encrypt s3 bucket",
+    "primary":[
+      "aws_s3_bucket_server_side_encryption_configuration",
+      "aws_s3_bucket"
+    ],
+    "acceptable":["aws_kms_key", "aws_s3_bucket"]
+  },
+
+  {
+    "query":"alb target group",
+    "primary":[
+      "aws_lb_target_group"
+    ],
+    "acceptable":[
+      "aws_lb"
+    ]
+  },
+
+  {
+    "query":"cross account iam role",
+    "primary":[
+      "aws_iam_role"
+    ],
+    "acceptable":[
+      "aws_iam_policy"
+    ]
+  },
+
+  {
+    "query":"waf cloudfront",
+    "primary":[
+      "aws_wafv2_web_acl"
+    ],
+    "acceptable":[
+      "aws_cloudfront_distribution"
+    ]
+  },
+
+  {
+    "query":"cloudwatch log retention",
+    "primary":[
+      "aws_cloudwatch_log_group"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"eventbridge cron schedule",
+    "primary":[
+      "aws_scheduler_schedule"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"s3 replication",
+    "primary":[
+      "aws_s3_bucket_replication_configuration"
+    ],
+    "acceptable":[
+      "aws_s3_bucket"
+    ]
+  },
+
+  {
+    "query":"vpc endpoint s3",
+    "primary":[
+      "aws_vpc_endpoint"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"efs mount ec2",
+    "primary":[
+      "aws_efs_file_system",
+      "aws_instance"
+    ],
+    "acceptable":[
+      "aws_efs_mount_target"
+    ]
+  },
+
+  {
+    "query":"ecr image lifecycle",
+    "primary":[
+      "aws_ecr_lifecycle_policy"
+    ],
+    "acceptable":[
+      "aws_ecr_repository"
+    ]
+  },
+
+  {
+    "query":"step function lambda workflow",
+    "primary":[
+      "aws_sfn_state_machine",
+      "aws_lambda_function"
+    ],
+    "acceptable":["aws_cloudwatch_event_rule"]
+  },
+
+  {
+    "query":"api gateway lambda integration",
+    "primary":[
+      "aws_api_gateway_integration",
+      "aws_lambda_function"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"alb listener rule",
+    "primary":[
+      "aws_lb_listener_rule"
+    ],
+    "acceptable":[
+      "aws_lb_listener"
+    ]
+  },
+
+  {
+    "query":"vpc flow logs",
+    "primary":[
+      "aws_flow_log"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"cloudtrail s3 logging",
+    "primary":[
+      "aws_cloudtrail",
+      "aws_s3_bucket"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"autoscaling launch template",
+    "primary":[
+      "aws_launch_template",
+      "aws_autoscaling_group"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"route53 failover routing",
+    "primary":[
+      "aws_route53_record"
+    ],
+    "acceptable":[]
+  },
+
+  {
+    "query":"rds secret rotation",
+    "primary":[
+      "aws_secretsmanager_secret_rotation"
+    ],
+    "acceptable":[
+      "aws_secretsmanager_secret"
+    ]
+  },
+
+  {
+    "query":"ecs capacity provider",
+    "primary":[
+      "aws_ecs_capacity_provider", "aws_ecs_cluster", "aws_scheduler_schedule"
+    ],
+    "acceptable":[
+      "aws_autoscaling_group"
+    ]
+  },
+
+  {
+    "query":"private ec2 nat gateway architecture",
+    "primary":[
+      "aws_instance",
+      "aws_nat_gateway"
+    ],
+    "acceptable":[
+      "aws_route_table",
+      "aws_subnet"
+    ]
+  }
+]

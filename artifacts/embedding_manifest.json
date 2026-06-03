@@ -1,0 +1,17 @@
+{
+  "created_at": "2026-05-26T18:18:21.719773+00:00",
+  "embedding_model": "text-embedding-3-small",
+  "pipeline_version": "phase2_final",
+  "corpus_version": "v1",
+  "vector_count": 17578,
+  "metrics": {
+    "chunks_success": 17578,
+    "chunks_failed": 0,
+    "api_calls": 275,
+    "batches": 275,
+    "tokens": 3074939
+  },
+  "duration_seconds": 142.47,
+  "chunks_per_second": 123.38,
+  "estimated_cost": 0.0615
+}

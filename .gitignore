@@ -1,0 +1,11 @@
+# Ignore Vector Databases
+vectorstore/
+chroma/
+*.sqlite3
+*.bin
+
+# Ignore Archives
+Archive Code/
+
+# Ignore compiled binaries
+*.jar
