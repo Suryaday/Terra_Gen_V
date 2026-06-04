@@ -9,3 +9,5 @@ Archive Code/
 
 # Ignore compiled binaries
 *.jar
+
+*.env

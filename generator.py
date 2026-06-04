@@ -161,6 +161,8 @@ def retrieve_entity_rows(entity: str, bm25, k: int = 4) -> list[RetrievalResult]
         and row["metadata"].get("doc_type") == "resource"
     ]
 
+    logger.info("%s total_candidates=%s", entity, len(candidates))
+    
     candidates.sort(
         key=lambda r: SECTION_PRIORITY.get(r["metadata"].get("section", "").lower(), 50))
     
