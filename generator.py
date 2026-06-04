@@ -45,6 +45,11 @@ RESOURCE_ALIASES = {
     "aws_alb_target_group": "aws_lb_target_group",
 }
 
+ARGUMENT_ALIASES = {
+    "aws_db_instance": {
+        "name": "db_name",
+    },
+}
 
 # ======================================================
 # TYPES
@@ -102,6 +107,13 @@ SECTION_PRIORITY = {
     "basic usage":        2,
     "overview":           50,
 }
+
+# P1 FIX: minimum number of argument-reference chunks every TARGET resource
+# must receive, regardless of what the global retriever returned. Resources
+# the retriever only partially found used to be frozen with as little as a
+# single argument-reference chunk, producing incomplete schema and
+# `terraform validate` failures. See assemble_context().
+ARGREF_FLOOR = 6
 
 
 # ======================================================
@@ -185,7 +197,6 @@ def filter_rows_for_resource(rows, entity: str, hard_deps: list[str]):
             filtered.append(row)
 
     logger.info("FILTER OUTPUT entity=%s rows=%s", entity, len(filtered))
-    logger.info("ENTITY_ROWS_FINAL=%s", [r.chunk_id for r in filtered])
     return filtered
 
 def _get_corrector() -> QueryCorrector:
@@ -450,6 +461,17 @@ def assemble_context(query: str, node: ResourceNode, symbol_table: dict[str, str
     )
 
     logger.info("Context rows for %s = %s", node.entity, len(filtered_rows))
+    argref_chunks = [
+        r.chunk_id
+        for r in filtered_rows
+        if r.metadata.get("section", "").lower() == "argument reference"
+    ]
+
+    logger.info(
+        "ARGREF CHUNKS FOR %s = %s",
+        node.entity,
+        argref_chunks,
+    )
 
     #30 May
     logger.info("GLOBAL ROWS FOR %s", node.entity)
@@ -467,24 +489,68 @@ def assemble_context(query: str, node: ResourceNode, symbol_table: dict[str, str
 
     logger.info("%s entity_rows=%s dep_rows=%s", node.entity, len(entity_rows), len(filtered_rows) - len(entity_rows))
 
-    if not entity_rows:
+    # P1 FIX: guarantee an argument-reference floor for the TARGET entity.
+    #
+    # Previously this top-up only fired when the entity had ZERO rows
+    # ("if not entity_rows"). That created an inversion: resources the main
+    # retriever MISSED were rescued with deterministic, argument-reference-first
+    # context, while resources it PARTIALLY found were frozen with whatever
+    # scraps survived the global k-cap (sometimes a single argument-reference
+    # chunk). Those partially-covered resources then failed `terraform validate`
+    # because their schema was incomplete.
+    #
+    # We now top every target entity up to ARGREF_FLOOR argument-reference
+    # chunks using the deterministic, SECTION_PRIORITY-ordered scan, merging
+    # only chunks not already present (dedup by chunk_id). The fetched rows are
+    # left untagged so build_xml_context treats them as primary documentation.
+    existing_ids = {r.chunk_id for r in filtered_rows}
 
-        logger.warning("Global retrieval missed %s", node.entity,)
+    existing_argref = sum(
+        1 for r in entity_rows
+        if r.metadata.get("section", "").lower() == "argument reference"
+    )
+
+    if existing_argref < ARGREF_FLOOR:
+
+        if not entity_rows:
+            logger.warning("Global retrieval missed %s", node.entity)
+        else:
+            logger.info(
+                "Topping up %s: argument_reference=%s < floor=%s",
+                node.entity, existing_argref, ARGREF_FLOOR,
+            )
 
         bm25 = _get_bm25()
 
-        #30 MAY
-        #fallback_rows = bm25.retrieve(node.entity, filters={"entity": node.entity}, k=5)
+        # Priority-ordered candidate scan (argument reference first). Fetch a
+        # generous set so we can reach the floor even after skipping duplicates.
+        candidates = retrieve_entity_rows(node.entity, bm25, k=ARGREF_FLOOR * 2)
 
-        fallback_rows = retrieve_entity_rows(node.entity, bm25, k=4)
+        added = 0
+        for cand in candidates:
 
-        filtered_rows.extend(fallback_rows)
+            if cand.metadata.get("section", "").lower() != "argument reference":
+                continue
 
-        for r in fallback_rows:
+            if cand.chunk_id in existing_ids:
+                continue
 
-            logger.info("FALLBACK %s metadata_id=%s", r.chunk_id, id(r.metadata))
+            filtered_rows.append(cand)
+            entity_rows.append(cand)
+            existing_ids.add(cand.chunk_id)
+            added += 1
+            
+            existing_argref += 1
 
-        r.metadata["_dependency"] = True
+            logger.info("FLOOR TOPUP %s | %s", cand.chunk_id, cand.metadata.get("section"))
+
+            if existing_argref >= ARGREF_FLOOR:
+                break
+
+        logger.info(
+            "%s floor top-up added=%s argument_reference_now=%s",
+            node.entity, added, existing_argref,
+        )
 
     logger.info("%s -> rows=%s", node.entity, len(filtered_rows))
 
@@ -511,6 +577,23 @@ def assemble_context(query: str, node: ResourceNode, symbol_table: dict[str, str
         logger.info("%s | %s", row.chunk_id, row.metadata.get("section"))
 
     xml_context = build_xml_context(filtered_rows)
+
+    logger.info(
+        "XML CONTEXT HEAD FOR %s:\n%s",
+        node.entity,
+        xml_context[:1000],
+    )
+
+    logger.info(
+        "CONTEXT CHARS FOR %s = %s",
+        node.entity,
+        len(xml_context),
+    )
+
+    if "db_name" in xml_context:
+        logger.info("DB_NAME FOUND IN FINAL CONTEXT")
+    else:
+        logger.warning("DB_NAME MISSING FROM FINAL CONTEXT")
 
     reference_context = build_dependency_reference_context(node, symbol_table)
 
@@ -570,7 +653,7 @@ Rules:
 16. When AVAILABLE TERRAFORM REFERENCES are provided, prefer using those references instead of creating new standalone resources.
 17. If a referenced resource satisfies a dependency, attach it rather than creating alternative configuration.
 18. Generate Terraform compatible with hashicorp/aws provider version 5.x. Never use deprecated arguments.
-19. Generate all required arguments. Include optional arguments only when supported by the provided context.
+19. Generate a complete deployable resource.
 20. The user query identifies the feature of interest, not a partial resource definition.
 21. Always include required arguments.
 22. Never iterate over a resource unless count or for_each exists.
@@ -595,9 +678,14 @@ Rules:
     ...
     }
 
-26. Only use arguments explicitly present in the Argument Reference sections of the provided context. Do not invent deprecated or legacy Terraform arguments.
+    Use the exact Terraform Resource Type and Terraform Resource Label provided above.
+    
+    CRITICAL:
 
-Use the exact Terraform Resource Type and Terraform Resource Label provided above."""
+26. When multiple Argument Reference chunks are present, treat them as the source of truth and ignore any conflicting prior knowledge. The provided documentation always takes precedence over your pretrained Terraform knowledge.
+
+27. Only use arguments explicitly present in the Argument Reference sections of the provided context. Do not invent deprecated or legacy Terraform arguments.
+"""
 
 
 # ======================================================
@@ -665,6 +753,8 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = re.sub(r"\n?```$", "", raw)
     raw = raw.strip()
 
+    raw = _normalize_argument_aliases(node.entity, raw)
+
     var_refs = _extract_var_refs(raw)
     #symbol_table[node.entity] = (f"{node.entity}.{node.label}")
     symbol_table[node.entity] = node.label
@@ -700,6 +790,41 @@ def generate_label(entity: str, existing: set[str]):
     if not candidate:
         candidate = "resource"
     return candidate.replace("-", "_")
+
+def _normalize_argument_aliases(entity: str, hcl: str) -> str:
+
+    aliases = ARGUMENT_ALIASES.get(entity)
+
+    if not aliases:
+        return hcl
+
+    lines = []
+    depth = 0
+
+    for line in hcl.splitlines():
+
+        stripped = line.strip()
+
+        depth += line.count("{")
+        depth -= line.count("}")
+
+        if depth == 1:
+
+            for old_arg, new_arg in aliases.items():
+
+                pattern = rf"^(\s*){re.escape(old_arg)}\s*="
+
+                if re.match(pattern, line):
+
+                    line = re.sub(
+                        pattern,
+                        rf"\1{new_arg} =",
+                        line,
+                    )
+
+        lines.append(line)
+
+    return "\n".join(lines)
 # ======================================================
 # STITCHING
 # ======================================================
@@ -833,27 +958,40 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     var = var_name.lower()
 
     EXACT_TYPE_OVERRIDES = {
-        "enable_ecs_managed_tags": "bool",
-        "enable_xff_client_port": "bool",
+        # Security Group Rules
+        "security_group_ingress_rules": "list(any)",
+        "security_group_egress_rules": "list(any)",
+        "security_groups": "list(string)",
+        "sg_ingress_rules": "list(any)",
+        "sg_egress_rules": "list(any)",
+
+        # AutoScaling
+        "vpc_zone_identifier": "list(string)",
+
+        # ECS
         "requires_compatibilities": "list(string)",
+
+        # CloudFront
         "aliases": "set(string)",
         "allowed_methods": "set(string)",
         "cached_methods": "set(string)",
         "locations": "set(string)",
+
+        # API Gateway
         "stage_variables": "map(string)",
-        "multi_az": "bool",
-        "publicly_accessible": "bool",
-        "enable_dns_support": "bool",
-        "enable_dns_hostnames": "bool",
-        "assign_generated_ipv6_cidr_block": "bool",
-        "copy_tags_to_snapshot": "bool",
+
+        # LB
+        "enable_xff_client_port": "bool",
+
+        # ECS Service
+        "enable_ecs_managed_tags": "bool",
+
+        #RDS
+        "rds_cluster_parameters": "list(any)",
     }
 
-    for key, tf_type in EXACT_TYPE_OVERRIDES.items():
-
-        if key in var:
-
-            return (tf_type, None)
+    if var in EXACT_TYPE_OVERRIDES:
+        return (EXACT_TYPE_OVERRIDES[var], None)
 
     if any(x in var for x in (
         "desired_size",
@@ -861,19 +999,15 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "max_size",
         "disk_size",
         "retention_days",
-        "count",
+        "_count",
     )):
         return ("number", None)
 
     if any(x in var for x in (
         "enabled",
-        "enable_",
         "private_access",
         "public_access",
-        "publicly_accessible",
-        "multi_az",
-        "encrypted",
-        "force_detach"
+        "force_detach",
     )):
         return ("bool", None)
 
@@ -898,6 +1032,18 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     
     if var == "propagate_tags":
         return ("string", None)
+    
+    if var.endswith("_ingress_rules"):
+        return ("list(any)", None)
+
+    if var.endswith("_egress_rules"):
+        return ("list(any)", None)
+    
+    if var.endswith("_parameters"):
+        return ("list(any)", None)
+    
+    if var.endswith("_configuration"):
+        return ("map(any)", None)
 
     LIST_HINTS = (
         "_ids",
@@ -911,6 +1057,18 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "_cidrs",
     )
 
+    if any(
+        x in var
+        for x in (
+            "health_check",
+            "stickiness",
+            "timeouts",
+            "scaling_configuration",
+            "route_settings"
+        )
+    ):
+        return ("map(any)", None)
+
     MAP_HINTS = (
         "tags",
         "environment_variables",
@@ -920,23 +1078,12 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "annotations",
     )
 
-    if any(
-        hint in var 
-        for hint in (
-            "requires_compatibilities",
-            "allowed_methods",
-            "cached_methods",
-            "locations",
-            "security_groups",
-            "api_gateway_endpoint_types",
-        )
+    if var in (
+        "api_gateway_endpoint_types",
     ):
         return ("list(string)", None)
 
-    if "stage_variables" in var:
-        return ("map(string)", None)
-
-    if "copy_tags_to_snapshot" in var:
+    if var in ("copy_tags_to_snapshot"):
         return ("bool", None)
     
     if var.endswith("_security_group_ids"):
@@ -950,9 +1097,6 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     
     if var.endswith("_arns"):
         return ("list(string)", None)
-    
-    if var.endswith("_health_check"):
-        return ("map(string)", None)
 
     if any(var.endswith(hint) for hint in LIST_HINTS):
 
@@ -1257,7 +1401,7 @@ def print_result(result: GenerationResult) -> None:
     print("=" * 72)
 
     for filename, content in result.files.items():
-        print(f"\n{'─' * 30} {filename} {'─' * 30}\n")
+        print(f"\n{'-' * 30} {filename} {'-' * 30}\n")
         print(content)
 
 

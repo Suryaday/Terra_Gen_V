@@ -79,6 +79,15 @@ RRF_K = 60
 POOL_MULTIPLIER = 3
 MIN_POOL = 24
 RERANK_POOL = 72
+# P1 FIX: breadth-first budget allocation. In the first pass we give every
+# distinct entity up to this many chunks before any single entity is allowed
+# to deepen its coverage. Prevents a few semantically-dominant entities
+# (e.g. aws_ecs_service) from consuming the entire k budget and starving the
+# other planned resources of context.
+FIRST_PASS_PER_ENTITY = 2
+# Per-entity depth cap used in the second pass, keyed by section.
+ARGREF_DEPTH_CAP = 8
+DEFAULT_DEPTH_CAP = 1
 #30 May - added tiemouts 70
 SECTION_PRIORITY={"argument reference":0, "example usage":1, "basic usage":2, "overview":50, "import":60, "timeouts": 70, "attribute reference":100, "required":101, "optional":102, "identity schema":103}
 BAD_RERANK_SECTIONS = { "required", "optional", "identity schema", "timeouts"}
@@ -211,14 +220,6 @@ def hybrid_retrieve(query:str, filters: Optional[dict] = None, k:int = TOP_K) ->
         try:
 
             sparse = sparse_future.result(timeout=30)
-
-            for row in sparse:
-                if "aws_db_instance" in row.chunk_id:
-                    logger.info(
-                        "SPARSE DB_INSTANCE %s | %s",
-                        row.chunk_id,
-                        row.metadata.get("section")
-                    )
 
         except concurrent.futures.TimeoutError:
 
@@ -495,22 +496,14 @@ def hybrid_retrieve(query:str, filters: Optional[dict] = None, k:int = TOP_K) ->
     reranked=(rerank(rerank_query, rerank_input, max(k*3, 24)))
     logger.info("AWS_INSTANCE RERANKED:")
 
-    for i, row in enumerate(reranked[:30]):
-        logger.info(
-            "%02d | %s | %s",
-            i,
-            row.chunk_id,
-            row.metadata.get("section")
-        )
+    for row in reranked:
 
-    for i, row in enumerate(reranked):
-        
-        if "aws_db_instance_argument_reference" in row.chunk_id:
+        if row.metadata.get("entity") == "aws_instance":
 
             logger.info(
-                "DB_INSTANCE RANK=%02d | %s",
-                i,
+                "%s | %s",
                 row.chunk_id,
+                row.metadata.get("section")
             )
 
     logger.info("POST POOL CAP=%s", len(reranked))
@@ -518,52 +511,75 @@ def hybrid_retrieve(query:str, filters: Optional[dict] = None, k:int = TOP_K) ->
     #27 May change
     #seen_entities = set()
 
+    # P1 FIX: allocate the k budget across entities in TWO phases so a few
+    # semantically-dominant entities cannot consume the entire reranked pool.
+    #
+    # Before: a single global "if len(output) >= k: break" combined with a
+    # per-entity argument-reference cap of 8 meant 3-4 central entities
+    # (e.g. aws_ecs_service / aws_ecs_task_definition) ate all k slots, leaving
+    # most planned resources (vpc, subnet, security_group, lb, ...) with ZERO
+    # chunks in the global pool (observed coverage 4/11 in debug_generator.txt).
+    #
+    # Phase 1 (breadth): give each distinct entity up to FIRST_PASS_PER_ENTITY
+    #   chunks first, so many resources are represented in the pool.
+    # Phase 2 (depth): spend any remaining budget deepening coverage up to the
+    #   per-section cap (argument reference = ARGREF_DEPTH_CAP, otherwise
+    #   DEFAULT_DEPTH_CAP).
+    # Architecture-injected rows bypass the caps, as before.
+
+    def _entity_of(row):
+        return (row.metadata.get("entity", "") or row.chunk_id)
+
+    def _depth_cap(row):
+        section = (row.metadata.get("section", "").lower())
+        return ARGREF_DEPTH_CAP if section == "argument reference" else DEFAULT_DEPTH_CAP
+
     entity_counts = defaultdict(int)
+
+    selected_ids = set()
 
     output = []
 
+    # Phase 1 — breadth-first across entities
     for row in reranked:
-        if row.metadata.get("entity") == "aws_instance":
-            logger.info("RANKED | %s", row.chunk_id)
-        if "argument_reference_011" in row.chunk_id:
-            logger.info("FOUND 011 IN RERANKED")
-
-        entity = (row.metadata.get("entity", "") or row.chunk_id) 
-        
-        #27 may change
-        #if (entity and entity in seen_entities and not row.metadata.get("_architecture")): continue
-
-        section = (row.metadata.get("section", "").lower())
-        limit = 1
-        if section == "argument reference": 
-            limit = 8
-
-        #4 June
-        if "aws_db_instance_argument_reference_011" in row.chunk_id:
-            logger.info(
-                "011 SEEN | section=%s | entity_count=%s | limit=%s",
-                section,
-                entity_counts[entity],
-                limit,
-            )
-        if (entity and entity_counts[entity] >= limit and not row.metadata.get("_architecture")): continue
-        
-        if entity: 
-            #seen_entities.add(entity)
-            entity_counts[entity] += 1
-            logger.info("COUNTING %s -> %s (%s)", entity, entity_counts[entity] + 1, row.chunk_id)
-        
-        #4 June
-        logger.info("ADDING %s", row.chunk_id)
-        output.append(row)
-
-        #May 30
-        if len(output) >= k: 
-            logger.info("NEXT ROW=%s | %s | %s", row.metadata.get("entity"), row.metadata.get("section"), row.chunk_id)
-            logger.info("FINAL OUTPUT COUNT=%s", len(output))
-            logger.info("ENTITY COUNTS=%s",Counter(r.metadata.get("entity") for r in output))
+        if len(output) >= k:
             break
-    
+        entity = _entity_of(row)
+        if not row.metadata.get("_architecture") and entity_counts[entity] >= FIRST_PASS_PER_ENTITY:
+            continue
+        output.append(row)
+        selected_ids.add(row.chunk_id)
+        if entity:
+            entity_counts[entity] += 1
+
+    # Phase 2 — depth: fill remaining budget up to the per-section cap
+    if len(output) < k:
+        for row in reranked:
+            if len(output) >= k:
+                break
+            if row.chunk_id in selected_ids:
+                continue
+            entity = _entity_of(row)
+            if (entity
+                    and entity_counts[entity] >= _depth_cap(row)
+                    and not row.metadata.get("_architecture")):
+                continue
+            output.append(row)
+            selected_ids.add(row.chunk_id)
+            if entity:
+                entity_counts[entity] += 1
+
+    #May 30
+    logger.info("FINAL OUTPUT COUNT=%s", len(output))
+    logger.info("ENTITY COUNTS=%s", Counter(r.metadata.get("entity") for r in output))
+    for row in output:
+        logger.info(
+            "FINAL %s | %s | %s",
+            row.metadata.get("entity"),
+            row.metadata.get("section"),
+            row.chunk_id
+        )
+        
     core_context=output
 
     dependency_rows=[]
