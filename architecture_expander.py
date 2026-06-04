@@ -72,7 +72,8 @@ ARCHITECTURE_COMPLETIONS = {
     ],
 
     "aws_sqs_queue": [
-        "aws_sqs_queue_policy"
+        "aws_sqs_queue_policy",
+        "aws_sqs_queue_redrive_policy"
     ]
 }
 

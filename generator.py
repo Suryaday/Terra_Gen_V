@@ -127,6 +127,9 @@ def retrieve_generation_context(query: str,):
 
     rows = hybrid_retrieve(query, k=24)
 
+    for row in rows[:20]:
+        logger.info("GLOBAL | %s | metadata_id=%s | dependency=%s", row.chunk_id, id(row.metadata), row.metadata.get("_dependency"))
+
     logger.info("Global retrieval returned " f"{len(rows)} rows")
 
     logger.info("RETRIEVED ENTITY COUNTS=%s", Counter(r.metadata.get("entity") for r in rows))
@@ -182,6 +185,7 @@ def filter_rows_for_resource(rows, entity: str, hard_deps: list[str]):
             filtered.append(row)
 
     logger.info("FILTER OUTPUT entity=%s rows=%s", entity, len(filtered))
+    logger.info("ENTITY_ROWS_FINAL=%s", [r.chunk_id for r in filtered])
     return filtered
 
 def _get_corrector() -> QueryCorrector:
@@ -219,6 +223,23 @@ def _get_client() -> OpenAI:
 
     return _client
 
+def get_generation_deps(resource: str) -> list[str]:
+    """
+    Dependencies used for generation ordering.
+
+    Terraform optional dependencies often become required
+    when generating a complete architecture because later
+    resources should reference earlier resources.
+
+    Generation dependencies = hard + optional.
+    """
+
+    deps = RESOURCE_DEPENDENCIES.get(resource, {})
+
+    hard = deps.get("hard", [])
+    optional = deps.get("optional", [])
+
+    return list(dict.fromkeys(hard + optional))
 
 # ======================================================
 # TOPOLOGICAL SORT
@@ -235,8 +256,10 @@ def _topo_sort(entities: list[str]) -> list[str]:
     # Build adjacency: node → list of nodes it depends on (within entity_set)
     deps_within: dict[str, list[str]] = {}
     for e in entities:
-        known = RESOURCE_DEPENDENCIES.get(e, {})
-        deps_within[e] = [d for d in known.get("hard", []) if d in entity_set]
+        #known = RESOURCE_DEPENDENCIES.get(e, {})
+        #deps_within[e] = [d for d in known.get("hard", []) if d in entity_set]
+        logger.info("GEN DEPS %s -> %s", e, get_generation_deps(e))
+        deps_within[e] = [d for d in get_generation_deps(e) if d in entity_set]
 
     # In-degree = number of dependencies within the set
     in_degree = {e: len(deps_within[e]) for e in entities}
@@ -335,6 +358,7 @@ def build_plan(query: str) -> GenerationPlan:
 
     # Step 5: Topological sort — dependencies come before dependents
     ordered = _topo_sort(all_entities)
+    logger.info("TOPO ORDER=%s", ordered)
 
     # Step 6: Build ResourceNode list
     used_labels = set()
@@ -357,16 +381,60 @@ def build_plan(query: str) -> GenerationPlan:
 
                 is_root=(e in root_set),
 
-                hard_deps=[d for d in RESOURCE_DEPENDENCIES.get(e, {}).get("hard", []) if d in set(all_entities)]
+                #hard_deps=[d for d in RESOURCE_DEPENDENCIES.get(e, {}).get("hard", []) if d in set(all_entities)]
+
+                hard_deps = [d for d in get_generation_deps(e) if d in set(all_entities)]
             )
         )
+    
+    for node in nodes:
+        logger.info("NODE=%s HARD_DEPS=%s", node.entity, node.hard_deps)
 
-    return GenerationPlan(
-        query=query,
-        root_entities=root_entities,
-        ordered_nodes=nodes,
-    )
+    return GenerationPlan(query=query, root_entities=root_entities, ordered_nodes=nodes)
 
+# ======================================================
+# DEPENDENCY REFERENCE CONTEXT
+# ======================================================
+
+def build_dependency_reference_context(node, symbol_table: dict[str, str],) -> str:
+
+    if not node.hard_deps:
+        return ""
+
+    lines = [
+        "DEPENDENCY REFERENCES",
+        "",
+        "Use these generated Terraform resources instead of variables whenever appropriate.",
+        "",
+    ]
+
+    for dep in node.hard_deps:
+
+        label = symbol_table.get(dep)
+
+        if not label:
+            continue
+
+        if dep == "aws_vpc":
+            lines.append(f"{dep}.{label}.id")
+
+        elif dep == "aws_subnet":
+            lines.append(f"{dep}.{label}.id")
+
+        elif dep == "aws_security_group":
+            lines.append(f"{dep}.{label}.id")
+
+        elif dep == "aws_db_subnet_group":
+            lines.append(f"{dep}.{label}.name")
+
+        elif dep == "aws_iam_role":
+            lines.append(f"{dep}.{label}.arn")
+
+        else:
+            lines.append(f"{dep}.{label}")
+
+    logger.info("REFERENCE CONTEXT FOR %s:\n%s", node.entity, "\n".join(lines))
+    return "\n".join(lines)
 
 # ======================================================
 # CONTEXT ASSEMBLY
@@ -412,6 +480,12 @@ def assemble_context(query: str, node: ResourceNode, symbol_table: dict[str, str
 
         filtered_rows.extend(fallback_rows)
 
+        for r in fallback_rows:
+
+            logger.info("FALLBACK %s metadata_id=%s", r.chunk_id, id(r.metadata))
+
+        r.metadata["_dependency"] = True
+
     logger.info("%s -> rows=%s", node.entity, len(filtered_rows))
 
     for row in filtered_rows:
@@ -438,6 +512,8 @@ def assemble_context(query: str, node: ResourceNode, symbol_table: dict[str, str
 
     xml_context = build_xml_context(filtered_rows)
 
+    reference_context = build_dependency_reference_context(node, symbol_table)
+
     if node.entity in {"aws_eks_node_group", "aws_appautoscaling_policy"}:
 
         logger.info("\n%s XML CONTEXT\n%s\n", node.entity, xml_context[:10000])
@@ -461,11 +537,9 @@ def assemble_context(query: str, node: ResourceNode, symbol_table: dict[str, str
             + "\n".join(references)
         )
 
-    final_context = xml_context + ref_block
+    final_context = xml_context + ref_block + reference_context
 
     logger.info("Context chars for %s = %s", node.entity, len(final_context))
-
-    
 
     return final_context
 
@@ -496,7 +570,7 @@ Rules:
 16. When AVAILABLE TERRAFORM REFERENCES are provided, prefer using those references instead of creating new standalone resources.
 17. If a referenced resource satisfies a dependency, attach it rather than creating alternative configuration.
 18. Generate Terraform compatible with hashicorp/aws provider version 5.x. Never use deprecated arguments.
-19. Generate a complete deployable resource.
+19. Generate all required arguments. Include optional arguments only when supported by the provided context.
 20. The user query identifies the feature of interest, not a partial resource definition.
 21. Always include required arguments.
 22. Never iterate over a resource unless count or for_each exists.
@@ -520,6 +594,8 @@ Rules:
     resource "aws_instance" "example" {
     ...
     }
+
+26. Only use arguments explicitly present in the Argument Reference sections of the provided context. Do not invent deprecated or legacy Terraform arguments.
 
 Use the exact Terraform Resource Type and Terraform Resource Label provided above."""
 
@@ -590,7 +666,9 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = raw.strip()
 
     var_refs = _extract_var_refs(raw)
-    symbol_table[node.entity] = (f"{node.entity}.{node.label}")
+    #symbol_table[node.entity] = (f"{node.entity}.{node.label}")
+    symbol_table[node.entity] = node.label
+    logger.info("SYMBOL TABLE NOW=%s", symbol_table)
 
     logger.info("Generated %s — vars: %s", node.entity, var_refs)
 
@@ -754,6 +832,29 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
 
     var = var_name.lower()
 
+    EXACT_TYPE_OVERRIDES = {
+        "enable_ecs_managed_tags": "bool",
+        "enable_xff_client_port": "bool",
+        "requires_compatibilities": "list(string)",
+        "aliases": "set(string)",
+        "allowed_methods": "set(string)",
+        "cached_methods": "set(string)",
+        "locations": "set(string)",
+        "stage_variables": "map(string)",
+        "multi_az": "bool",
+        "publicly_accessible": "bool",
+        "enable_dns_support": "bool",
+        "enable_dns_hostnames": "bool",
+        "assign_generated_ipv6_cidr_block": "bool",
+        "copy_tags_to_snapshot": "bool",
+    }
+
+    for key, tf_type in EXACT_TYPE_OVERRIDES.items():
+
+        if key in var:
+
+            return (tf_type, None)
+
     if any(x in var for x in (
         "desired_size",
         "min_size",
@@ -766,9 +867,13 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
 
     if any(x in var for x in (
         "enabled",
+        "enable_",
         "private_access",
         "public_access",
-        "force_detach",
+        "publicly_accessible",
+        "multi_az",
+        "encrypted",
+        "force_detach"
     )):
         return ("bool", None)
 
@@ -815,20 +920,23 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "annotations",
     )
 
-    if var in (
-        "requires_compatibilities",
-        "allowed_methods",
-        "cached_methods",
-        "locations",
-        "security_groups",
-        "api_gateway_endpoint_types",
+    if any(
+        hint in var 
+        for hint in (
+            "requires_compatibilities",
+            "allowed_methods",
+            "cached_methods",
+            "locations",
+            "security_groups",
+            "api_gateway_endpoint_types",
+        )
     ):
         return ("list(string)", None)
 
-    if var in ("stage_variables"):
+    if "stage_variables" in var:
         return ("map(string)", None)
 
-    if var in ("copy_tags_to_snapshot"):
+    if "copy_tags_to_snapshot" in var:
         return ("bool", None)
     
     if var.endswith("_security_group_ids"):
@@ -842,6 +950,9 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     
     if var.endswith("_arns"):
         return ("list(string)", None)
+    
+    if var.endswith("_health_check"):
+        return ("map(string)", None)
 
     if any(var.endswith(hint) for hint in LIST_HINTS):
 
