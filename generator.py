@@ -185,6 +185,7 @@ def filter_rows_for_resource(rows, entity: str, hard_deps: list[str]):
             filtered.append(row)
 
     logger.info("FILTER OUTPUT entity=%s rows=%s", entity, len(filtered))
+    logger.info("ENTITY_ROWS_FINAL=%s", [r.chunk_id for r in filtered])
     return filtered
 
 def _get_corrector() -> QueryCorrector:
@@ -569,7 +570,7 @@ Rules:
 16. When AVAILABLE TERRAFORM REFERENCES are provided, prefer using those references instead of creating new standalone resources.
 17. If a referenced resource satisfies a dependency, attach it rather than creating alternative configuration.
 18. Generate Terraform compatible with hashicorp/aws provider version 5.x. Never use deprecated arguments.
-19. Generate a complete deployable resource.
+19. Generate all required arguments. Include optional arguments only when supported by the provided context.
 20. The user query identifies the feature of interest, not a partial resource definition.
 21. Always include required arguments.
 22. Never iterate over a resource unless count or for_each exists.
@@ -831,6 +832,29 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
 
     var = var_name.lower()
 
+    EXACT_TYPE_OVERRIDES = {
+        "enable_ecs_managed_tags": "bool",
+        "enable_xff_client_port": "bool",
+        "requires_compatibilities": "list(string)",
+        "aliases": "set(string)",
+        "allowed_methods": "set(string)",
+        "cached_methods": "set(string)",
+        "locations": "set(string)",
+        "stage_variables": "map(string)",
+        "multi_az": "bool",
+        "publicly_accessible": "bool",
+        "enable_dns_support": "bool",
+        "enable_dns_hostnames": "bool",
+        "assign_generated_ipv6_cidr_block": "bool",
+        "copy_tags_to_snapshot": "bool",
+    }
+
+    for key, tf_type in EXACT_TYPE_OVERRIDES.items():
+
+        if key in var:
+
+            return (tf_type, None)
+
     if any(x in var for x in (
         "desired_size",
         "min_size",
@@ -843,9 +867,13 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
 
     if any(x in var for x in (
         "enabled",
+        "enable_",
         "private_access",
         "public_access",
-        "force_detach",
+        "publicly_accessible",
+        "multi_az",
+        "encrypted",
+        "force_detach"
     )):
         return ("bool", None)
 
@@ -892,20 +920,23 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "annotations",
     )
 
-    if var in (
-        "requires_compatibilities",
-        "allowed_methods",
-        "cached_methods",
-        "locations",
-        "security_groups",
-        "api_gateway_endpoint_types",
+    if any(
+        hint in var 
+        for hint in (
+            "requires_compatibilities",
+            "allowed_methods",
+            "cached_methods",
+            "locations",
+            "security_groups",
+            "api_gateway_endpoint_types",
+        )
     ):
         return ("list(string)", None)
 
-    if var in ("stage_variables"):
+    if "stage_variables" in var:
         return ("map(string)", None)
 
-    if var in ("copy_tags_to_snapshot"):
+    if "copy_tags_to_snapshot" in var:
         return ("bool", None)
     
     if var.endswith("_security_group_ids"):
@@ -919,6 +950,9 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     
     if var.endswith("_arns"):
         return ("list(string)", None)
+    
+    if var.endswith("_health_check"):
+        return ("map(string)", None)
 
     if any(var.endswith(hint) for hint in LIST_HINTS):
 

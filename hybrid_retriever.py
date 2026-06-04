@@ -99,10 +99,7 @@ def hybrid_retrieve(query:str, filters: Optional[dict] = None, k:int = TOP_K) ->
 
     if not query.strip(): return []
 
-    #intent = classify(query)
-
-    #31 MAY
-    intent = QueryIntent.EXAMPLE
+    intent = classify(query)
 
     original_query = query.strip()
 
@@ -214,6 +211,14 @@ def hybrid_retrieve(query:str, filters: Optional[dict] = None, k:int = TOP_K) ->
         try:
 
             sparse = sparse_future.result(timeout=30)
+
+            for row in sparse:
+                if "aws_db_instance" in row.chunk_id:
+                    logger.info(
+                        "SPARSE DB_INSTANCE %s | %s",
+                        row.chunk_id,
+                        row.metadata.get("section")
+                    )
 
         except concurrent.futures.TimeoutError:
 
@@ -490,14 +495,22 @@ def hybrid_retrieve(query:str, filters: Optional[dict] = None, k:int = TOP_K) ->
     reranked=(rerank(rerank_query, rerank_input, max(k*3, 24)))
     logger.info("AWS_INSTANCE RERANKED:")
 
-    for row in reranked:
+    for i, row in enumerate(reranked[:30]):
+        logger.info(
+            "%02d | %s | %s",
+            i,
+            row.chunk_id,
+            row.metadata.get("section")
+        )
 
-        if row.metadata.get("entity") == "aws_instance":
+    for i, row in enumerate(reranked):
+        
+        if "aws_db_instance_argument_reference" in row.chunk_id:
 
             logger.info(
-                "%s | %s",
+                "DB_INSTANCE RANK=%02d | %s",
+                i,
                 row.chunk_id,
-                row.metadata.get("section")
             )
 
     logger.info("POST POOL CAP=%s", len(reranked))
@@ -512,6 +525,9 @@ def hybrid_retrieve(query:str, filters: Optional[dict] = None, k:int = TOP_K) ->
     for row in reranked:
         if row.metadata.get("entity") == "aws_instance":
             logger.info("RANKED | %s", row.chunk_id)
+        if "argument_reference_011" in row.chunk_id:
+            logger.info("FOUND 011 IN RERANKED")
+
         entity = (row.metadata.get("entity", "") or row.chunk_id) 
         
         #27 may change
@@ -522,12 +538,23 @@ def hybrid_retrieve(query:str, filters: Optional[dict] = None, k:int = TOP_K) ->
         if section == "argument reference": 
             limit = 8
 
+        #4 June
+        if "aws_db_instance_argument_reference_011" in row.chunk_id:
+            logger.info(
+                "011 SEEN | section=%s | entity_count=%s | limit=%s",
+                section,
+                entity_counts[entity],
+                limit,
+            )
         if (entity and entity_counts[entity] >= limit and not row.metadata.get("_architecture")): continue
         
         if entity: 
             #seen_entities.add(entity)
             entity_counts[entity] += 1
+            logger.info("COUNTING %s -> %s (%s)", entity, entity_counts[entity] + 1, row.chunk_id)
         
+        #4 June
+        logger.info("ADDING %s", row.chunk_id)
         output.append(row)
 
         #May 30
