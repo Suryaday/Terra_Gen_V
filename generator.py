@@ -167,8 +167,7 @@ def retrieve_entity_rows(entity: str, bm25, k: int = 4) -> list[RetrievalResult]
         key=lambda r: SECTION_PRIORITY.get(r["metadata"].get("section", "").lower(), 50))
     
     for row in candidates:
-        print("What Chunks are being generated:") 
-        print(row["chunk_id"], row["metadata"].get("section"))
+        logger.debug("%s | %s", row["chunk_id"], row["metadata"].get("section"))
     
     return [
         RetrievalResult(
@@ -992,8 +991,30 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "rds_cluster_parameters": "list(any)",
     }
 
+    BOOLEAN_OVERRIDES = {
+        "multi_az",
+        "publicly_accessible",
+        "deletion_protection",
+        "skip_final_snapshot",
+        "apply_immediately",
+        "enable_dns_support",
+        "enable_dns_hostnames",
+        "enable_network_address_usage_metrics",
+    }
+
+    NUMBER_OVERRIDES = {
+        "allocated_storage",
+        "retention_period",
+    }
+
     if var in EXACT_TYPE_OVERRIDES:
         return (EXACT_TYPE_OVERRIDES[var], None)
+    
+    if var in BOOLEAN_OVERRIDES:
+        return ("bool", None)
+    
+    if var in NUMBER_OVERRIDES:
+        return ("number", None)
 
     if any(x in var for x in (
         "desired_size",
@@ -1046,6 +1067,9 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     
     if var.endswith("_configuration"):
         return ("map(any)", None)
+    
+    if var.endswith("_retention_period"):
+        return ("number", None)
 
     LIST_HINTS = (
         "_ids",
@@ -1085,7 +1109,7 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     ):
         return ("list(string)", None)
 
-    if var in ("copy_tags_to_snapshot"):
+    if var in ("copy_tags_to_snapshot",):
         return ("bool", None)
     
     if var.endswith("_security_group_ids"):
