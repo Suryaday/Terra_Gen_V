@@ -958,6 +958,9 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
 
     var = var_name.lower()
 
+    if var == "forwarded_headers":
+        logger.info("FORWARDED_HEADERS ENTERED TYPE INFERENCE")
+
     EXACT_TYPE_OVERRIDES = {
         # Security Group Rules
         "security_group_ingress_rules": "list(any)",
@@ -1097,6 +1100,9 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         return ("list(string)", None)
 
     if var == "headers":
+        return ("set(string)", None)
+    
+    if var.endswith("_headers"):
         return ("set(string)", None)
 
     LIST_HINTS = (

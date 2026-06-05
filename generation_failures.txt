@@ -4,267 +4,6 @@ GENERATION FAILURES
 
 ====================================================================================================
 QUERY:
-ecs service with autoscaling and ecr image
-
-MISSING:
-
-GENERATED:
-  - aws_appautoscaling_policy
-  - aws_appautoscaling_target
-  - aws_autoscaling_group
-  - aws_autoscaling_policy
-  - aws_ecr_repository
-  - aws_ecs_cluster
-  - aws_ecs_service
-  - aws_ecs_task_definition
-  - aws_iam_role
-  - aws_launch_template
-
-TERRAFORM ERROR:
-
-terraform validate failed:
-
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 36, in resource "aws_ecr_repository" "ecr_repository":
-[31mâ”‚[0m [0m  36:   [4mscan_on_push[0m = var.ecr_scan_on_push[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0mAn argument named "scan_on_push" is not expected here.
-[31mâ•µ[0m[0m
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mIncorrect attribute value type[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 173, in resource "aws_ecs_service" "ecs_service":
-[31mâ”‚[0m [0m 173:       options    = [4mvar.ecs_service_connect_log_options[0m[0m
-[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
-[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.ecs_service_connect_log_options[0m is a string
-[31mâ”‚[0m [0m[0m
-[31mâ”‚[0m [0mInappropriate value for attribute "options": map of string required, but
-[31mâ”‚[0m [0mhave string.
-[31mâ•µ[0m[0m
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported block type[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 176, in resource "aws_ecs_service" "ecs_service":
-[31mâ”‚[0m [0m 176:     [4maccess_log_configuration[0m {[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0mBlocks of type "access_log_configuration" are not expected here.
-[31mâ•µ[0m[0m
-
-
-MAIN.TF:
-
-# aws_ecs_cluster
-resource "aws_ecs_cluster" "ecs_cluster" {
-  name = var.cluster_name
-
-  setting {
-    name  = "containerInsights"
-    value = var.container_insights_enabled
-  }
-
-  tags = var.tags
-}
-
-# aws_launch_template
-resource "aws_launch_template" "launch_template" {
-  name_prefix   = var.launch_template_name_prefix
-  image_id      = var.launch_template_image_id
-  instance_type = var.launch_template_instance_type
-  key_name      = var.launch_template_key_name
-  vpc_security_group_ids = var.launch_template_vpc_security_group_ids
-  user_data     = var.launch_template_user_data
-  iam_instance_profile {
-    name = var.launch_template_iam_instance_profile_name
-  }
-  monitoring {
-    enabled = var.launch_template_monitoring_enabled
-  }
-  tag_specifications {
-    resource_type = "instance"
-    tags          = var.launch_template_tags
-  }
-}
-
-# aws_ecr_repository
-resource "aws_ecr_repository" "ecr_repository" {
-  name                 = var.ecr_repository_name
-  scan_on_push         = var.ecr_scan_on_push
-
-  image_scanning_configuration {
-    scan_on_push = var.ecr_scan_on_push
-  }
-
-  tags = var.ecr_repository_tags
-}
-
-# aws_appautoscaling_policy
-resource "aws_appautoscaling_policy" "appautoscaling_policy" {
-  name               = var.appautoscaling_policy_name
-  resource_id        = var.appautoscaling_resource_id
-  scalable_dimension = var.appautoscaling_scalable_dimension
-  service_namespace  = var.appautoscaling_service_namespace
-  policy_type        = "TargetTrackingScaling"
-
-  target_tracking_scaling_policy_configuration {
-    target_value       = var.appautoscaling_target_value
-    predefined_metric_specification {
-      predefined_metric_type = "ECSServiceAverageCPUUtilization"
-    }
-    scale_in_cooldown  = var.appautoscaling_scale_in_cooldown
-    scale_out_cooldown = var.appautoscaling_scale_out_cooldown
-  }
-}
-
-# aws_iam_role  (dependency)
-resource "aws_iam_role" "iam_role" {
-  name = var.iam_role_name
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Sid    = ""
-        Principal = {
-          Service = "ecs.amazonaws.com"
-        }
-      }
-    ]
-  })
-
-  tags = var.tags
-}
-
-# aws_ecs_task_definition
-resource "aws_ecs_task_definition" "ecs_task_definition" {
-  family                = var.family
-  requires_compatibilities = var.requires_compatibilities
-  cpu                   = var.cpu
-  memory                = var.memory
-  network_mode          = var.network_mode
-  execution_role_arn    = aws_iam_role.iam_role.arn
-  task_role_arn         = var.task_role_arn
-  container_definitions = var.container_definitions_json
-
-  runtime_platform {
-    operating_system_family = var.operating_system_family
-    cpu_architecture        = var.cpu_architecture
-  }
-
-  volume {
-    name      = var.volume_name
-    host_path = var.volume_host_path
-  }
-
-  placement_constraints {
-    type       = var.placement_constraint_type
-    expression = var.placement_constraint_expression
-  }
-
-  tags = var.tags
-}
-
-# aws_autoscaling_group
-resource "aws_autoscaling_group" "autoscaling_group" {
-  max_size            = var.max_size
-  min_size            = var.min_size
-  desired_capacity    = var.desired_capacity
-  launch_template {
-    id      = aws_launch_template.launch_template.id
-    version = "$Latest"
-  }
-  vpc_zone_identifier = var.vpc_zone_identifier
-  health_check_grace_period = 300
-  health_check_type         = "EC2"
-
-  tag {
-    key                 = var.tag_key
-    value               = var.tag_value
-    propagate_at_launch = true
-  }
-}
-
-# aws_appautoscaling_target
-resource "aws_appautoscaling_target" "appautoscaling_target" {
-  max_capacity       = var.max_capacity
-  min_capacity       = var.min_capacity
-  resource_id        = var.resource_id
-  scalable_dimension = var.scalable_dimension
-  service_namespace  = var.service_namespace
-  role_arn           = aws_iam_role.iam_role.arn
-
-  suspended_state {
-    dynamic_scaling_in_suspended  = var.dynamic_scaling_in_suspended
-    dynamic_scaling_out_suspended = var.dynamic_scaling_out_suspended
-    scheduled_scaling_suspended   = var.scheduled_scaling_suspended
-  }
-
-  tags = var.tags
-}
-
-# aws_ecs_service
-resource "aws_ecs_service" "ecs_service" {
-  name            = var.ecs_service_name
-  cluster         = aws_ecs_cluster.ecs_cluster.id
-  task_definition = aws_ecs_task_definition.ecs_task_definition.arn
-  desired_count   = var.ecs_service_desired_count
-
-  deployment_controller {
-    type = var.ecs_service_deployment_controller_type
-  }
-
-  deployment_circuit_breaker {
-    enable   = var.ecs_service_deployment_circuit_breaker_enable
-    rollback = var.ecs_service_deployment_circuit_breaker_rollback
-  }
-
-  service_connect_configuration {
-    enabled   = var.ecs_service_connect_enabled
-    namespace = var.ecs_service_connect_namespace
-
-    log_configuration {
-      log_driver = var.ecs_service_connect_log_driver
-      options    = var.ecs_service_connect_log_options
-    }
-
-    access_log_configuration {
-      format                   = var.ecs_service_connect_access_log_format
-      include_query_parameters = var.ecs_service_connect_access_log_include_query_parameters
-    }
-
-    service {
-      port_name      = var.ecs_service_connect_service_port_name
-      discovery_name = var.ecs_service_connect_service_discovery_name
-
-      client_alias {
-        dns_name = var.ecs_service_connect_client_alias_dns_name
-        port     = var.ecs_service_connect_client_alias_port
-      }
-    }
-  }
-}
-
-# aws_autoscaling_policy
-resource "aws_autoscaling_policy" "autoscaling_policy" {
-  name                   = var.autoscaling_policy_name
-  autoscaling_group_name = aws_autoscaling_group.autoscaling_group.name
-  policy_type            = var.autoscaling_policy_type
-
-  target_tracking_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = var.predefined_metric_type
-    }
-    target_value = var.target_value
-    disable_scale_in = var.disable_scale_in
-  }
-}
-
-
-====================================================================================================
-QUERY:
 cloudfront distribution with s3 origin
 
 MISSING:
@@ -283,63 +22,15 @@ TERRAFORM ERROR:
 terraform validate failed:
 
 [31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 49, in resource "aws_route53_zone" "route53_zone":
-[31mâ”‚[0m [0m  49:   [4menable_accelerated_recovery[0m = var.enable_accelerated_recovery[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0mAn argument named "enable_accelerated_recovery" is not expected here.
-[31mâ•µ[0m[0m
-[31mâ•·[0m[0m
 [31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mIncorrect attribute value type[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 88, in resource "aws_cloudfront_distribution" "cloudfront_distribution":
-[31mâ”‚[0m [0m  88:         whitelisted_names = [4mvar.cookies_whitelisted_names[0m[0m
+[31mâ”‚[0m [0m[0m  on main.tf line 96, in resource "aws_cloudfront_distribution" "cloudfront_distribution":
+[31mâ”‚[0m [0m  96:       headers = [4mvar.forwarded_headers[0m[0m
 [31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
-[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.cookies_whitelisted_names[0m is a string
-[31mâ”‚[0m [0m[0m
-[31mâ”‚[0m [0mInappropriate value for attribute "whitelisted_names": set of string
-[31mâ”‚[0m [0mrequired, but have string.
-[31mâ•µ[0m[0m
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mIncorrect attribute value type[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 91, in resource "aws_cloudfront_distribution" "cloudfront_distribution":
-[31mâ”‚[0m [0m  91:       query_string_cache_keys = [4mvar.query_string_cache_keys[0m[0m
-[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
-[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.query_string_cache_keys[0m is a string
-[31mâ”‚[0m [0m[0m
-[31mâ”‚[0m [0mInappropriate value for attribute "query_string_cache_keys": list of string
-[31mâ”‚[0m [0mrequired, but have string.
-[31mâ•µ[0m[0m
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mIncorrect attribute value type[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 92, in resource "aws_cloudfront_distribution" "cloudfront_distribution":
-[31mâ”‚[0m [0m  92:       headers                 = [4mvar.headers[0m[0m
-[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
-[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.headers[0m is a string
+[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.forwarded_headers[0m is a string
 [31mâ”‚[0m [0m[0m
 [31mâ”‚[0m [0mInappropriate value for attribute "headers": set of string required, but
 [31mâ”‚[0m [0mhave string.
-[31mâ•µ[0m[0m
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 94, in resource "aws_cloudfront_distribution" "cloudfront_distribution":
-[31mâ”‚[0m [0m  94:     [4mlambda_function_association[0m = var.lambda_function_association[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0mAn argument named "lambda_function_association" is not expected here. Did
-[31mâ”‚[0m [0myou mean to define a block of type "lambda_function_association"?
-[31mâ•µ[0m[0m
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 95, in resource "aws_cloudfront_distribution" "cloudfront_distribution":
-[31mâ”‚[0m [0m  95:     [4mfunction_association[0m        = var.function_association[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0mAn argument named "function_association" is not expected here. Did you mean
-[31mâ”‚[0m [0mto define a block of type "function_association"?
 [31mâ•µ[0m[0m
 
 
@@ -363,17 +54,34 @@ resource "aws_acm_certificate" "acm_certificate" {
 
 # aws_s3_bucket_lifecycle_configuration
 resource "aws_s3_bucket_lifecycle_configuration" "s3_bucket_lifecycle_configuration" {
-  bucket = aws_s3_bucket.s3_bucket.id
+  bucket = var.bucket_name
+
   rule {
     id     = var.lifecycle_rule_id
     status = var.lifecycle_rule_status
 
-    filter {
-      prefix = var.lifecycle_rule_filter_prefix
-    }
+    filter {}
 
     expiration {
-      days = var.lifecycle_rule_expiration_days
+      days = var.expiration_days
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = var.abort_days_after_initiation
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = var.noncurrent_version_noncurrent_days
+    }
+
+    noncurrent_version_transition {
+      noncurrent_days = var.noncurrent_version_transition_noncurrent_days
+      storage_class  = var.noncurrent_version_transition_storage_class
+    }
+
+    transition {
+      days          = var.transition_days
+      storage_class = var.transition_storage_class
     }
   }
 }
@@ -391,16 +99,7 @@ resource "aws_s3_bucket_versioning" "s3_bucket_versioning" {
 resource "aws_route53_zone" "route53_zone" {
   name = var.name
 
-  comment                 = var.comment
-  delegation_set_id       = var.delegation_set_id
-  enable_accelerated_recovery = var.enable_accelerated_recovery
-  force_destroy           = var.force_destroy
-  tags                    = var.tags
-
-  vpc {
-    vpc_id     = var.vpc_id
-    vpc_region = var.vpc_region
-  }
+  tags = var.tags
 }
 
 # aws_cloudfront_distribution
@@ -422,26 +121,18 @@ resource "aws_cloudfront_distribution" "cloudfront_distribution" {
   default_cache_behavior {
     allowed_methods        = var.allowed_methods
     cached_methods         = var.cached_methods
-    cache_policy_id        = var.cache_policy_id
     target_origin_id       = var.s3_origin_id
     viewer_protocol_policy = var.viewer_protocol_policy
-    compress               = var.compress
-    default_ttl            = var.default_ttl
-    max_ttl                = var.max_ttl
-    min_ttl                = var.min_ttl
+
+    cache_policy_id        = var.cache_policy_id
     forwarded_values {
+      query_string = var.forwarded_query_string
       cookies {
-        forward = var.cookies_forward
-        whitelisted_names = var.cookies_whitelisted_names
+        forward = var.forwarded_cookies_forward
+        whitelisted_names = var.forwarded_cookies_whitelisted_names
       }
-      query_string = var.query_string
-      query_string_cache_keys = var.query_string_cache_keys
-      headers = var.headers
+      headers = var.forwarded_headers
     }
-    lambda_function_association = var.lambda_function_association
-    function_association = var.function_association
-    response_headers_policy_id = var.response_headers_policy_id
-    origin_request_policy_id = var.origin_request_policy_id
   }
 
   restrictions {
@@ -458,216 +149,27 @@ resource "aws_cloudfront_distribution" "cloudfront_distribution" {
     cloudfront_default_certificate = var.cloudfront_default_certificate
   }
 
-  tags = var.tags
-
+  price_class      = var.price_class
+  logging_config {
+    bucket = var.logging_bucket
+    include_cookies = var.logging_include_cookies
+    prefix = var.logging_prefix
+  }
   wait_for_deployment = var.wait_for_deployment
+  retain_on_delete    = var.retain_on_delete
 }
 
 # aws_route53_record
 resource "aws_route53_record" "route53_record" {
   zone_id = aws_route53_zone.route53_zone.zone_id
-  name    = var.record_name
-  type    = "A"
+  name    = var.name
+  type    = var.type
 
   alias {
-    name                   = aws_cloudfront_distribution.cloudfront_distribution.domain_name
-    zone_id                = aws_cloudfront_distribution.cloudfront_distribution.hosted_zone_id
-    evaluate_target_health = true
+    name                   = var.alias_name
+    zone_id                = var.alias_zone_id
+    evaluate_target_health = var.evaluate_target_health
   }
-}
-
-
-====================================================================================================
-QUERY:
-lambda function with api gateway
-
-MISSING:
-
-GENERATED:
-  - aws_apigatewayv2_api
-  - aws_apigatewayv2_integration
-  - aws_apigatewayv2_route
-  - aws_apigatewayv2_stage
-  - aws_iam_role
-  - aws_lambda_function
-  - aws_lambda_permission
-
-TERRAFORM ERROR:
-
-terraform validate failed:
-
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 66, in resource "aws_apigatewayv2_stage" "apigatewayv2_stage":
-[31mâ”‚[0m [0m  66:   [4mroute_settings[0m = var.route_settings[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0mAn argument named "route_settings" is not expected here. Did you mean to
-[31mâ”‚[0m [0mdefine a block of type "route_settings"?
-[31mâ•µ[0m[0m
-
-
-MAIN.TF:
-
-# aws_apigatewayv2_api
-resource "aws_apigatewayv2_api" "apigatewayv2_api" {
-  name          = var.api_name
-  protocol_type = "HTTP"
-  target        = var.lambda_function_arn
-  tags          = var.tags
-}
-
-# aws_apigatewayv2_integration
-resource "aws_apigatewayv2_integration" "apigatewayv2_integration" {
-  api_id              = var.api_id
-  integration_type    = "AWS_PROXY"
-  integration_method  = "POST"
-  integration_uri     = var.integration_uri
-  connection_type    = "INTERNET"
-  passthrough_behavior = "WHEN_NO_MATCH"
-  payload_format_version = "2.0"
-  description        = var.description
-}
-
-# aws_apigatewayv2_route
-resource "aws_apigatewayv2_route" "apigatewayv2_route" {
-  api_id    = var.api_id
-  route_key = var.route_key
-  target    = "integrations/${var.integration_id}"
-}
-
-# aws_iam_role
-resource "aws_iam_role" "iam_role" {
-  assume_role_policy = var.assume_role_policy
-  description       = var.description
-  force_detach_policies = var.force_detach_policies
-  max_session_duration = var.max_session_duration
-  name              = var.name
-  name_prefix       = var.name_prefix
-  path              = var.path
-  permissions_boundary = var.permissions_boundary
-  tags              = var.tags
-  inline_policy {
-    name   = var.inline_policy_name
-    policy = var.inline_policy_document
-  }
-  managed_policy_arns = var.managed_policy_arns
-}
-
-# aws_apigatewayv2_stage
-resource "aws_apigatewayv2_stage" "apigatewayv2_stage" {
-  api_id = aws_apigatewayv2_api.apigatewayv2_api.id
-  name   = var.stage_name
-
-  auto_deploy = var.auto_deploy
-
-  access_log_settings {
-    destination_arn = var.access_log_destination_arn
-    format          = var.access_log_format
-  }
-
-  default_route_settings {
-    data_trace_enabled    = var.default_route_data_trace_enabled
-    detailed_metrics_enabled = var.default_route_detailed_metrics_enabled
-    logging_level          = var.default_route_logging_level
-    throttling_burst_limit = var.default_route_throttling_burst_limit
-    throttling_rate_limit  = var.default_route_throttling_rate_limit
-  }
-
-  route_settings = var.route_settings
-
-  stage_variables = var.stage_variables
-
-  tags = var.tags
-}
-
-# aws_lambda_function
-resource "aws_lambda_function" "lambda_function" {
-  function_name = var.function_name
-  role          = aws_iam_role.iam_role.arn
-  handler       = var.lambda_handler
-  runtime       = var.lambda_runtime
-  filename      = var.lambda_filename
-  memory_size   = var.lambda_memory_size
-  timeout       = var.lambda_timeout
-  environment {
-    variables = var.lambda_environment_variables
-  }
-  tags = var.tags
-}
-
-# aws_lambda_permission
-resource "aws_lambda_permission" "lambda_permission" {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.lambda_function.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.apigatewayv2_api.execution_arn}/*"
-}
-
-
-====================================================================================================
-QUERY:
-sqs queue with dead letter queue
-
-MISSING:
-
-GENERATED:
-  - aws_sqs_queue
-  - aws_sqs_queue_policy
-  - aws_sqs_queue_redrive_policy
-
-TERRAFORM ERROR:
-
-terraform validate failed:
-
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 36, in resource "aws_sqs_queue_redrive_policy" "sqs_queue_redrive_policy":
-[31mâ”‚[0m [0m  36:   [4mregion[0m = var.region[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0mAn argument named "region" is not expected here.
-[31mâ•µ[0m[0m
-
-
-MAIN.TF:
-
-# aws_sqs_queue
-resource "aws_sqs_queue" "sqs_queue" {
-  name = var.sqs_queue_name
-
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = var.dead_letter_queue_arn
-    maxReceiveCount     = var.max_receive_count
-  })
-
-  visibility_timeout_seconds = var.visibility_timeout_seconds
-  receive_wait_time_seconds  = var.receive_wait_time_seconds
-  delay_seconds             = var.delay_seconds
-  max_message_size          = var.max_message_size
-  message_retention_seconds = var.message_retention_seconds
-  fifo_queue                = var.fifo_queue
-  content_based_deduplication = var.content_based_deduplication
-  kms_master_key_id          = var.kms_master_key_id
-  kms_data_key_reuse_period_seconds = var.kms_data_key_reuse_period_seconds
-
-  tags = var.tags
-}
-
-# aws_sqs_queue_policy
-resource "aws_sqs_queue_policy" "sqs_queue_policy" {
-  queue_url = aws_sqs_queue.sqs_queue.id
-  policy    = var.sqs_queue_policy_json
-}
-
-# aws_sqs_queue_redrive_policy
-resource "aws_sqs_queue_redrive_policy" "sqs_queue_redrive_policy" {
-  queue_url      = var.queue_url
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = var.dead_letter_target_arn
-    maxReceiveCount     = var.max_receive_count
-  })
-  region = var.region
 }
 
 
@@ -693,29 +195,15 @@ TERRAFORM ERROR:
 terraform validate failed:
 
 [31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 131, in resource "aws_lb" "lb":
-[31mâ”‚[0m [0m 131:   [4mminimum_load_balancer_capacity[0m              = var.minimum_load_balancer_capacity[0m
+[31mâ”‚[0m [0m[0m  with aws_subnet.subnet,
+[31mâ”‚[0m [0m  on main.tf line 89, in resource "aws_subnet" "subnet":
+[31mâ”‚[0m [0m  89:   map_customer_owned_ip_on_launch                = [4mfalse[0m[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0mAn argument named "minimum_load_balancer_capacity" is not expected here.
-[31mâ”‚[0m [0mDid you mean to define a block of type "minimum_load_balancer_capacity"?
-[31mâ•µ[0m[0m
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 137, in resource "aws_lb" "lb":
-[31mâ”‚[0m [0m 137:   [4mregion[0m                                      = var.region[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0mAn argument named "region" is not expected here.
-[31mâ•µ[0m[0m
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported block type[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 154, in resource "aws_lb" "lb":
-[31mâ”‚[0m [0m 154:   [4mhealth_check_logs[0m {[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0mBlocks of type "health_check_logs" are not expected here.
+[31mâ”‚[0m [0m"map_customer_owned_ip_on_launch": all of
+[31mâ”‚[0m [0m`customer_owned_ipv4_pool,map_customer_owned_ip_on_launch,outpost_arn` must
+[31mâ”‚[0m [0mbe specified
 [31mâ•µ[0m[0m
 
 
@@ -726,13 +214,12 @@ resource "aws_iam_role" "iam_role" {
   assume_role_policy = var.assume_role_policy
   description       = var.description
   force_detach_policies = var.force_detach_policies
-  managed_policy_arns   = var.managed_policy_arns
   max_session_duration  = var.max_session_duration
-  name                  = var.name
-  name_prefix           = var.name_prefix
-  path                  = var.path
-  permissions_boundary  = var.permissions_boundary
-  tags                  = var.tags
+  name                = var.name
+  name_prefix         = var.name_prefix
+  path                = var.path
+  permissions_boundary = var.permissions_boundary
+  tags                = var.tags
 
   inline_policy {
     name   = var.inline_policy_name
@@ -745,9 +232,8 @@ resource "aws_vpc" "vpc" {
   cidr_block           = var.cidr_block
   enable_dns_support   = true
   enable_dns_hostnames = var.enable_dns_hostnames
-  enable_network_address_usage_metrics = false
-
-  tags = var.tags
+  instance_tenancy     = "default"
+  tags                 = var.tags
 }
 
 # aws_security_group
@@ -757,27 +243,17 @@ resource "aws_security_group" "security_group" {
   vpc_id      = aws_vpc.vpc.id
 
   ingress {
-    from_port   = var.ingress_from_port
-    to_port     = var.ingress_to_port
-    protocol    = var.ingress_protocol
-    cidr_blocks = var.ingress_cidr_blocks
-    description = var.ingress_description
-    ipv6_cidr_blocks = var.ingress_ipv6_cidr_blocks
-    prefix_list_ids  = var.ingress_prefix_list_ids
-    security_groups  = var.ingress_security_groups
-    self             = var.ingress_self
+    from_port   = var.security_group_ingress_from_port
+    to_port     = var.security_group_ingress_to_port
+    protocol    = var.security_group_ingress_protocol
+    cidr_blocks = var.security_group_ingress_cidr_blocks
   }
 
   egress {
-    from_port        = var.egress_from_port
-    to_port          = var.egress_to_port
-    protocol         = var.egress_protocol
-    cidr_blocks      = var.egress_cidr_blocks
-    ipv6_cidr_blocks = var.egress_ipv6_cidr_blocks
-    prefix_list_ids  = var.egress_prefix_list_ids
-    security_groups  = var.egress_security_groups
-    self             = var.egress_self
-    description      = var.egress_description
+    from_port   = var.security_group_egress_from_port
+    to_port     = var.security_group_egress_to_port
+    protocol    = var.security_group_egress_protocol
+    cidr_blocks = var.security_group_egress_cidr_blocks
   }
 
   tags = var.tags
@@ -785,28 +261,28 @@ resource "aws_security_group" "security_group" {
 
 # aws_lb_target_group
 resource "aws_lb_target_group" "lb_target_group" {
-  name        = var.lb_target_group_name
-  port        = var.lb_target_group_port
-  protocol    = var.lb_target_group_protocol
-  vpc_id      = aws_vpc.vpc.id
+  name     = var.lb_target_group_name
+  port     = var.lb_target_group_port
+  protocol = var.lb_target_group_protocol
+  vpc_id   = aws_vpc.vpc.id
 
   health_check {
     enabled             = true
     healthy_threshold   = var.lb_target_group_health_check_healthy_threshold
-    unhealthy_threshold = var.lb_target_group_health_check_unhealthy_threshold
-    timeout             = var.lb_target_group_health_check_timeout
     interval            = var.lb_target_group_health_check_interval
     matcher             = var.lb_target_group_health_check_matcher
     path                = var.lb_target_group_health_check_path
     port                = var.lb_target_group_health_check_port
     protocol            = var.lb_target_group_health_check_protocol
+    timeout             = var.lb_target_group_health_check_timeout
+    unhealthy_threshold = var.lb_target_group_health_check_unhealthy_threshold
   }
 
   stickiness {
-    type            = var.lb_target_group_stickiness_type
-    enabled         = var.lb_target_group_stickiness_enabled
+    enabled        = var.lb_target_group_stickiness_enabled
+    type           = var.lb_target_group_stickiness_type
+    cookie_name    = var.lb_target_group_stickiness_cookie_name
     cookie_duration = var.lb_target_group_stickiness_cookie_duration
-    cookie_name     = var.lb_target_group_stickiness_cookie_name
   }
 
   tags = var.lb_target_group_tags
@@ -815,10 +291,16 @@ resource "aws_lb_target_group" "lb_target_group" {
 # aws_subnet  (dependency)
 resource "aws_subnet" "subnet" {
   vpc_id = aws_vpc.vpc.id
-  cidr_block = var.subnet_cidr_block
-  availability_zone = var.subnet_availability_zone
+  cidr_block = var.cidr_block
+  availability_zone = var.availability_zone
+  assign_ipv6_address_on_creation = false
+  enable_dns64 = false
+  enable_resource_name_dns_aaaa_record_on_launch = false
+  enable_resource_name_dns_a_record_on_launch = false
+  map_customer_owned_ip_on_launch = false
   map_public_ip_on_launch = false
-  tags = var.subnet_tags
+  ipv6_native = false
+  tags = var.tags
 }
 
 # aws_eks_cluster
@@ -831,54 +313,26 @@ resource "aws_eks_cluster" "eks_cluster" {
     security_group_ids = [aws_security_group.security_group.id]
     endpoint_public_access = true
     endpoint_private_access = false
-    public_access_cidrs = var.public_access_cidrs
+    public_access_cidrs = [var.public_access_cidr]
   }
+
+  version = var.kubernetes_version
 
   tags = var.tags
 }
 
 # aws_lb
 resource "aws_lb" "lb" {
-  name_prefix          = var.name_prefix
-  internal             = var.internal
-  load_balancer_type   = var.load_balancer_type
-  ip_address_type      = var.ip_address_type
-  enable_http2         = var.enable_http2
-  enable_deletion_protection = var.enable_deletion_protection
-  enable_tls_version_and_cipher_suite_headers = var.enable_tls_version_and_cipher_suite_headers
-  enable_xff_client_port = var.enable_xff_client_port
-  enable_waf_fail_open = var.enable_waf_fail_open
-  enable_zonal_shift   = var.enable_zonal_shift
-  preserve_host_header = var.preserve_host_header
-  xff_header_processing_mode = var.xff_header_processing_mode
-  minimum_load_balancer_capacity = var.minimum_load_balancer_capacity
-  dns_record_client_routing_policy = var.dns_record_client_routing_policy
-  desync_mitigation_mode = var.desync_mitigation_mode
-  drop_invalid_header_fields = var.drop_invalid_header_fields
-  customer_owned_ipv4_pool = var.customer_owned_ipv4_pool
-  client_keep_alive     = var.client_keep_alive
-  region                = var.region
-  security_groups       = [aws_security_group.security_group.id]
-  subnets               = [aws_subnet.subnet.id]
-  tags                  = var.tags
+  name            = var.lb_name
+  load_balancer_type = "application"
+  subnets         = [aws_subnet.subnet.id]
+  security_groups = [aws_security_group.security_group.id]
 
-  access_logs {
-    bucket = var.access_logs_bucket
-    enabled = var.access_logs_enabled
-    prefix = var.access_logs_prefix
-  }
-
-  connection_logs {
-    bucket = var.connection_logs_bucket
-    enabled = var.connection_logs_enabled
-    prefix = var.connection_logs_prefix
-  }
-
-  health_check_logs {
-    bucket = var.health_check_logs_bucket
-    enabled = var.health_check_logs_enabled
-    prefix = var.health_check_logs_prefix
-  }
+  enable_http2                 = true
+  enable_cross_zone_load_balancing = true
+  internal                     = false
+  ip_address_type              = "ipv4"
+  tags                        = var.tags
 }
 
 # aws_eks_node_group
@@ -888,24 +342,30 @@ resource "aws_eks_node_group" "eks_node_group" {
   subnet_ids = [aws_subnet.subnet.id]
 
   scaling_config {
-    desired_size = var.desired_size
-    max_size     = var.max_size
-    min_size     = var.min_size
+    desired_size = var.node_group_desired_size
+    max_size     = var.node_group_max_size
+    min_size     = var.node_group_min_size
   }
 
+  instance_types = var.node_group_instance_types
+  node_group_name = var.node_group_name
   tags = var.tags
 }
 
 # aws_lb_listener
 resource "aws_lb_listener" "lb_listener" {
   load_balancer_arn = aws_lb.lb.arn
-  port              = var.lb_listener_port
-  protocol          = var.lb_listener_protocol
+  port              = var.listener_port
+  protocol          = var.listener_protocol
+  ssl_policy        = var.listener_ssl_policy
+  certificate_arn   = var.listener_certificate_arn
 
   default_action {
     type             = var.default_action_type
     target_group_arn = aws_lb_target_group.lb_target_group.arn
   }
+
+  tags = var.tags
 }
 
 
