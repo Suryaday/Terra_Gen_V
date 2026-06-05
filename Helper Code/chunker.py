@@ -1,3 +1,5 @@
+#Imports
+
 from __future__ import annotations
 
 import json
@@ -15,6 +17,8 @@ from langchain_text_splitters import (
     RecursiveCharacterTextSplitter
 )
 
+#Standard Python Logging - prints timestamps and levels
+
 logging.basicConfig(
 
     level=logging.INFO,
@@ -24,6 +28,8 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+#Paths and Directories
 
 REPO_ROOT = Path("terraform-provider-aws")
 
@@ -41,6 +47,9 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 OUTPUT_FILE = (OUTPUT_DIR / "terraform_chunks.json")
 
+#Chunking Parameters
+#Some sections like "argument reference" are kept even if short
+#Some resources are explicitly marked as primary (not supporting) even if they end with "_attachment"
 MIN_CHUNK_CHARS = 60
 
 KEEP_SHORT_SECTIONS = {
@@ -63,6 +72,7 @@ KEEP_SHORT_SECTIONS = {
 
 }
 
+
 PRIMARY_OVERRIDES = {
 
     "aws_network_acl_rule",
@@ -70,6 +80,7 @@ PRIMARY_OVERRIDES = {
     "aws_lambda_event_source_mapping"
 
 }
+
 
 SUPPORTED_SUFFIXES = (
 
@@ -85,6 +96,7 @@ SUPPORTED_SUFFIXES = (
 
 )
 
+#Langchain Text Splitters
 HEADER_SPLITTER = MarkdownHeaderTextSplitter(
 
     headers_to_split_on=[
@@ -144,7 +156,8 @@ TOKEN_SPLITTER = (
 
 )
 
-
+#Holds all metadata extracted from frontmatter and file path
+#Frozen = True makes instances immutable (good for caching/hashing)
 @dataclass(frozen=True)
 
 class SourceDoc:
@@ -167,12 +180,8 @@ class SourceDoc:
 
     body: str
 
-
-def normalize_newlines(
-
-    text: str
-
-) -> str:
+#Converts Windows/old Mac line endings to Unix.
+def normalize_newlines(text: str) -> str:
 
     return (
 
@@ -184,18 +193,10 @@ def normalize_newlines(
 
     )
 
+#Removes the YAML frontmatter block (between ---) and returns the parsed dict plus the remaining body.
+def extract_frontmatter(content: str) -> Tuple[Dict[str, Any], str]:
 
-def extract_frontmatter(
-
-    content: str
-
-) -> Tuple[Dict[str, Any], str]:
-
-    content = normalize_newlines(
-
-        content
-
-    )
+    content = normalize_newlines(content)
 
     match = re.match(
 
@@ -213,19 +214,9 @@ def extract_frontmatter(
 
     try:
 
-        metadata = yaml.safe_load(
+        metadata = yaml.safe_load(match.group(1))
 
-            match.group(1)
-
-        )
-
-        if not isinstance(
-
-            metadata,
-
-            dict
-
-        ):
+        if not isinstance(metadata, dict):
 
             metadata = {}
 
@@ -233,13 +224,7 @@ def extract_frontmatter(
 
         metadata = {}
 
-    return (
-
-        metadata,
-
-        content[match.end():]
-
-    )
+    return (metadata, content[match.end():])
 
 
 def infer_doc_type(

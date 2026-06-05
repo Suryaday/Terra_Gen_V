@@ -1007,6 +1007,16 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "retention_period",
     }
 
+    MAP_ANY_OVERRIDES = {
+        "lb_target_group_health_check",
+        "lb_target_group_stickiness",
+        "scaling_configuration",
+        "route_settings",
+    }   
+
+    if var in MAP_ANY_OVERRIDES:
+        return ("map(any)", None)
+
     if var in EXACT_TYPE_OVERRIDES:
         return (EXACT_TYPE_OVERRIDES[var], None)
     
@@ -1070,6 +1080,15 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     
     if var.endswith("_retention_period"):
         return ("number", None)
+    
+    if var.endswith("_allowed_methods"):
+        return ("set(string)", None)
+
+    if var.endswith("_cached_methods"):
+        return ("set(string)", None)
+
+    if var.endswith("_locations"):
+        return ("set(string)", None)
 
     LIST_HINTS = (
         "_ids",
@@ -1082,18 +1101,6 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "_security_groups",
         "_cidrs",
     )
-
-    if any(
-        x in var
-        for x in (
-            "health_check",
-            "stickiness",
-            "timeouts",
-            "scaling_configuration",
-            "route_settings"
-        )
-    ):
-        return ("map(any)", None)
 
     MAP_HINTS = (
         "tags",
