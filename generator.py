@@ -956,17 +956,15 @@ _KNOWN_VARS: dict[str, tuple[str, str, str]] = {
 }
 
 def infer_variable_type(var_name: str) -> tuple[str, str | None]:
-    logger.info("DISCOVERED VAR=%s", var_name)
-    var = var_name.lower()
 
-    if var == "forwarded_headers":
-        logger.info("FORWARDED_HEADERS ENTERED TYPE INFERENCE")
+    logger.info("DISCOVERED VAR=%s", var_name)
+
+    var = var_name.lower()
 
     EXACT_TYPE_OVERRIDES = {
         # Security Group Rules
         "security_group_ingress_rules": "list(any)",
         "security_group_egress_rules": "list(any)",
-        "security_groups": "list(string)",
         "sg_ingress_rules": "list(any)",
         "sg_egress_rules": "list(any)",
 
@@ -991,8 +989,11 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         # ECS Service
         "enable_ecs_managed_tags": "bool",
 
-        #RDS
+        # RDS
         "rds_cluster_parameters": "list(any)",
+
+        # ECS
+        "propagate_tags": "string",
     }
 
     BOOLEAN_OVERRIDES = {
@@ -1004,6 +1005,7 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "enable_dns_support",
         "enable_dns_hostnames",
         "enable_network_address_usage_metrics",
+        "copy_tags_to_snapshot",
     }
 
     NUMBER_OVERRIDES = {
@@ -1016,112 +1018,45 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "lb_target_group_stickiness",
         "scaling_configuration",
         "route_settings",
-    }   
+    }
 
-    if var in MAP_ANY_OVERRIDES:
-        return ("map(any)", None)
+    LIST_ANY_SUFFIXES = (
+        "_ingress_rules",
+        "_egress_rules",
+        "_parameters",
+    )
 
-    if var in EXACT_TYPE_OVERRIDES:
-        return (EXACT_TYPE_OVERRIDES[var], None)
-    
-    if var in BOOLEAN_OVERRIDES:
-        return ("bool", None)
-    
-    if var in NUMBER_OVERRIDES:
-        return ("number", None)
-
-    if any(x in var for x in (
-        "desired_size",
-        "min_size",
-        "max_size",
-        "disk_size",
-        "retention_days",
+    NUMBER_SUFFIXES = (
+        "_size",
         "_count",
-    )):
-        return ("number", None)
+        "_port",
+        "_interval",
+        "_timeout",
+        "_duration",
+        "_threshold",
+        "_retention_period",
+    )
 
-    if any(x in var for x in (
-        "enabled",
-        "private_access",
-        "public_access",
-        "force_detach",
-    )):
-        return ("bool", None)
-
-    if any(x in var for x in (
-        "instance_types",
-        "subnet_ids",
-        "security_group_ids",
-        "availability_zones",
-        "managed_policy_arns",
-    )):
-        return ("list(string)", None)
-    
-    #30 May
-    if var_name.endswith(("_enabled", "_encrypted")):
-        return ("bool", None)
-
-    if var_name.endswith(("_size", "_count", "_port")):
-        return ("number", None)
-
-    if var_name.startswith("associate_"):
-        return ("bool", None)
-    
-    if var_name.startswith("enable_"):
-        return ("bool", None)
-    
-    if var == "propagate_tags":
-        return ("string", None)
-    
-    if var.endswith("_ingress_rules"):
-        return ("list(any)", None)
-
-    if var.endswith("_egress_rules"):
-        return ("list(any)", None)
-    
-    if var.endswith("_parameters"):
-        return ("list(any)", None)
-    
-    if var.endswith("_configuration"):
-        return ("map(any)", None)
-    
-    if var.endswith("_retention_period"):
-        return ("number", None)
-    
-    if var.endswith("_allowed_methods"):
-        return ("set(string)", None)
-
-    if var.endswith("_cached_methods"):
-        return ("set(string)", None)
-
-    if var.endswith("_locations"):
-        return ("set(string)", None)
-    
-    if var.endswith("_whitelisted_names"):
-        return ("set(string)", None)
-
-    if var.endswith("_cache_keys"):
-        return ("list(string)", None)
-
-    if var == "headers":
-        return ("set(string)", None)
-    
-    if var.endswith("_headers"):
-        return ("set(string)", None)
-
-    LIST_HINTS = (
+    LIST_STRING_SUFFIXES = (
         "_ids",
         "_arns",
         "_cidr_blocks",
-        "_subnet_ids",
-        "_security_group_ids",
         "_availability_zones",
         "_subnets",
         "_security_groups",
         "_cidrs",
+        "_cache_keys",
     )
 
-    MAP_HINTS = (
+    SET_STRING_SUFFIXES = (
+        "_allowed_methods",
+        "_cached_methods",
+        "_locations",
+        "_headers",
+        "_whitelisted_names",
+    )
+
+    MAP_STRING_HINTS = (
         "tags",
         "environment_variables",
         "environment_vars",
@@ -1130,55 +1065,101 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "annotations",
     )
 
+    #
+    # Exact overrides first
+    #
+    if var in EXACT_TYPE_OVERRIDES:
+        return (EXACT_TYPE_OVERRIDES[var], None)
+
+    if var in BOOLEAN_OVERRIDES:
+        return ("bool", None)
+
+    if var in NUMBER_OVERRIDES:
+        return ("number", None)
+
+    if var in MAP_ANY_OVERRIDES:
+        return ("map(any)", None)
+
+    if var.endswith("_configuration"):
+        return ("map(any)", None)
+
+    #
+    # Boolean naming conventions
+    #
+    if var.startswith(("enable_", "associate_")):
+        return ("bool", None)
+
+    if var.endswith(("_enabled", "_encrypted")):
+        return ("bool", None)
+
+    if any(
+        x in var
+        for x in (
+            "private_access",
+            "public_access",
+            "force_detach",
+        )
+    ):
+        return ("bool", None)
+    
+    # Explicit suffix-based rules
+    
+    if var.endswith(LIST_ANY_SUFFIXES):
+        return ("list(any)", None)
+
+    if var.endswith(NUMBER_SUFFIXES):
+        return ("number", None)
+
+    if var.endswith(SET_STRING_SUFFIXES):
+        return ("set(string)", None)
+
+    if var.endswith(LIST_STRING_SUFFIXES):
+        return ("list(string)", None)
+
+    #
+    # Generic numeric hints
+    #
+    if any(
+        x in var
+        for x in (
+            "desired_size",
+            "min_size",
+            "max_size",
+            "disk_size",
+            "retention_days",
+        )
+    ):
+        return ("number", None)
+
+    #
+    # Misc list(string) variables that don't follow suffix patterns
+    #
     if var in (
+        "instance_types",
+        "managed_policy_arns",
         "api_gateway_endpoint_types",
+        "security_groups",
     ):
         return ("list(string)", None)
 
-    if var in ("copy_tags_to_snapshot",):
-        return ("bool", None)
-    
-    if var.endswith("_security_group_ids"):
-        return ("list(string)", None)
-
-    if var.endswith("_subnet_ids"):
-        return ("list(string)", None)
-
-    if var.endswith("_cidrs"):
-        return ("list(string)", None)
-    
-    if var.endswith("_arns"):
-        return ("list(string)", None)
-
-    if any(var.endswith(hint) for hint in LIST_HINTS):
-
-        return ("list(string)", None)
-
-    if any(hint in var for hint in MAP_HINTS):
-
+    #
+    # map(string)
+    #
+    if any(hint in var for hint in MAP_STRING_HINTS):
         return ("map(string)", None)
-    
-    if var.endswith("_interval"):
-        return ("number", None)
 
-    if var.endswith("_timeout"):
-        return ("number", None)
-
-    if var.endswith("_duration"):
-        return ("number", None)
-
-    if var.endswith("_threshold"):
-        return ("number", None)
-
-        return ("string", None)
-
-LIST_REFERENCE_ARGS = {
-    "subnet_ids",
-    "security_group_ids",
-    "vpc_zone_identifier",
-}
+    #
+    # Default
+    #
+    return ("string", None)
 
 def _normalize_list_references(terraform: str) -> str:
+
+    LIST_REFERENCE_ARGS = {
+        "subnet_ids",
+        "security_group_ids",
+        "vpc_zone_identifier",
+    }
 
     for arg in LIST_REFERENCE_ARGS:
 

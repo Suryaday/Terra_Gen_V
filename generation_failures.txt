@@ -27,8 +27,8 @@ terraform validate failed:
 [31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
 [31mâ”‚[0m [0m
 [31mâ”‚[0m [0m[0m  with aws_subnet.subnet,
-[31mâ”‚[0m [0m  on main.tf line 95, in resource "aws_subnet" "subnet":
-[31mâ”‚[0m [0m  95:   map_customer_owned_ip_on_launch                = [4mfalse[0m[0m
+[31mâ”‚[0m [0m  on main.tf line 90, in resource "aws_subnet" "subnet":
+[31mâ”‚[0m [0m  90:   map_customer_owned_ip_on_launch                = [4mfalse[0m[0m
 [31mâ”‚[0m [0m
 [31mâ”‚[0m [0m"map_customer_owned_ip_on_launch": all of
 [31mâ”‚[0m [0m`customer_owned_ipv4_pool,map_customer_owned_ip_on_launch,outpost_arn` must
@@ -41,31 +41,28 @@ MAIN.TF:
 # aws_iam_role  (dependency)
 resource "aws_iam_role" "iam_role" {
   assume_role_policy = var.assume_role_policy
-
-  description        = var.description
+  description       = var.description
   force_detach_policies = var.force_detach_policies
   max_session_duration = var.max_session_duration
-  name               = var.name
-  name_prefix        = var.name_prefix
-  path               = var.path
+  name              = var.name
+  name_prefix       = var.name_prefix
+  path              = var.path
   permissions_boundary = var.permissions_boundary
-  tags               = var.tags
+  tags              = var.tags
 
   inline_policy {
     name   = var.inline_policy_name
-    policy = var.inline_policy_policy
+    policy = var.inline_policy_document
   }
 }
 
 # aws_vpc  (dependency)
 resource "aws_vpc" "vpc" {
   cidr_block = var.cidr_block
-
-  enable_dns_support           = true
-  enable_dns_hostnames         = var.enable_dns_hostnames
+  enable_dns_support = true
+  enable_dns_hostnames = var.enable_dns_hostnames
   enable_network_address_usage_metrics = false
-  instance_tenancy             = "default"
-
+  instance_tenancy = "default"
   tags = var.tags
 }
 
@@ -74,6 +71,7 @@ resource "aws_security_group" "security_group" {
   name        = var.security_group_name
   description = var.security_group_description
   vpc_id      = aws_vpc.vpc.id
+  tags        = var.tags
 
   ingress {
     from_port   = var.ingress_from_port
@@ -83,22 +81,19 @@ resource "aws_security_group" "security_group" {
   }
 
   egress {
-    from_port        = var.egress_from_port
-    to_port          = var.egress_to_port
-    protocol         = var.egress_protocol
-    cidr_blocks      = var.egress_cidr_blocks
-    ipv6_cidr_blocks = var.egress_ipv6_cidr_blocks
+    from_port   = var.egress_from_port
+    to_port     = var.egress_to_port
+    protocol    = var.egress_protocol
+    cidr_blocks = var.egress_cidr_blocks
   }
-
-  tags = var.tags
 }
 
 # aws_lb_target_group
 resource "aws_lb_target_group" "lb_target_group" {
-  name_prefix = var.lb_target_group_name_prefix
-  port        = var.lb_target_group_port
-  protocol    = var.lb_target_group_protocol
-  vpc_id      = aws_vpc.vpc.id
+  name   = var.lb_target_group_name
+  port   = var.lb_target_group_port
+  protocol = var.lb_target_group_protocol
+  vpc_id = aws_vpc.vpc.id
 
   health_check {
     enabled             = var.lb_target_group_health_check_enabled
@@ -134,6 +129,7 @@ resource "aws_subnet" "subnet" {
   ipv6_native = false
   map_customer_owned_ip_on_launch = false
   map_public_ip_on_launch = false
+  private_dns_hostname_type_on_launch = var.private_dns_hostname_type_on_launch
   tags = var.tags
 }
 
@@ -141,31 +137,46 @@ resource "aws_subnet" "subnet" {
 resource "aws_eks_cluster" "eks_cluster" {
   name     = var.cluster_name
   role_arn = aws_iam_role.iam_role.arn
+  version  = var.kubernetes_version
 
   vpc_config {
-    subnet_ids         = [aws_subnet.subnet.id]
+    subnet_ids = [aws_subnet.subnet.id]
     security_group_ids = [aws_security_group.security_group.id]
-    endpoint_private_access = var.endpoint_private_access
-    endpoint_public_access  = var.endpoint_public_access
+    endpoint_public_access  = true
+    endpoint_private_access = false
     public_access_cidrs     = var.public_access_cidrs
-    cluster_security_group_id = var.cluster_security_group_id
   }
-
-  version = var.kubernetes_version
 
   tags = var.tags
 }
 
 # aws_lb
 resource "aws_lb" "lb" {
-  name               = var.lb_name
+  name               = var.name
   load_balancer_type = "application"
   subnets            = [aws_subnet.subnet.id]
   security_groups    = [aws_security_group.security_group.id]
-  internal           = false
   enable_http2       = true
-  enable_cross_zone_load_balancing = true
+  internal           = false
   tags               = var.tags
+
+  access_logs {
+    bucket  = var.access_logs_bucket
+    enabled = var.access_logs_enabled
+    prefix  = var.access_logs_prefix
+  }
+
+  connection_logs {
+    bucket  = var.connection_logs_bucket
+    enabled = var.connection_logs_enabled
+    prefix  = var.connection_logs_prefix
+  }
+
+  health_check_logs {
+    bucket  = var.health_check_logs_bucket
+    enabled = var.health_check_logs_enabled
+    prefix  = var.health_check_logs_prefix
+  }
 }
 
 # aws_eks_node_group
@@ -175,9 +186,9 @@ resource "aws_eks_node_group" "eks_node_group" {
   subnet_ids = [aws_subnet.subnet.id]
 
   scaling_config {
-    desired_size = var.node_group_desired_size
-    max_size     = var.node_group_max_size
-    min_size     = var.node_group_min_size
+    desired_size = var.desired_size
+    max_size     = var.max_size
+    min_size     = var.min_size
   }
 
   tags = var.tags
@@ -186,11 +197,11 @@ resource "aws_eks_node_group" "eks_node_group" {
 # aws_lb_listener
 resource "aws_lb_listener" "lb_listener" {
   load_balancer_arn = aws_lb.lb.arn
-  port              = var.listener_port
-  protocol          = var.listener_protocol
+  port              = var.lb_listener_port
+  protocol          = var.lb_listener_protocol
 
   default_action {
-    type             = "forward"
+    type             = var.lb_listener_default_action_type
     target_group_arn = aws_lb_target_group.lb_target_group.arn
   }
 
