@@ -755,6 +755,7 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = raw.strip()
 
     raw = _normalize_argument_aliases(node.entity, raw)
+    raw = _normalize_list_references(raw)
 
     var_refs = _extract_var_refs(raw)
     #symbol_table[node.entity] = (f"{node.entity}.{node.label}")
@@ -955,7 +956,7 @@ _KNOWN_VARS: dict[str, tuple[str, str, str]] = {
 }
 
 def infer_variable_type(var_name: str) -> tuple[str, str | None]:
-
+    logger.info("DISCOVERED VAR=%s", var_name)
     var = var_name.lower()
 
     if var == "forwarded_headers":
@@ -1066,6 +1067,9 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     if var_name.startswith("associate_"):
         return ("bool", None)
     
+    if var_name.startswith("enable_"):
+        return ("bool", None)
+    
     if var == "propagate_tags":
         return ("string", None)
     
@@ -1153,8 +1157,45 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     if any(hint in var for hint in MAP_HINTS):
 
         return ("map(string)", None)
+    
+    if var.endswith("_interval"):
+        return ("number", None)
 
-    return ("string", None)
+    if var.endswith("_timeout"):
+        return ("number", None)
+
+    if var.endswith("_duration"):
+        return ("number", None)
+
+    if var.endswith("_threshold"):
+        return ("number", None)
+
+        return ("string", None)
+
+LIST_REFERENCE_ARGS = {
+    "subnet_ids",
+    "security_group_ids",
+    "vpc_zone_identifier",
+}
+
+def _normalize_list_references(terraform: str) -> str:
+
+    for arg in LIST_REFERENCE_ARGS:
+
+        pattern = (rf'({arg}\s*=\s*)(aws_[a-z0-9_]+\.[a-z0-9_]+\.id)(?!\])')
+
+        before = terraform
+
+        terraform = re.sub(
+            pattern,
+            r'\1[\2]',
+            terraform
+        )
+
+        if before != terraform:
+            logger.info("List Normalized: %s", arg)
+
+    return terraform
 
 def _generate_variables_tf(all_var_refs: list[str]) -> str:
     blocks: list[str] = []

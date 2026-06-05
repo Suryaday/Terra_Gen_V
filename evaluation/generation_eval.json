@@ -1,39 +1,9 @@
 [
   {
-    "query": "rds mysql database",
-    "required_resources": [
-      "aws_db_instance",
-      "aws_db_subnet_group",
-      "aws_security_group",
-      "aws_subnet",
-      "aws_vpc"
-    ]
-  },
-
-  {
     "query": "cloudfront distribution with s3 origin",
     "required_resources": [
       "aws_s3_bucket",
       "aws_cloudfront_distribution"
-    ]
-  },
-
-  {
-    "query": "lambda function with api gateway",
-    "required_resources": [
-      "aws_lambda_function",
-      "aws_iam_role",
-      "aws_apigatewayv2_api",
-      "aws_apigatewayv2_stage",
-      "aws_apigatewayv2_integration"
-    ]
-  },
-
-  {
-    "query": "sqs queue with dead letter queue",
-    "required_resources": [
-      "aws_sqs_queue",
-      "aws_sqs_queue_redrive_policy"
     ]
   },
 

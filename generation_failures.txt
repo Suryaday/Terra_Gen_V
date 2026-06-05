@@ -4,177 +4,6 @@ GENERATION FAILURES
 
 ====================================================================================================
 QUERY:
-cloudfront distribution with s3 origin
-
-MISSING:
-
-GENERATED:
-  - aws_acm_certificate
-  - aws_cloudfront_distribution
-  - aws_route53_record
-  - aws_route53_zone
-  - aws_s3_bucket
-  - aws_s3_bucket_lifecycle_configuration
-  - aws_s3_bucket_versioning
-
-TERRAFORM ERROR:
-
-terraform validate failed:
-
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mIncorrect attribute value type[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 96, in resource "aws_cloudfront_distribution" "cloudfront_distribution":
-[31mâ”‚[0m [0m  96:       headers = [4mvar.forwarded_headers[0m[0m
-[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
-[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.forwarded_headers[0m is a string
-[31mâ”‚[0m [0m[0m
-[31mâ”‚[0m [0mInappropriate value for attribute "headers": set of string required, but
-[31mâ”‚[0m [0mhave string.
-[31mâ•µ[0m[0m
-
-
-MAIN.TF:
-
-# aws_s3_bucket
-resource "aws_s3_bucket" "s3_bucket" {
-  bucket = var.bucket_name
-  force_destroy = var.force_destroy
-  object_lock_enabled = var.object_lock_enabled
-  tags = var.tags
-}
-
-# aws_acm_certificate
-resource "aws_acm_certificate" "acm_certificate" {
-  domain_name       = var.domain_name
-  validation_method = var.validation_method
-
-  tags = var.tags
-}
-
-# aws_s3_bucket_lifecycle_configuration
-resource "aws_s3_bucket_lifecycle_configuration" "s3_bucket_lifecycle_configuration" {
-  bucket = var.bucket_name
-
-  rule {
-    id     = var.lifecycle_rule_id
-    status = var.lifecycle_rule_status
-
-    filter {}
-
-    expiration {
-      days = var.expiration_days
-    }
-
-    abort_incomplete_multipart_upload {
-      days_after_initiation = var.abort_days_after_initiation
-    }
-
-    noncurrent_version_expiration {
-      noncurrent_days = var.noncurrent_version_noncurrent_days
-    }
-
-    noncurrent_version_transition {
-      noncurrent_days = var.noncurrent_version_transition_noncurrent_days
-      storage_class  = var.noncurrent_version_transition_storage_class
-    }
-
-    transition {
-      days          = var.transition_days
-      storage_class = var.transition_storage_class
-    }
-  }
-}
-
-# aws_s3_bucket_versioning
-resource "aws_s3_bucket_versioning" "s3_bucket_versioning" {
-  bucket = aws_s3_bucket.s3_bucket.id
-
-  versioning_configuration {
-    status = var.versioning_status
-  }
-}
-
-# aws_route53_zone  (dependency)
-resource "aws_route53_zone" "route53_zone" {
-  name = var.name
-
-  tags = var.tags
-}
-
-# aws_cloudfront_distribution
-resource "aws_cloudfront_distribution" "cloudfront_distribution" {
-  origin {
-    domain_name = var.s3_bucket_domain_name
-    origin_id   = var.s3_origin_id
-
-    s3_origin_config {
-      origin_access_identity = var.cloudfront_origin_access_identity_path
-    }
-  }
-
-  enabled = var.enabled
-  is_ipv6_enabled = var.is_ipv6_enabled
-  comment = var.comment
-  default_root_object = var.default_root_object
-
-  default_cache_behavior {
-    allowed_methods        = var.allowed_methods
-    cached_methods         = var.cached_methods
-    target_origin_id       = var.s3_origin_id
-    viewer_protocol_policy = var.viewer_protocol_policy
-
-    cache_policy_id        = var.cache_policy_id
-    forwarded_values {
-      query_string = var.forwarded_query_string
-      cookies {
-        forward = var.forwarded_cookies_forward
-        whitelisted_names = var.forwarded_cookies_whitelisted_names
-      }
-      headers = var.forwarded_headers
-    }
-  }
-
-  restrictions {
-    geo_restriction {
-      restriction_type = var.geo_restriction_type
-      locations        = var.geo_restriction_locations
-    }
-  }
-
-  viewer_certificate {
-    acm_certificate_arn            = aws_acm_certificate.acm_certificate.arn
-    ssl_support_method             = var.ssl_support_method
-    minimum_protocol_version       = var.minimum_protocol_version
-    cloudfront_default_certificate = var.cloudfront_default_certificate
-  }
-
-  price_class      = var.price_class
-  logging_config {
-    bucket = var.logging_bucket
-    include_cookies = var.logging_include_cookies
-    prefix = var.logging_prefix
-  }
-  wait_for_deployment = var.wait_for_deployment
-  retain_on_delete    = var.retain_on_delete
-}
-
-# aws_route53_record
-resource "aws_route53_record" "route53_record" {
-  zone_id = aws_route53_zone.route53_zone.zone_id
-  name    = var.name
-  type    = var.type
-
-  alias {
-    name                   = var.alias_name
-    zone_id                = var.alias_zone_id
-    evaluate_target_health = var.evaluate_target_health
-  }
-}
-
-
-====================================================================================================
-QUERY:
 eks cluster with managed node group and alb ingress
 
 MISSING:
@@ -198,8 +27,8 @@ terraform validate failed:
 [31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
 [31mâ”‚[0m [0m
 [31mâ”‚[0m [0m[0m  with aws_subnet.subnet,
-[31mâ”‚[0m [0m  on main.tf line 89, in resource "aws_subnet" "subnet":
-[31mâ”‚[0m [0m  89:   map_customer_owned_ip_on_launch                = [4mfalse[0m[0m
+[31mâ”‚[0m [0m  on main.tf line 95, in resource "aws_subnet" "subnet":
+[31mâ”‚[0m [0m  95:   map_customer_owned_ip_on_launch                = [4mfalse[0m[0m
 [31mâ”‚[0m [0m
 [31mâ”‚[0m [0m"map_customer_owned_ip_on_launch": all of
 [31mâ”‚[0m [0m`customer_owned_ipv4_pool,map_customer_owned_ip_on_launch,outpost_arn` must
@@ -212,28 +41,32 @@ MAIN.TF:
 # aws_iam_role  (dependency)
 resource "aws_iam_role" "iam_role" {
   assume_role_policy = var.assume_role_policy
-  description       = var.description
+
+  description        = var.description
   force_detach_policies = var.force_detach_policies
-  max_session_duration  = var.max_session_duration
-  name                = var.name
-  name_prefix         = var.name_prefix
-  path                = var.path
+  max_session_duration = var.max_session_duration
+  name               = var.name
+  name_prefix        = var.name_prefix
+  path               = var.path
   permissions_boundary = var.permissions_boundary
-  tags                = var.tags
+  tags               = var.tags
 
   inline_policy {
     name   = var.inline_policy_name
-    policy = var.inline_policy_document
+    policy = var.inline_policy_policy
   }
 }
 
 # aws_vpc  (dependency)
 resource "aws_vpc" "vpc" {
-  cidr_block           = var.cidr_block
-  enable_dns_support   = true
-  enable_dns_hostnames = var.enable_dns_hostnames
-  instance_tenancy     = "default"
-  tags                 = var.tags
+  cidr_block = var.cidr_block
+
+  enable_dns_support           = true
+  enable_dns_hostnames         = var.enable_dns_hostnames
+  enable_network_address_usage_metrics = false
+  instance_tenancy             = "default"
+
+  tags = var.tags
 }
 
 # aws_security_group
@@ -243,17 +76,18 @@ resource "aws_security_group" "security_group" {
   vpc_id      = aws_vpc.vpc.id
 
   ingress {
-    from_port   = var.security_group_ingress_from_port
-    to_port     = var.security_group_ingress_to_port
-    protocol    = var.security_group_ingress_protocol
-    cidr_blocks = var.security_group_ingress_cidr_blocks
+    from_port   = var.ingress_from_port
+    to_port     = var.ingress_to_port
+    protocol    = var.ingress_protocol
+    cidr_blocks = var.ingress_cidr_blocks
   }
 
   egress {
-    from_port   = var.security_group_egress_from_port
-    to_port     = var.security_group_egress_to_port
-    protocol    = var.security_group_egress_protocol
-    cidr_blocks = var.security_group_egress_cidr_blocks
+    from_port        = var.egress_from_port
+    to_port          = var.egress_to_port
+    protocol         = var.egress_protocol
+    cidr_blocks      = var.egress_cidr_blocks
+    ipv6_cidr_blocks = var.egress_ipv6_cidr_blocks
   }
 
   tags = var.tags
@@ -261,13 +95,13 @@ resource "aws_security_group" "security_group" {
 
 # aws_lb_target_group
 resource "aws_lb_target_group" "lb_target_group" {
-  name     = var.lb_target_group_name
-  port     = var.lb_target_group_port
-  protocol = var.lb_target_group_protocol
-  vpc_id   = aws_vpc.vpc.id
+  name_prefix = var.lb_target_group_name_prefix
+  port        = var.lb_target_group_port
+  protocol    = var.lb_target_group_protocol
+  vpc_id      = aws_vpc.vpc.id
 
   health_check {
-    enabled             = true
+    enabled             = var.lb_target_group_health_check_enabled
     healthy_threshold   = var.lb_target_group_health_check_healthy_threshold
     interval            = var.lb_target_group_health_check_interval
     matcher             = var.lb_target_group_health_check_matcher
@@ -279,10 +113,10 @@ resource "aws_lb_target_group" "lb_target_group" {
   }
 
   stickiness {
-    enabled        = var.lb_target_group_stickiness_enabled
-    type           = var.lb_target_group_stickiness_type
-    cookie_name    = var.lb_target_group_stickiness_cookie_name
+    enabled       = var.lb_target_group_stickiness_enabled
+    type          = var.lb_target_group_stickiness_type
     cookie_duration = var.lb_target_group_stickiness_cookie_duration
+    cookie_name   = var.lb_target_group_stickiness_cookie_name
   }
 
   tags = var.lb_target_group_tags
@@ -297,9 +131,9 @@ resource "aws_subnet" "subnet" {
   enable_dns64 = false
   enable_resource_name_dns_aaaa_record_on_launch = false
   enable_resource_name_dns_a_record_on_launch = false
+  ipv6_native = false
   map_customer_owned_ip_on_launch = false
   map_public_ip_on_launch = false
-  ipv6_native = false
   tags = var.tags
 }
 
@@ -309,11 +143,12 @@ resource "aws_eks_cluster" "eks_cluster" {
   role_arn = aws_iam_role.iam_role.arn
 
   vpc_config {
-    subnet_ids = [aws_subnet.subnet.id]
+    subnet_ids         = [aws_subnet.subnet.id]
     security_group_ids = [aws_security_group.security_group.id]
-    endpoint_public_access = true
-    endpoint_private_access = false
-    public_access_cidrs = [var.public_access_cidr]
+    endpoint_private_access = var.endpoint_private_access
+    endpoint_public_access  = var.endpoint_public_access
+    public_access_cidrs     = var.public_access_cidrs
+    cluster_security_group_id = var.cluster_security_group_id
   }
 
   version = var.kubernetes_version
@@ -323,16 +158,14 @@ resource "aws_eks_cluster" "eks_cluster" {
 
 # aws_lb
 resource "aws_lb" "lb" {
-  name            = var.lb_name
+  name               = var.lb_name
   load_balancer_type = "application"
-  subnets         = [aws_subnet.subnet.id]
-  security_groups = [aws_security_group.security_group.id]
-
-  enable_http2                 = true
+  subnets            = [aws_subnet.subnet.id]
+  security_groups    = [aws_security_group.security_group.id]
+  internal           = false
+  enable_http2       = true
   enable_cross_zone_load_balancing = true
-  internal                     = false
-  ip_address_type              = "ipv4"
-  tags                        = var.tags
+  tags               = var.tags
 }
 
 # aws_eks_node_group
@@ -347,8 +180,6 @@ resource "aws_eks_node_group" "eks_node_group" {
     min_size     = var.node_group_min_size
   }
 
-  instance_types = var.node_group_instance_types
-  node_group_name = var.node_group_name
   tags = var.tags
 }
 
@@ -357,11 +188,9 @@ resource "aws_lb_listener" "lb_listener" {
   load_balancer_arn = aws_lb.lb.arn
   port              = var.listener_port
   protocol          = var.listener_protocol
-  ssl_policy        = var.listener_ssl_policy
-  certificate_arn   = var.listener_certificate_arn
 
   default_action {
-    type             = var.default_action_type
+    type             = "forward"
     target_group_arn = aws_lb_target_group.lb_target_group.arn
   }
 
