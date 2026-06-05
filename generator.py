@@ -654,7 +654,7 @@ Rules:
 16. When AVAILABLE TERRAFORM REFERENCES are provided, prefer using those references instead of creating new standalone resources.
 17. If a referenced resource satisfies a dependency, attach it rather than creating alternative configuration.
 18. Generate Terraform compatible with hashicorp/aws provider version 5.x. Never use deprecated arguments.
-19. Generate a complete deployable resource.
+19. Generate all required arguments and only optional arguments that are clearly needed for the requested use case.
 20. The user query identifies the feature of interest, not a partial resource definition.
 21. Always include required arguments.
 22. Never iterate over a resource unless count or for_each exists.
@@ -1089,6 +1089,15 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
 
     if var.endswith("_locations"):
         return ("set(string)", None)
+    
+    if var.endswith("_whitelisted_names"):
+        return ("set(string)", None)
+
+    if var.endswith("_cache_keys"):
+        return ("list(string)", None)
+
+    if var == "headers":
+        return ("set(string)", None)
 
     LIST_HINTS = (
         "_ids",
@@ -1224,7 +1233,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
   }
 }
