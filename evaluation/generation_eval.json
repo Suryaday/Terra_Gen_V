@@ -1,13 +1,5 @@
 [
   {
-    "query": "cloudfront distribution with s3 origin",
-    "required_resources": [
-      "aws_s3_bucket",
-      "aws_cloudfront_distribution"
-    ]
-  },
-
-  {
     "query": "eks cluster with managed node group and alb ingress",
     "required_resources": [
       "aws_eks_cluster",

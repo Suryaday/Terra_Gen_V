@@ -756,6 +756,7 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
 
     raw = _normalize_argument_aliases(node.entity, raw)
     raw = _normalize_list_references(raw)
+    raw = _normalize_subnet_customer_owned_ip(raw)
 
     var_refs = _extract_var_refs(raw)
     #symbol_table[node.entity] = (f"{node.entity}.{node.label}")
@@ -827,6 +828,17 @@ def _normalize_argument_aliases(entity: str, hcl: str) -> str:
         lines.append(line)
 
     return "\n".join(lines)
+
+def _normalize_subnet_customer_owned_ip(terraform: str) -> str:
+
+    terraform = re.sub(
+        r'^\s*map_customer_owned_ip_on_launch\s*=.*$\n?',
+        '',
+        terraform,
+        flags=re.MULTILINE,
+    )
+
+    return terraform
 # ======================================================
 # STITCHING
 # ======================================================
@@ -983,9 +995,6 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         # API Gateway
         "stage_variables": "map(string)",
 
-        # LB
-        "enable_xff_client_port": "bool",
-
         # ECS Service
         "enable_ecs_managed_tags": "bool",
 
@@ -1002,15 +1011,18 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "deletion_protection",
         "skip_final_snapshot",
         "apply_immediately",
+        "apply_immediately",
         "enable_dns_support",
         "enable_dns_hostnames",
         "enable_network_address_usage_metrics",
         "copy_tags_to_snapshot",
+        "enable_tls_version_and_cipher_suite_headers"
     }
 
     NUMBER_OVERRIDES = {
         "allocated_storage",
         "retention_period",
+        "enable_lni_at_device_index"
     }
 
     MAP_ANY_OVERRIDES = {
@@ -1082,7 +1094,7 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
 
     if var.endswith("_configuration"):
         return ("map(any)", None)
-
+    
     #
     # Boolean naming conventions
     #
@@ -1090,6 +1102,9 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         return ("bool", None)
 
     if var.endswith(("_enabled", "_encrypted")):
+        return ("bool", None)
+    
+    if var.endswith("enable_xff_client_port"):
         return ("bool", None)
 
     if any(

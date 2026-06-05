@@ -24,15 +24,12 @@ TERRAFORM ERROR:
 terraform validate failed:
 
 [31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1menable_lni_at_device_index must not be zero, got 0[0m
 [31mâ”‚[0m [0m
 [31mâ”‚[0m [0m[0m  with aws_subnet.subnet,
 [31mâ”‚[0m [0m  on main.tf line 90, in resource "aws_subnet" "subnet":
-[31mâ”‚[0m [0m  90:   map_customer_owned_ip_on_launch                = [4mfalse[0m[0m
+[31mâ”‚[0m [0m  90:   enable_lni_at_device_index                     = [4m0[0m[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0m"map_customer_owned_ip_on_launch": all of
-[31mâ”‚[0m [0m`customer_owned_ipv4_pool,map_customer_owned_ip_on_launch,outpost_arn` must
-[31mâ”‚[0m [0mbe specified
 [31mâ•µ[0m[0m
 
 
@@ -41,28 +38,29 @@ MAIN.TF:
 # aws_iam_role  (dependency)
 resource "aws_iam_role" "iam_role" {
   assume_role_policy = var.assume_role_policy
-  description       = var.description
+
+  description         = var.description
   force_detach_policies = var.force_detach_policies
-  max_session_duration = var.max_session_duration
-  name              = var.name
-  name_prefix       = var.name_prefix
-  path              = var.path
+  max_session_duration  = var.max_session_duration
+  name                 = var.name
+  name_prefix          = var.name_prefix
+  path                 = var.path
   permissions_boundary = var.permissions_boundary
-  tags              = var.tags
+  tags                 = var.tags
 
   inline_policy {
     name   = var.inline_policy_name
-    policy = var.inline_policy_document
+    policy = var.inline_policy_policy
   }
 }
 
 # aws_vpc  (dependency)
 resource "aws_vpc" "vpc" {
   cidr_block = var.cidr_block
-  enable_dns_support = true
-  enable_dns_hostnames = var.enable_dns_hostnames
-  enable_network_address_usage_metrics = false
   instance_tenancy = "default"
+  enable_dns_support = true
+  enable_dns_hostnames = true
+  enable_network_address_usage_metrics = false
   tags = var.tags
 }
 
@@ -71,29 +69,27 @@ resource "aws_security_group" "security_group" {
   name        = var.security_group_name
   description = var.security_group_description
   vpc_id      = aws_vpc.vpc.id
-  tags        = var.tags
-
   ingress {
     from_port   = var.ingress_from_port
     to_port     = var.ingress_to_port
     protocol    = var.ingress_protocol
     cidr_blocks = var.ingress_cidr_blocks
   }
-
   egress {
     from_port   = var.egress_from_port
     to_port     = var.egress_to_port
     protocol    = var.egress_protocol
     cidr_blocks = var.egress_cidr_blocks
   }
+  tags = var.tags
 }
 
 # aws_lb_target_group
 resource "aws_lb_target_group" "lb_target_group" {
-  name   = var.lb_target_group_name
-  port   = var.lb_target_group_port
-  protocol = var.lb_target_group_protocol
-  vpc_id = aws_vpc.vpc.id
+  name        = var.lb_target_group_name
+  port        = var.lb_target_group_port
+  protocol    = var.lb_target_group_protocol
+  vpc_id      = aws_vpc.vpc.id
 
   health_check {
     enabled             = var.lb_target_group_health_check_enabled
@@ -110,11 +106,13 @@ resource "aws_lb_target_group" "lb_target_group" {
   stickiness {
     enabled       = var.lb_target_group_stickiness_enabled
     type          = var.lb_target_group_stickiness_type
-    cookie_duration = var.lb_target_group_stickiness_cookie_duration
     cookie_name   = var.lb_target_group_stickiness_cookie_name
+    cookie_duration = var.lb_target_group_stickiness_cookie_duration
   }
 
-  tags = var.lb_target_group_tags
+  target_type = var.lb_target_group_target_type
+
+  tags = var.tags
 }
 
 # aws_subnet  (dependency)
@@ -124,10 +122,9 @@ resource "aws_subnet" "subnet" {
   availability_zone = var.availability_zone
   assign_ipv6_address_on_creation = false
   enable_dns64 = false
-  enable_resource_name_dns_aaaa_record_on_launch = false
   enable_resource_name_dns_a_record_on_launch = false
-  ipv6_native = false
-  map_customer_owned_ip_on_launch = false
+  enable_resource_name_dns_aaaa_record_on_launch = false
+  enable_lni_at_device_index = 0
   map_public_ip_on_launch = false
   private_dns_hostname_type_on_launch = var.private_dns_hostname_type_on_launch
   tags = var.tags
@@ -137,28 +134,39 @@ resource "aws_subnet" "subnet" {
 resource "aws_eks_cluster" "eks_cluster" {
   name     = var.cluster_name
   role_arn = aws_iam_role.iam_role.arn
-  version  = var.kubernetes_version
 
   vpc_config {
     subnet_ids = [aws_subnet.subnet.id]
     security_group_ids = [aws_security_group.security_group.id]
-    endpoint_public_access  = true
+    endpoint_public_access = true
     endpoint_private_access = false
-    public_access_cidrs     = var.public_access_cidrs
+    public_access_cidrs = var.public_access_cidrs
   }
+
+  version = var.kubernetes_version
 
   tags = var.tags
 }
 
 # aws_lb
 resource "aws_lb" "lb" {
-  name               = var.name
+  name_prefix = var.name_prefix
   load_balancer_type = "application"
-  subnets            = [aws_subnet.subnet.id]
-  security_groups    = [aws_security_group.security_group.id]
-  enable_http2       = true
-  internal           = false
-  tags               = var.tags
+  subnets = [aws_subnet.subnet.id]
+  security_groups = [aws_security_group.security_group.id]
+
+  enable_tls_version_and_cipher_suite_headers = var.enable_tls_version_and_cipher_suite_headers
+  enable_xff_client_port = var.enable_xff_client_port
+  enable_waf_fail_open = var.enable_waf_fail_open
+  enable_zonal_shift = var.enable_zonal_shift
+  enforce_security_group_inbound_rules_on_private_link_traffic = var.enforce_security_group_inbound_rules_on_private_link_traffic
+  idle_timeout = var.idle_timeout
+  internal = var.internal
+  ip_address_type = var.ip_address_type
+  minimum_load_balancer_capacity = var.minimum_load_balancer_capacity
+  preserve_host_header = var.preserve_host_header
+  secondary_ips_auto_assigned_per_subnet = var.secondary_ips_auto_assigned_per_subnet
+  xff_header_processing_mode = var.xff_header_processing_mode
 
   access_logs {
     bucket  = var.access_logs_bucket
@@ -177,6 +185,9 @@ resource "aws_lb" "lb" {
     enabled = var.health_check_logs_enabled
     prefix  = var.health_check_logs_prefix
   }
+
+  tags = var.tags
+  region = var.region
 }
 
 # aws_eks_node_group
@@ -201,11 +212,9 @@ resource "aws_lb_listener" "lb_listener" {
   protocol          = var.lb_listener_protocol
 
   default_action {
-    type             = var.lb_listener_default_action_type
+    type             = "forward"
     target_group_arn = aws_lb_target_group.lb_target_group.arn
   }
-
-  tags = var.tags
 }
 
 
