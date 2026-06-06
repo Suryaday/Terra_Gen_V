@@ -654,7 +654,16 @@ Rules:
 16. When AVAILABLE TERRAFORM REFERENCES are provided, prefer using those references instead of creating new standalone resources.
 17. If a referenced resource satisfies a dependency, attach it rather than creating alternative configuration.
 18. Generate Terraform compatible with hashicorp/aws provider version 5.x. Never use deprecated arguments.
-19. Generate all required arguments and only optional arguments that are clearly needed for the requested use case.
+
+19. Include required arguments.
+
+    Optional arguments should only be emitted when:
+    - explicitly requested by the user
+    - required by another emitted argument
+    - necessary for a minimal deployable configuration
+
+    Do not emit advanced optional arguments merely because they appear in documentation.
+
 20. The user query identifies the feature of interest, not a partial resource definition.
 21. Always include required arguments.
 22. Never iterate over a resource unless count or for_each exists.
@@ -757,6 +766,8 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = _normalize_argument_aliases(node.entity, raw)
     raw = _normalize_list_references(raw)
     raw = _normalize_subnet_optional_arguments(raw)
+    raw = _normalize_vpc_optional_arguments(node.entity, raw)
+    raw = _normalize_cidr_block_lists(raw)
 
     var_refs = _extract_var_refs(raw)
     #symbol_table[node.entity] = (f"{node.entity}.{node.label}")
@@ -863,6 +874,57 @@ def _normalize_subnet_optional_arguments(terraform: str) -> str:
             lines.append(line)
 
     return "\n".join(lines)
+
+def _normalize_vpc_optional_arguments(entity:str, terraform: str) -> str:
+    
+    logger.info("VPC SANITIZER CALLED FOR %s", entity)
+
+    if entity != "aws_vpc":
+        return terraform
+    
+    DENYLIST = {
+        "ipv6_cidr_block",
+        "ipv6_cidr_block_network_border_group",
+        "ipv6_ipam_pool_id",
+        "assign_generated_ipv6_cidr_block",
+    }
+
+    lines = []
+
+    for line in terraform.splitlines():
+
+        stripped = line.strip()
+
+        remove = False
+
+        for arg in DENYLIST:
+
+            if stripped.startswith(f"{arg} ="):
+                logger.info("REMOVED VPC ARG: %s", arg)
+                remove = True
+                break
+
+        if not remove:
+            lines.append(line)
+
+    return "\n".join(lines)
+
+def _normalize_cidr_block_lists(terraform: str) -> str:
+
+    patterns = [
+        r'(\bcidr_blocks\s*=\s*)\[var\.([a-zA-Z0-9_]*cidr_blocks)\]',
+        r'(\bipv6_cidr_blocks\s*=\s*)\[var\.([a-zA-Z0-9_]*cidr_blocks)\]',
+    ]
+
+    for pattern in patterns:
+
+        hcl = re.sub(
+            pattern,
+            r'\1var.\2',
+            terraform,
+        )
+
+    return hcl
 # ======================================================
 # STITCHING
 # ======================================================
