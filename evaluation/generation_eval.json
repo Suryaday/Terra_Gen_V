@@ -1,19 +1,5 @@
 [
   {
-    "query": "ecs fargate service behind alb",
-    "required_resources": [
-      "aws_ecs_service",
-      "aws_ecs_task_definition",
-      "aws_ecs_cluster",
-      "aws_lb",
-      "aws_lb_target_group",
-      "aws_lb_listener",
-      "aws_security_group",
-      "aws_iam_role"
-    ]
-  },
-
-  {
     "query": "ecs service with autoscaling and ecr image",
     "required_resources": [
       "aws_ecs_cluster",
@@ -23,18 +9,6 @@
       "aws_appautoscaling_policy",
       "aws_ecr_repository",
       "aws_iam_role"
-    ]
-  },
-
-  {
-    "query": "aurora postgres cluster",
-    "required_resources": [
-      "aws_rds_cluster",
-      "aws_rds_cluster_instance",
-      "aws_security_group",
-      "aws_db_subnet_group",
-      "aws_subnet",
-      "aws_vpc"
     ]
   }
 ]

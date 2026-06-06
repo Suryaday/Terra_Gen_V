@@ -4,43 +4,101 @@ GENERATION FAILURES
 
 ====================================================================================================
 QUERY:
-ecs fargate service behind alb
+ecs service with autoscaling and ecr image
 
 MISSING:
 
 GENERATED:
   - aws_appautoscaling_policy
   - aws_appautoscaling_target
+  - aws_ecr_repository
   - aws_ecs_cluster
   - aws_ecs_service
   - aws_ecs_task_definition
   - aws_iam_role
-  - aws_lb
-  - aws_lb_listener
-  - aws_lb_target_group
-  - aws_security_group
-  - aws_subnet
-  - aws_vpc
 
 TERRAFORM ERROR:
 
 terraform validate failed:
 
 [31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 34, in resource "aws_appautoscaling_policy" "appautoscaling_policy":
-[31mâ”‚[0m [0m  34:               [4mname[0m       = var.metric_name[0m
+[31mâ”‚[0m [0m[0m  on main.tf line 17, in resource "aws_ecr_repository" "ecr_repository":
+[31mâ”‚[0m [0m  17:   image_scanning_configuration [4m{[0m[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0mAn argument named "name" is not expected here.
+[31mâ”‚[0m [0mThe argument "scan_on_push" is required, but no definition was found.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mIncorrect attribute value type[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 95, in resource "aws_ecs_service" "ecs_service":
+[31mâ”‚[0m [0m  95:   enable_ecs_managed_tags = [4mvar.ecs_service_enable_ecs_managed_tags[0m[0m
+[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
+[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.ecs_service_enable_ecs_managed_tags[0m is a map of string
+[31mâ”‚[0m [0m[0m
+[31mâ”‚[0m [0mInappropriate value for attribute "enable_ecs_managed_tags": bool required,
+[31mâ”‚[0m [0mbut have map of string.
 [31mâ•µ[0m[0m
 [31mâ•·[0m[0m
 [31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 35, in resource "aws_appautoscaling_policy" "appautoscaling_policy":
-[31mâ”‚[0m [0m  35:               [4mdimensions[0m = var.metric_dimensions[0m
+[31mâ”‚[0m [0m[0m  on main.tf line 106, in resource "aws_ecs_service" "ecs_service":
+[31mâ”‚[0m [0m 106:   [4mcapacity_provider_strategy[0m = var.ecs_service_capacity_provider_strategy[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0mAn argument named "dimensions" is not expected here.
+[31mâ”‚[0m [0mAn argument named "capacity_provider_strategy" is not expected here. Did
+[31mâ”‚[0m [0myou mean to define a block of type "capacity_provider_strategy"?
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 118, in resource "aws_ecs_service" "ecs_service":
+[31mâ”‚[0m [0m 118:     access_log_configuration [4m{[0m[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mThe argument "format" is required, but no definition was found.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 119, in resource "aws_ecs_service" "ecs_service":
+[31mâ”‚[0m [0m 119:       [4mfile[0m = var.ecs_service_connect_access_log_file[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mAn argument named "file" is not expected here.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mIncorrect attribute value type[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 124, in resource "aws_ecs_service" "ecs_service":
+[31mâ”‚[0m [0m 124:       options        = [4mvar.ecs_service_connect_log_options[0m[0m
+[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
+[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.ecs_service_connect_log_options[0m is a string
+[31mâ”‚[0m [0m[0m
+[31mâ”‚[0m [0mInappropriate value for attribute "options": map of string required, but
+[31mâ”‚[0m [0mhave string.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 125, in resource "aws_ecs_service" "ecs_service":
+[31mâ”‚[0m [0m 125:       [4msecret_options[0m = var.ecs_service_connect_log_secret_options[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mAn argument named "secret_options" is not expected here.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 133, in resource "aws_ecs_service" "ecs_service":
+[31mâ”‚[0m [0m 133:       [4mclient_aliases[0m = var.ecs_service_connect_service_client_aliases[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mAn argument named "client_aliases" is not expected here.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 134, in resource "aws_ecs_service" "ecs_service":
+[31mâ”‚[0m [0m 134:       [4mdns_name[0m       = var.ecs_service_connect_service_dns_name[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mAn argument named "dns_name" is not expected here.
 [31mâ•µ[0m[0m
 
 
@@ -48,139 +106,73 @@ MAIN.TF:
 
 # aws_ecs_cluster
 resource "aws_ecs_cluster" "ecs_cluster" {
-  name = var.ecs_cluster_name
+  name = var.cluster_name
 
-  configuration {
-    # minimal configuration block as required by schema
+  setting {
+    name  = "containerInsights"
+    value = var.container_insights_value
   }
+
+  tags = var.tags
+}
+
+# aws_ecr_repository
+resource "aws_ecr_repository" "ecr_repository" {
+  name                 = var.repository_name
+
+  image_scanning_configuration {
+  }
+
+  tags = var.tags
 }
 
 # aws_appautoscaling_policy
 resource "aws_appautoscaling_policy" "appautoscaling_policy" {
-  name               = var.appautoscaling_policy_name
-  policy_type        = var.appautoscaling_policy_type
-  resource_id        = var.appautoscaling_policy_resource_id
-  scalable_dimension = var.appautoscaling_policy_scalable_dimension
-  service_namespace  = var.appautoscaling_policy_service_namespace
+  name               = var.policy_name
+  policy_type        = "StepScaling"
+  resource_id        = var.resource_id
+  scalable_dimension = var.scalable_dimension
+  service_namespace  = var.service_namespace
 
-  predictive_scaling_policy_configuration {
-    max_capacity_breach_behavior = var.predictive_max_capacity_breach_behavior
-    max_capacity_buffer          = var.predictive_max_capacity_buffer
-    mode                        = var.predictive_mode
-    scheduling_buffer_time       = var.predictive_scheduling_buffer_time
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = var.cooldown
+    metric_aggregation_type = "Maximum"
 
-    metric_specification {
-      customized_capacity_metric_specification {
-        metric_data_query {
-          id     = var.metric_data_query_id
-          label  = var.metric_data_query_label
-          return_data = var.metric_data_query_return_data
-
-          metric_stat {
-            metric {
-              namespace  = var.metric_namespace
-              name       = var.metric_name
-              dimensions = var.metric_dimensions
-            }
-            stat = var.metric_stat
-            unit = var.metric_unit
-          }
-        }
-      }
-      target_value = var.metric_target_value
+    step_adjustment {
+      metric_interval_upper_bound = 0
+      scaling_adjustment          = -1
     }
   }
 }
 
 # aws_iam_role  (dependency)
 resource "aws_iam_role" "iam_role" {
-  assume_role_policy = var.assume_role_policy
-
-  tags = var.tags
-}
-
-# aws_vpc  (dependency)
-resource "aws_vpc" "vpc" {
-  cidr_block           = var.cidr_block
-  enable_dns_support   = true
-  enable_dns_hostnames = var.enable_dns_hostnames
-  instance_tenancy     = "default"
-  tags                 = var.tags
-}
-
-# aws_ecs_task_definition
-resource "aws_ecs_task_definition" "ecs_task_definition" {
-  family                   = var.family
-  requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  cpu                      = var.cpu
-  memory                   = var.memory
-  container_definitions    = var.container_definitions
-  execution_role_arn       = aws_iam_role.iam_role.arn
-  task_role_arn            = aws_iam_role.iam_role.arn
-
-  runtime_platform {
-    operating_system_family = var.operating_system_family
-    cpu_architecture        = var.cpu_architecture
-  }
+  name               = var.iam_role_name
+  assume_role_policy = var.iam_role_assume_role_policy
+  path               = var.iam_role_path
+  description        = var.iam_role_description
+  max_session_duration = var.iam_role_max_session_duration
+  permissions_boundary = var.iam_role_permissions_boundary
+  tags               = var.iam_role_tags
 }
 
 # aws_appautoscaling_target
 resource "aws_appautoscaling_target" "appautoscaling_target" {
   max_capacity       = var.max_capacity
   min_capacity       = var.min_capacity
-  resource_id        = var.resource_id
-  scalable_dimension = var.scalable_dimension
-  service_namespace  = var.service_namespace
+  resource_id        = "service/${aws_ecs_cluster.ecs_cluster.name}/${var.ecs_service_name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
   role_arn           = aws_iam_role.iam_role.arn
-
-  suspended_state {
-    dynamic_scaling_in_suspended  = false
-    dynamic_scaling_out_suspended = false
-    scheduled_scaling_suspended   = false
-  }
-
-  tags = var.tags
+  tags               = var.tags
 }
 
-# aws_lb_target_group
-resource "aws_lb_target_group" "lb_target_group" {
-  name     = var.lb_target_group_name
-  port     = var.lb_target_group_port
-  protocol = var.lb_target_group_protocol
-  vpc_id   = aws_vpc.vpc.id
-}
-
-# aws_security_group
-resource "aws_security_group" "security_group" {
-  name        = var.security_group_name
-  description = var.security_group_description
-  vpc_id      = aws_vpc.vpc.id
-
-  ingress {
-    from_port   = var.ingress_from_port
-    to_port     = var.ingress_to_port
-    protocol    = var.ingress_protocol
-    cidr_blocks = var.ingress_cidr_blocks
-  }
-
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
-
-  tags = var.tags
-}
-
-# aws_subnet  (dependency)
-resource "aws_subnet" "subnet" {
-  vpc_id     = aws_vpc.vpc.id
-  cidr_block = var.subnet_cidr_block
-
-  tags = var.subnet_tags
+# aws_ecs_task_definition  (dependency)
+resource "aws_ecs_task_definition" "ecs_task_definition" {
+  family                = var.family
+  container_definitions  = var.container_definitions_json
+  execution_role_arn    = aws_iam_role.iam_role.arn
 }
 
 # aws_ecs_service
@@ -188,48 +180,65 @@ resource "aws_ecs_service" "ecs_service" {
   name            = var.ecs_service_name
   cluster         = aws_ecs_cluster.ecs_cluster.arn
   task_definition = aws_ecs_task_definition.ecs_task_definition.arn
-  launch_type     = "FARGATE"
+  desired_count   = var.ecs_service_desired_count
 
-  load_balancer {
-    container_name   = var.container_name
-    container_port   = var.container_port
-    target_group_arn = aws_lb_target_group.lb_target_group.arn
+  launch_type = var.ecs_service_launch_type
+
+  deployment_controller {
+    type = var.ecs_service_deployment_controller_type
   }
 
-  network_configuration {
-    subnets         = [aws_subnet.subnet.id]
-    security_groups = [aws_security_group.security_group.id]
-    assign_public_ip = var.assign_public_ip
+  deployment_circuit_breaker {
+    enable   = var.ecs_service_deployment_circuit_breaker_enable
+    rollback = var.ecs_service_deployment_circuit_breaker_rollback
   }
 
-  desired_count = var.desired_count
+  deployment_configuration {
+    strategy           = var.ecs_service_deployment_configuration_strategy
+    bake_time_in_minutes = var.ecs_service_deployment_configuration_bake_time_in_minutes
+  }
 
-  platform_version = var.platform_version
+  enable_ecs_managed_tags = var.ecs_service_enable_ecs_managed_tags
+  enable_execute_command   = var.ecs_service_enable_execute_command
 
-  tags = var.tags
-}
+  force_new_deployment = var.ecs_service_force_new_deployment
+  force_delete         = var.ecs_service_force_delete
 
-# aws_lb
-resource "aws_lb" "lb" {
-  name               = var.lb_name
-  load_balancer_type = "application"
-  subnets            = [aws_subnet.subnet.id]
-  security_groups    = [aws_security_group.security_group.id]
-  internal           = false
-  enable_http2       = true
-  idle_timeout       = 60
+  ordered_placement_strategy {
+    type  = var.ecs_service_ordered_placement_strategy_type
+    field = var.ecs_service_ordered_placement_strategy_field
+  }
 
-  tags = var.tags
-}
+  capacity_provider_strategy = var.ecs_service_capacity_provider_strategy
 
-# aws_lb_listener
-resource "aws_lb_listener" "lb_listener" {
-  load_balancer_arn = aws_lb.lb.arn
-  port              = var.lb_listener_port
-  protocol          = var.lb_listener_protocol
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.lb_target_group.arn
+  service_registries {
+    registry_arn  = var.ecs_service_registry_arn
+    container_name = var.ecs_service_registry_container_name
+    container_port = var.ecs_service_registry_container_port
+    port          = var.ecs_service_registry_port
+  }
+
+  service_connect_configuration {
+    enabled = var.ecs_service_connect_enabled
+
+    access_log_configuration {
+      file = var.ecs_service_connect_access_log_file
+    }
+
+    log_configuration {
+      log_driver = var.ecs_service_connect_log_driver
+      options    = var.ecs_service_connect_log_options
+      secret_options = var.ecs_service_connect_log_secret_options
+    }
+
+    namespace = var.ecs_service_connect_namespace
+
+    service {
+      discovery_name = var.ecs_service_connect_service_discovery_name
+      port_name      = var.ecs_service_connect_service_port_name
+      client_aliases = var.ecs_service_connect_service_client_aliases
+      dns_name      = var.ecs_service_connect_service_dns_name
+    }
   }
 }
 

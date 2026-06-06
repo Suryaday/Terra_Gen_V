@@ -151,24 +151,14 @@ def retrieve_generation_context(query: str,):
     return rows
 
 #6th June
-def _family(meta: dict) -> str:
-    """
-    Top-level sub-block family.
+def _family_from_text(text: str) -> str:
+    for line in text.splitlines():
+        s = line.strip()
 
-    Examples:
-      predictive_scaling_policy_configuration
-      step_scaling_policy_configuration
-      target_tracking_scaling_policy_configuration
+        if s.startswith("### "):
+            return s[4:].split()[0]
 
-    Root argument reference chunk returns "".
-    """
-
-    h3 = meta.get("header_h3") or ""
-
-    if not h3:
-        return ""
-
-    return h3.split()[0]
+    return ""
 
 #30 MAY
 def retrieve_entity_rows(entity: str, bm25, k: int = 4) -> list[RetrievalResult]:
@@ -214,7 +204,8 @@ def retrieve_entity_rows(entity: str, bm25, k: int = 4) -> list[RetrievalResult]
 
     for row in argref:
 
-        family = _family(row["metadata"])
+        family = _family_from_text(row["text"])
+        logger.info("BALANCED ORDER | %s | %s", _family_from_text(row["text"]), row["chunk_id"])
 
         buckets.setdefault(family, []).append(row)
 
@@ -246,7 +237,7 @@ def retrieve_entity_rows(entity: str, bm25, k: int = 4) -> list[RetrievalResult]
 
         logger.info(
             "BALANCED ORDER | %s | %s",
-            _family(row["metadata"]),
+            _family_from_text(row["text"]),
             row["chunk_id"],
         )
 
@@ -882,6 +873,7 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = _normalize_subnet_optional_arguments(raw)
     raw = _normalize_vpc_optional_arguments(node.entity, raw)
     raw = _normalize_cidr_block_lists(raw)
+    raw = _normalize_ecr_scan_on_push(node.entity, raw)
 
     var_refs = _extract_var_refs(raw)
     #symbol_table[node.entity] = (f"{node.entity}.{node.label}")
@@ -1203,6 +1195,8 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
 
         # ECS
         "propagate_tags": "string",
+
+        "volumes": "list(any)"
     }
 
     BOOLEAN_OVERRIDES = {
@@ -1393,6 +1387,19 @@ def _normalize_list_references(terraform: str) -> str:
             logger.info("List Normalized: %s", arg)
 
     return terraform
+
+def _normalize_ecr_scan_on_push(entity: str, hcl: str) -> str:
+    if entity != "aws_ecr_repository":
+        return hcl
+
+    lines = []
+    for line in hcl.splitlines():
+        if re.match(r"^\s*scan_on_push\s*=", line):
+            continue
+        lines.append(line)
+
+    return "\n".join(lines)
+
 
 def _generate_variables_tf(all_var_refs: list[str]) -> str:
     blocks: list[str] = []
