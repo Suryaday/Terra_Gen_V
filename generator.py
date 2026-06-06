@@ -756,7 +756,7 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
 
     raw = _normalize_argument_aliases(node.entity, raw)
     raw = _normalize_list_references(raw)
-    raw = _normalize_subnet_customer_owned_ip(raw)
+    raw = _normalize_subnet_optional_arguments(raw)
 
     var_refs = _extract_var_refs(raw)
     #symbol_table[node.entity] = (f"{node.entity}.{node.label}")
@@ -829,16 +829,40 @@ def _normalize_argument_aliases(entity: str, hcl: str) -> str:
 
     return "\n".join(lines)
 
-def _normalize_subnet_customer_owned_ip(terraform: str) -> str:
+def _normalize_subnet_optional_arguments(terraform: str) -> str:
 
-    terraform = re.sub(
-        r'^\s*map_customer_owned_ip_on_launch\s*=.*$\n?',
-        '',
-        terraform,
-        flags=re.MULTILINE,
-    )
+    logger.info("RUNNING SUBNET SANITIZER")
 
-    return terraform
+    DENYLIST = {
+        "map_customer_owned_ip_on_launch",
+        "customer_owned_ipv4_pool",
+        "outpost_arn",
+        "enable_lni_at_device_index",
+        "ipv4_ipam_pool_id",
+        "ipv6_ipam_pool_id",
+        "ipv4_netmask_length",
+        "ipv6_netmask_length",
+    }
+
+    lines = []
+
+    for line in terraform.splitlines():
+
+        stripped = line.strip()
+
+        remove = False
+
+        for arg in DENYLIST:
+
+            if stripped.startswith(f"{arg} ="):
+                logger.info("REMOVED SUBNET ARG: %s", arg)
+                remove = True
+                break
+
+        if not remove:
+            lines.append(line)
+
+    return "\n".join(lines)
 # ======================================================
 # STITCHING
 # ======================================================
@@ -1174,6 +1198,7 @@ def _normalize_list_references(terraform: str) -> str:
         "subnet_ids",
         "security_group_ids",
         "vpc_zone_identifier",
+        "public_access_cidrs"
     }
 
     for arg in LIST_REFERENCE_ARGS:
