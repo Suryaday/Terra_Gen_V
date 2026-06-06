@@ -51,6 +51,9 @@ ARGUMENT_ALIASES = {
     "aws_db_instance": {
         "name": "db_name",
     },
+    "aws_ecs_task_definition": {
+        "size_in_gb": "size_in_gib",
+    }
 }
 
 # ======================================================
@@ -869,11 +872,16 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = raw.strip()
 
     raw = _normalize_argument_aliases(node.entity, raw)
+    raw = _normalize_ecr_scan_on_push(node.entity, raw)
+    raw = _normalize_ecs_service_connect(node.entity, raw)
+    raw = _normalize_ecs_task_definition_blocks(node.entity, raw)
+    raw = _normalize_ecs_deployment_configuration(node.entity, raw)
     raw = _normalize_list_references(raw)
     raw = _normalize_subnet_optional_arguments(raw)
     raw = _normalize_vpc_optional_arguments(node.entity, raw)
     raw = _normalize_cidr_block_lists(raw)
-    raw = _normalize_ecr_scan_on_push(node.entity, raw)
+    
+    print("RAW_NORMALIZE_ECR_SCAN_ON_PUSH", raw)
 
     var_refs = _extract_var_refs(raw)
     #symbol_table[node.entity] = (f"{node.entity}.{node.label}")
@@ -1031,6 +1039,103 @@ def _normalize_cidr_block_lists(terraform: str) -> str:
         )
 
     return hcl
+
+def _normalize_ecs_service_connect(entity: str, hcl: str) -> str:
+    if entity != "aws_ecs_service":
+        return hcl
+
+    lines = hcl.splitlines()
+
+    output = []
+    skip = False
+    depth = 0
+    skip_depth = 0
+
+    for line in lines:
+        stripped = line.strip()
+
+        if not skip and stripped.startswith("service_connect_configuration"):
+            logger.info("REMOVED service_connect_configuration")
+            skip = True
+            skip_depth = depth
+            depth += line.count("{")
+            depth -= line.count("}")
+            continue
+
+        if skip:
+            depth += line.count("{")
+            depth -= line.count("}")
+
+            if depth <= skip_depth:
+                skip = False
+
+            continue
+
+        output.append(line)
+
+        depth += line.count("{")
+        depth -= line.count("}")
+
+    return "\n".join(output)
+
+def _normalize_ecs_task_definition_blocks(entity: str, hcl: str) -> str:
+    if entity != "aws_ecs_task_definition":
+        return hcl
+
+    lines = []
+
+    for line in hcl.splitlines():
+        stripped = line.strip()
+
+        if stripped.startswith("placement_constraints ="):
+            logger.info("REMOVED ecs_task_definition placement_constraints arg")
+            continue
+
+        if stripped.startswith("volume ="):
+            logger.info("REMOVED ecs_task_definition volume arg")
+            continue
+
+        lines.append(line)
+
+    return "\n".join(lines)
+
+def _normalize_ecs_deployment_configuration(entity: str, hcl: str) -> str:
+    if entity != "aws_ecs_service":
+        return hcl
+
+    lines = hcl.splitlines()
+
+    output = []
+    skip = False
+    depth = 0
+    skip_depth = 0
+
+    for line in lines:
+        stripped = line.strip()
+
+        if not skip and stripped.startswith("deployment_configuration"):
+            logger.info("REMOVED deployment_configuration")
+            skip = True
+            skip_depth = depth
+            depth += line.count("{")
+            depth -= line.count("}")
+            continue
+
+        if skip:
+            depth += line.count("{")
+            depth -= line.count("}")
+
+            if depth <= skip_depth:
+                skip = False
+
+            continue
+
+        output.append(line)
+
+        depth += line.count("{")
+        depth -= line.count("}")
+
+    return "\n".join(output)
 # ======================================================
 # STITCHING
 # ======================================================
@@ -1196,7 +1301,9 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         # ECS
         "propagate_tags": "string",
 
-        "volumes": "list(any)"
+        "volumes": "list(any)",
+
+        "proxy_configuration_properties": "map(string)",
     }
 
     BOOLEAN_OVERRIDES = {
@@ -1393,10 +1500,24 @@ def _normalize_ecr_scan_on_push(entity: str, hcl: str) -> str:
         return hcl
 
     lines = []
+    depth = 0
+
     for line in hcl.splitlines():
-        if re.match(r"^\s*scan_on_push\s*=", line):
+        stripped = line.strip()
+
+        # Only remove top-level scan_on_push
+        if (
+            depth == 1
+            and stripped.startswith("scan_on_push")
+            and "=" in stripped
+        ):
+            logger.info("REMOVED TOP LEVEL ECR scan_on_push")
             continue
+
         lines.append(line)
+
+        depth += line.count("{")
+        depth -= line.count("}")
 
     return "\n".join(lines)
 
