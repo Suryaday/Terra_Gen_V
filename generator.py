@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from collections import OrderedDict
+
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -148,6 +150,26 @@ def retrieve_generation_context(query: str,):
 
     return rows
 
+#6th June
+def _family(meta: dict) -> str:
+    """
+    Top-level sub-block family.
+
+    Examples:
+      predictive_scaling_policy_configuration
+      step_scaling_policy_configuration
+      target_tracking_scaling_policy_configuration
+
+    Root argument reference chunk returns "".
+    """
+
+    h3 = meta.get("header_h3") or ""
+
+    if not h3:
+        return ""
+
+    return h3.split()[0]
+
 #30 MAY
 def retrieve_entity_rows(entity: str, bm25, k: int = 4) -> list[RetrievalResult]:
     """
@@ -162,13 +184,72 @@ def retrieve_entity_rows(entity: str, bm25, k: int = 4) -> list[RetrievalResult]
     ]
 
     logger.info("%s total_candidates=%s", entity, len(candidates))
+    for row in candidates[:10]:
+        logger.info(
+            "CHUNK=%s",
+            row["text"][:250]
+        )
     
     candidates.sort(
-        key=lambda r: SECTION_PRIORITY.get(r["metadata"].get("section", "").lower(), 50))
+        key=lambda r: (
+            SECTION_PRIORITY.get(r["metadata"].get("section", "").lower(), 50),
+        )
+    )
+
+    argref = [
+        r
+        for r in candidates
+        if r["metadata"].get("section", "").lower()
+        == "argument reference"
+    ]
+
+    other = [
+        r
+        for r in candidates
+        if r["metadata"].get("section", "").lower()
+        != "argument reference"
+    ]
+
+    buckets = OrderedDict()
+
+    for row in argref:
+
+        family = _family(row["metadata"])
+
+        buckets.setdefault(family, []).append(row)
+
+    ordered_families = []
+
+    if "" in buckets:
+        ordered_families.append("")
+
+    ordered_families.extend(
+        family
+        for family in buckets
+        if family != ""
+    )
+
+    interleaved = []
+
+    while any(buckets.values()):
+
+        for family in ordered_families:
+
+            if buckets[family]:
+                interleaved.append(
+                    buckets[family].pop(0)
+                )
+
+    candidates = interleaved + other
     
-    for row in candidates:
-        logger.debug("%s | %s", row["chunk_id"], row["metadata"].get("section"))
-    
+    for row in candidates[:10]:
+
+        logger.info(
+            "BALANCED ORDER | %s | %s",
+            _family(row["metadata"]),
+            row["chunk_id"],
+        )
+
     return [
         RetrievalResult(
             chunk_id=r["chunk_id"],
@@ -555,6 +636,19 @@ def assemble_context(query: str, node: ResourceNode, symbol_table: dict[str, str
 
     logger.info("%s -> rows=%s", node.entity, len(filtered_rows))
 
+    if node.entity == "aws_appautoscaling_policy":
+
+        logger.info("FINAL CHUNKS USED:")
+
+        for row in filtered_rows:
+
+            logger.info(
+                "%s | %s | %s",
+                row.chunk_id,
+                row.metadata.get("section"),
+                row.metadata.get("header_h3"),
+            )
+
     for row in filtered_rows:
 
         logger.info("%s | %s", row.metadata.get("entity"), row.chunk_id)
@@ -598,6 +692,12 @@ def assemble_context(query: str, node: ResourceNode, symbol_table: dict[str, str
 
     reference_context = build_dependency_reference_context(node, symbol_table)
 
+    if node.entity == "aws_appautoscaling_policy":
+        logger.info(
+            "FULL CONTEXT FOR APPAUTOSCALING POLICY:\n%s",
+            xml_context
+        )
+
     if node.entity in {"aws_eks_node_group", "aws_appautoscaling_policy"}:
 
         logger.info("\n%s XML CONTEXT\n%s\n", node.entity, xml_context[:10000])
@@ -623,7 +723,16 @@ def assemble_context(query: str, node: ResourceNode, symbol_table: dict[str, str
 
     final_context = xml_context + ref_block + reference_context
 
+    if node.entity == "aws_appautoscaling_policy":
+        logger.info(
+            "\n===== FINAL CONTEXT FOR %s =====\n%s\n=====================\n",
+            node.entity,
+            final_context,
+        )
+
     logger.info("Context chars for %s = %s", node.entity, len(final_context))
+
+    logger.info("\n%s FINAL CONTEXT\n%s\n", node.entity, final_context[:20000])
 
     return final_context
 
@@ -733,6 +842,11 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     logger.info("CONTEXT CHARS=%s", len(context))
 
     try:
+        logger.info("\n%s USER MESSAGE SENT TO LLM\n%s\n", node.entity, user_message[:30000])
+        if node.entity == "aws_appautoscaling_policy":
+
+            logger.info("\nAPPAUTOSCALING FINAL USER MESSAGE\n%s\n", user_message)
+
         response = client.chat.completions.create(
             
             model=OPENAI_MODEL, 
