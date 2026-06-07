@@ -6,6 +6,8 @@ import logging
 
 import torch
 
+import time
+
 from functools import lru_cache
 
 from sentence_transformers import CrossEncoder
@@ -19,10 +21,9 @@ from torch import nn
 logger=logging.getLogger(__name__)
 
 
-#MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L6-v2"
+MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L6-v2"
 #MODEL_NAME="BAAI/bge-reranker-base"
-MODEL_NAME = "BAAI/bge-reranker-v2-m3"
-_MODEL=None
+#MODEL_NAME = "BAAI/bge-reranker-v2-m3"
 
 warnings.filterwarnings(
     "ignore",
@@ -71,6 +72,8 @@ def rerank(query:str, rows:list[RetrievalResult], k:int) -> list[RetrievalResult
 
     model=load_model()
 
+    logger.info("RERANK MODEL ID=%s", id(load_model()))
+
     #pairs=[(query,row.text) for row in rows]
 
     #27 May change
@@ -113,7 +116,19 @@ def rerank(query:str, rows:list[RetrievalResult], k:int) -> list[RetrievalResult
 
         pairs.append((rerank_query, chunk))
 
+    start=time.perf_counter()
+
+    avg_len = sum(len(p[1]) for p in pairs) / len(pairs)
+
+    logger.info("RERANK PAIRS=%s AVG_CHARS=%s", len(pairs), avg_len)
+
     scores=model.predict(pairs, batch_size=32, show_progress_bar=False)
+
+    logger.info(
+        "RERANK TOOK %.2fs FOR %s PAIRS",
+        time.perf_counter()-start,
+        len(pairs)
+    )
 
     rescored=[]
 

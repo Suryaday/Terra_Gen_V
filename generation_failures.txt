@@ -2,4 +2,889 @@
 GENERATION FAILURES
 ====================================================================================================
 
-No failures.
+====================================================================================================
+QUERY:
+ecs service with autoscaling and ecr image
+
+MISSING:
+
+GENERATED:
+  - aws_appautoscaling_policy
+  - aws_appautoscaling_target
+  - aws_autoscaling_attachment
+  - aws_autoscaling_group
+  - aws_autoscaling_policy
+  - aws_ecr_image
+  - aws_ecr_repository
+  - aws_ecs_cluster
+  - aws_ecs_service
+  - aws_ecs_task_definition
+  - aws_ecs_task_set
+  - aws_iam_instance_profile
+  - aws_iam_policy
+  - aws_iam_role
+  - aws_iam_role_policy_attachment
+  - aws_launch_template
+
+TERRAFORM ERROR:
+
+terraform validate failed:
+
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mInvalid resource type[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 41, in resource "aws_ecr_image" "ecr_image":
+[31mâ”‚[0m [0m  41: resource [4m"aws_ecr_image"[0m "ecr_image" {[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mThe provider hashicorp/aws does not support resource type "aws_ecr_image".
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mDid you intend to use the data source "aws_ecr_image"? If so, declare this
+[31mâ”‚[0m [0musing a "data" block instead of a "resource" block.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mIncorrect attribute value type[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 110, in resource "aws_ecs_task_definition" "ecs_task_definition":
+[31mâ”‚[0m [0m 110:   requires_compatibilities = [4mvar.ecs_task_definition_requires_compatibilities[0m[0m
+[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
+[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.ecs_task_definition_requires_compatibilities[0m is a string
+[31mâ”‚[0m [0m[0m
+[31mâ”‚[0m [0mInappropriate value for attribute "requires_compatibilities": set of string
+[31mâ”‚[0m [0mrequired, but have string.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 202, in resource "aws_autoscaling_policy" "autoscaling_policy":
+[31mâ”‚[0m [0m 202:     metric_specification [4m{[0m[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mThe argument "target_value" is required, but no definition was found.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported block type[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 204, in resource "aws_autoscaling_policy" "autoscaling_policy":
+[31mâ”‚[0m [0m 204:       [4mpredefined_metric_specification[0m {[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mBlocks of type "predefined_metric_specification" are not expected here.
+[31mâ•µ[0m[0m
+
+
+MAIN.TF:
+
+# aws_ecs_cluster
+resource "aws_ecs_cluster" "ecs_cluster" {
+  name = var.cluster_name
+
+  setting {
+    name  = "containerInsights"
+    value = var.container_insights_value
+  }
+
+  tags = var.tags
+}
+
+# aws_launch_template
+resource "aws_launch_template" "launch_template" {
+  name_prefix   = var.launch_template_name_prefix
+  image_id      = var.ami_id
+  instance_type = var.instance_type
+
+  iam_instance_profile {
+    name = var.iam_instance_profile_name
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags          = var.tags
+  }
+}
+
+# aws_ecr_repository
+resource "aws_ecr_repository" "ecr_repository" {
+  name                 = var.ecr_repository_name
+
+  image_scanning_configuration {
+    scan_on_push = var.ecr_scan_on_push
+  }
+
+  tags = var.tags
+}
+
+# aws_ecr_image
+resource "aws_ecr_image" "ecr_image" {
+  repository_name = aws_ecr_repository.ecr_repository.name
+  image_tag       = var.image_tag
+}
+
+# aws_iam_role
+resource "aws_iam_role" "iam_role" {
+  name = var.iam_role_name
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "ecs.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
+# aws_iam_policy
+resource "aws_iam_policy" "iam_policy" {
+  name        = var.iam_policy_name
+  description = var.iam_policy_description
+  path        = "/"
+  policy      = var.iam_policy_document_json
+  tags        = var.tags
+}
+
+# aws_iam_role_policy_attachment
+resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment" {
+  role       = aws_iam_role.iam_role.name
+  policy_arn = aws_iam_policy.iam_policy.arn
+}
+
+# aws_iam_instance_profile
+resource "aws_iam_instance_profile" "iam_instance_profile" {
+  name = var.instance_profile_name
+  role = aws_iam_role.iam_role.name
+  path = var.instance_profile_path
+  tags = var.instance_profile_tags
+}
+
+# aws_appautoscaling_policy
+resource "aws_appautoscaling_policy" "appautoscaling_policy" {
+  name               = var.policy_name
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = var.resource_id
+  scalable_dimension = var.scalable_dimension
+  service_namespace  = var.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    target_value = var.target_value
+  }
+}
+
+# aws_ecs_task_definition
+resource "aws_ecs_task_definition" "ecs_task_definition" {
+  family                = var.ecs_task_definition_family
+  container_definitions  = var.ecs_task_definition_container_definitions_json
+  cpu                   = var.ecs_task_definition_cpu
+  memory                = var.ecs_task_definition_memory
+  execution_role_arn    = aws_iam_role.iam_role.arn
+  requires_compatibilities = var.ecs_task_definition_requires_compatibilities
+  network_mode          = var.ecs_task_definition_network_mode
+}
+
+# aws_autoscaling_group
+resource "aws_autoscaling_group" "autoscaling_group" {
+  max_size           = var.max_size
+  min_size           = var.min_size
+  name               = var.name
+  vpc_zone_identifier = var.vpc_zone_identifier
+
+  launch_template {
+    id      = aws_launch_template.launch_template.id
+    version = var.launch_template_version
+  }
+
+  tag {
+    key                 = var.tag_key
+    value               = var.tag_value
+    propagate_at_launch = true
+  }
+}
+
+# aws_appautoscaling_target
+resource "aws_appautoscaling_target" "appautoscaling_target" {
+  max_capacity       = var.max_capacity
+  min_capacity       = var.min_capacity
+  resource_id        = var.resource_id
+  scalable_dimension = var.scalable_dimension
+  service_namespace  = var.service_namespace
+  role_arn           = aws_iam_role.iam_role.arn
+
+  suspended_state {
+    dynamic_scaling_in_suspended  = false
+    dynamic_scaling_out_suspended = false
+    scheduled_scaling_suspended   = false
+  }
+
+  tags = var.tags
+}
+
+# aws_ecs_service
+resource "aws_ecs_service" "ecs_service" {
+  name            = var.service_name
+  cluster         = aws_ecs_cluster.ecs_cluster.id
+  task_definition = aws_ecs_task_definition.ecs_task_definition.arn
+  desired_count   = var.desired_count
+
+  deployment_controller {
+    type = "ECS"
+  }
+}
+
+# aws_ecs_task_set
+resource "aws_ecs_task_set" "ecs_task_set" {
+  service         = var.service
+  cluster         = var.cluster
+  task_definition = aws_ecs_task_definition.ecs_task_definition.arn
+
+  scale {
+    value = var.scale_value
+    unit  = var.scale_unit
+  }
+
+  tags = var.tags
+}
+
+# aws_autoscaling_policy
+resource "aws_autoscaling_policy" "autoscaling_policy" {
+  name                   = var.policy_name
+  autoscaling_group_name = aws_autoscaling_group.autoscaling_group.name
+  policy_type            = var.policy_type
+  adjustment_type        = var.adjustment_type
+  scaling_adjustment     = var.scaling_adjustment
+  cooldown               = var.cooldown
+  enabled                = var.enabled
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = var.predefined_metric_type
+      resource_label        = var.resource_label
+    }
+    target_value    = var.target_value
+    disable_scale_in = var.disable_scale_in
+  }
+
+  predictive_scaling_configuration {
+    max_capacity_breach_behavior = var.max_capacity_breach_behavior
+    max_capacity_buffer           = var.max_capacity_buffer
+    mode                         = var.mode
+    scheduling_buffer_time       = var.scheduling_buffer_time
+
+    metric_specification {
+      # Assuming this block requires nested metric specification per schema
+      predefined_metric_specification {
+        predefined_metric_type = var.metric_specification_predefined_metric_type
+        resource_label        = var.metric_specification_resource_label
+      }
+      # or customized_metric_specification could be referenced here if needed
+    }
+  }
+
+  step_adjustment {
+    scaling_adjustment          = var.step_adjustment_scaling_adjustment
+    metric_interval_lower_bound = var.step_adjustment_metric_interval_lower_bound
+    metric_interval_upper_bound = var.step_adjustment_metric_interval_upper_bound
+  }
+}
+
+# aws_autoscaling_attachment
+resource "aws_autoscaling_attachment" "autoscaling_attachment" {
+  autoscaling_group_name = aws_autoscaling_group.autoscaling_group.name
+  lb_target_group_arn    = var.lb_target_group_arn
+}
+
+
+====================================================================================================
+QUERY:
+aurora postgres cluster
+
+MISSING:
+
+GENERATED:
+  - aws_db_subnet_group
+  - aws_iam_group
+  - aws_iam_group_policy
+  - aws_iam_group_policy_attachment
+  - aws_iam_instance_profile
+  - aws_iam_openid_connect_provider
+  - aws_iam_policy
+  - aws_iam_policy_document
+  - aws_iam_role
+  - aws_iam_role_policy
+  - aws_iam_role_policy_attachment
+  - aws_iam_user
+  - aws_iam_user_login_profile
+  - aws_iam_user_policy
+  - aws_rds_cluster
+  - aws_rds_cluster_instance
+  - aws_rds_cluster_role_association
+  - aws_security_group
+  - aws_subnet
+  - aws_vpc
+
+TERRAFORM ERROR:
+
+terraform init failed:
+
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1m[0mTerraform encountered problems during initialisation, including problems
+[31mâ”‚[0m [0mwith the configuration, described below.
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mThe Terraform configuration must be valid before initialization so that
+[31mâ”‚[0m [0mTerraform can determine which modules and providers need to be installed.[0m[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mInvalid variable name[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on variables.tf line 337, in variable "version":
+[31mâ”‚[0m [0m 337: variable [4m"version"[0m {[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mThe variable name "version" is reserved due to its special meaning inside
+[31mâ”‚[0m [0mmodule blocks.
+[31mâ•µ[0m[0m
+
+
+MAIN.TF:
+
+# aws_vpc
+resource "aws_vpc" "vpc" {
+  cidr_block = var.cidr_block
+
+  enable_dns_support       = true
+  enable_dns_hostnames     = var.enable_dns_hostnames
+  enable_network_address_usage_metrics = false
+  instance_tenancy         = "default"
+
+  tags = var.tags
+}
+
+# aws_iam_role
+resource "aws_iam_role" "iam_role" {
+  name               = var.iam_role_name
+  assume_role_policy = var.iam_assume_role_policy
+  path               = var.iam_role_path
+  description        = var.iam_role_description
+  max_session_duration = var.iam_role_max_session_duration
+  permissions_boundary = var.iam_role_permissions_boundary
+  tags               = var.tags
+}
+
+# aws_iam_role_policy
+resource "aws_iam_role_policy" "iam_role_policy" {
+  name   = var.iam_role_policy_name
+  role   = aws_iam_role.iam_role.name
+  policy = jsonencode(var.iam_role_policy_document)
+}
+
+# aws_iam_instance_profile
+resource "aws_iam_instance_profile" "iam_instance_profile" {
+  name = var.iam_instance_profile_name
+  role = aws_iam_role.iam_role.name
+  path = var.iam_instance_profile_path
+  tags = var.iam_instance_profile_tags
+}
+
+# aws_iam_policy
+resource "aws_iam_policy" "iam_policy" {
+  name        = var.name
+  path        = var.path
+  description = var.description
+  policy      = var.policy
+  tags        = var.tags
+}
+
+# aws_iam_policy_document
+resource "aws_iam_policy_document" "iam_policy_document" {
+  statement {
+    actions   = var.actions
+    resources = var.resources
+
+    condition {
+      test     = var.condition_test
+      variable = var.condition_variable
+      values   = var.condition_values
+    }
+
+    principals {
+      type        = var.principal_type
+      identifiers = var.principal_identifiers
+    }
+
+    sid = var.sid
+  }
+
+  version = var.version
+}
+
+# aws_iam_openid_connect_provider
+resource "aws_iam_openid_connect_provider" "iam_openid_connect_provider" {
+  url            = var.oidc_provider_url
+  client_id_list = var.oidc_client_id_list
+  thumbprint_list = var.oidc_thumbprint_list
+  tags           = var.tags
+}
+
+# aws_iam_role_policy_attachment
+resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment" {
+  role       = aws_iam_role.iam_role.name
+  policy_arn = aws_iam_policy.iam_policy.arn
+}
+
+# aws_iam_user
+resource "aws_iam_user" "iam_user" {
+  name = var.iam_user_name
+  path = var.iam_user_path
+  force_destroy = var.iam_user_force_destroy
+  permissions_boundary = var.iam_user_permissions_boundary
+  tags = var.iam_user_tags
+}
+
+# aws_iam_user_policy
+resource "aws_iam_user_policy" "iam_user_policy" {
+  user   = var.iam_user_name
+  name   = var.iam_policy_name
+  policy = var.iam_policy_document_json
+}
+
+# aws_iam_user_login_profile
+resource "aws_iam_user_login_profile" "iam_user_login_profile" {
+  user = aws_iam_user.iam_user.name
+}
+
+# aws_iam_group_policy
+resource "aws_iam_group_policy" "iam_group_policy" {
+  group  = var.group_name
+  name   = var.policy_name
+  policy = jsonencode(var.policy_document)
+}
+
+# aws_iam_group
+resource "aws_iam_group" "iam_group" {
+  name = var.name
+  path = var.path
+}
+
+# aws_iam_group_policy_attachment
+resource "aws_iam_group_policy_attachment" "iam_group_policy_attachment" {
+  group      = var.group_name
+  policy_arn = var.policy_arn
+}
+
+# aws_security_group
+resource "aws_security_group" "security_group" {
+  name        = var.security_group_name
+  description = var.security_group_description
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress {
+    from_port   = var.ingress_from_port
+    to_port     = var.ingress_to_port
+    protocol    = var.ingress_protocol
+    cidr_blocks = var.ingress_cidr_blocks
+  }
+
+  egress {
+    from_port   = var.egress_from_port
+    to_port     = var.egress_to_port
+    protocol    = var.egress_protocol
+    cidr_blocks = var.egress_cidr_blocks
+  }
+
+  tags = var.tags
+}
+
+# aws_subnet  (dependency)
+resource "aws_subnet" "subnet" {
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = var.subnet_cidr_block
+
+  tags = var.tags
+}
+
+# aws_rds_cluster_role_association
+resource "aws_rds_cluster_role_association" "rds_cluster_role_association" {
+  db_cluster_identifier = var.db_cluster_identifier
+  role_arn              = aws_iam_role.iam_role.arn
+  feature_name          = var.feature_name
+}
+
+# aws_db_subnet_group
+resource "aws_db_subnet_group" "db_subnet_group" {
+  name       = var.db_subnet_group_name
+  subnet_ids = [aws_subnet.subnet.id]
+
+  tags = var.tags
+}
+
+# aws_rds_cluster
+resource "aws_rds_cluster" "rds_cluster" {
+  engine              = "aurora-postgresql"
+  cluster_identifier  = var.cluster_identifier
+  database_name       = var.database_name
+  master_username     = var.master_username
+  master_password     = var.master_password
+  backup_retention_period = var.backup_retention_period
+  preferred_backup_window = var.preferred_backup_window
+  availability_zones  = var.availability_zones
+  db_subnet_group_name = aws_db_subnet_group.db_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.security_group.id]
+  tags                = var.tags
+}
+
+# aws_rds_cluster_instance
+resource "aws_rds_cluster_instance" "rds_cluster_instance" {
+  cluster_identifier = var.cluster_identifier
+  engine             = "aurora-postgresql"
+  instance_class     = var.instance_class
+  db_subnet_group_name = aws_db_subnet_group.db_subnet_group.name
+
+  tags = var.tags
+}
+
+
+====================================================================================================
+QUERY:
+sns topic sending to sqs queue
+
+MISSING:
+  - aws_sns_topic_subscription
+
+GENERATED:
+  - aws_iam_policy
+  - aws_iam_role
+  - aws_sns_topic
+  - aws_sqs_queue
+  - aws_sqs_queue_policy
+  - aws_sqs_queue_redrive_policy
+
+MAIN.TF:
+
+# aws_sqs_queue
+resource "aws_sqs_queue" "sqs_queue" {
+  name = var.queue_name
+  tags = var.tags
+}
+
+# aws_iam_role
+resource "aws_iam_role" "iam_role" {
+  name               = var.iam_role_name
+  assume_role_policy = var.assume_role_policy_json
+
+  tags = var.tags
+}
+
+# aws_iam_policy
+resource "aws_iam_policy" "iam_policy" {
+  name        = var.iam_policy_name
+  description = var.iam_policy_description
+  path        = "/"
+  policy      = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl"
+        ]
+        Resource = aws_sqs_queue.sqs_queue.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sns:Publish"
+        ]
+        Resource = var.sns_topic_arn
+      }
+    ]
+  })
+  tags = var.tags
+}
+
+# aws_sqs_queue_policy
+resource "aws_sqs_queue_policy" "sqs_queue_policy" {
+  queue_url = aws_sqs_queue.sqs_queue.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowSNSPublish"
+      Effect    = "Allow"
+      Principal = {
+        AWS = "*"
+      }
+      Action   = "SQS:SendMessage"
+      Resource = aws_sqs_queue.sqs_queue.arn
+      Condition = {
+        ArnEquals = {
+          "aws:SourceArn" = var.sns_topic_arn
+        }
+      }
+    }]
+  })
+}
+
+# aws_sqs_queue_redrive_policy
+resource "aws_sqs_queue_redrive_policy" "sqs_queue_redrive_policy" {
+  queue_url      = var.sqs_queue_url
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = var.dead_letter_target_arn
+    maxReceiveCount     = var.max_receive_count
+  })
+}
+
+# aws_sns_topic
+resource "aws_sns_topic" "sns_topic" {
+  name = var.sns_topic_name
+  tags = var.tags
+}
+
+
+====================================================================================================
+QUERY:
+eks cluster with managed node group and alb ingress
+
+MISSING:
+
+GENERATED:
+  - aws_eks_addon
+  - aws_eks_cluster
+  - aws_eks_cluster_auth
+  - aws_eks_node_group
+  - aws_iam_openid_connect_provider
+  - aws_iam_role
+  - aws_iam_role_policy_attachment
+  - aws_lb
+  - aws_lb_listener
+  - aws_lb_target_group
+  - aws_security_group
+  - aws_subnet
+  - aws_vpc
+
+TERRAFORM ERROR:
+
+terraform validate failed:
+
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mIncorrect attribute value type[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 28, in resource "aws_iam_openid_connect_provider" "iam_openid_connect_provider":
+[31mâ”‚[0m [0m  28:   client_id_list  = [4mvar.oidc_client_id_list[0m[0m
+[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
+[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.oidc_client_id_list[0m is a string
+[31mâ”‚[0m [0m[0m
+[31mâ”‚[0m [0mInappropriate value for attribute "client_id_list": set of string required,
+[31mâ”‚[0m [0mbut have string.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mIncorrect attribute value type[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 29, in resource "aws_iam_openid_connect_provider" "iam_openid_connect_provider":
+[31mâ”‚[0m [0m  29:   thumbprint_list = [4mvar.oidc_thumbprint_list[0m[0m
+[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
+[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.oidc_thumbprint_list[0m is a string
+[31mâ”‚[0m [0m[0m
+[31mâ”‚[0m [0mInappropriate value for attribute "thumbprint_list": list of string
+[31mâ”‚[0m [0mrequired, but have string.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mInvalid resource type[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 34, in resource "aws_eks_cluster_auth" "eks_cluster_auth":
+[31mâ”‚[0m [0m  34: resource [4m"aws_eks_cluster_auth"[0m "eks_cluster_auth" {[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mThe provider hashicorp/aws does not support resource type
+[31mâ”‚[0m [0m"aws_eks_cluster_auth".
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mDid you intend to use the data source "aws_eks_cluster_auth"? If so,
+[31mâ”‚[0m [0mdeclare this using a "data" block instead of a "resource" block.
+[31mâ•µ[0m[0m
+
+
+MAIN.TF:
+
+# aws_iam_role
+resource "aws_iam_role" "iam_role" {
+  assume_role_policy = var.assume_role_policy
+  description       = var.description
+  force_detach_policies = var.force_detach_policies
+  max_session_duration  = var.max_session_duration
+  name                 = var.name
+  name_prefix          = var.name_prefix
+  path                 = var.path
+  permissions_boundary = var.permissions_boundary
+  tags                 = var.tags
+
+  inline_policy {
+    name   = var.inline_policy_name
+    policy = var.inline_policy_policy
+  }
+}
+
+# aws_iam_role_policy_attachment
+resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment" {
+  role       = aws_iam_role.iam_role.name
+  policy_arn = var.policy_arn
+}
+
+# aws_iam_openid_connect_provider
+resource "aws_iam_openid_connect_provider" "iam_openid_connect_provider" {
+  url            = var.oidc_provider_url
+  client_id_list  = var.oidc_client_id_list
+  thumbprint_list = var.oidc_thumbprint_list
+  tags           = var.tags
+}
+
+# aws_eks_cluster_auth
+resource "aws_eks_cluster_auth" "eks_cluster_auth" {
+  name = var.cluster_name
+}
+
+# aws_vpc  (dependency)
+resource "aws_vpc" "vpc" {
+  cidr_block = var.vpc_cidr_block
+
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
+  tags = var.tags
+}
+
+# aws_eks_addon
+resource "aws_eks_addon" "eks_addon" {
+  addon_name    = var.addon_name
+  cluster_name  = var.cluster_name
+
+  namespace_config {
+    namespace = var.namespace
+  }
+
+  pod_identity_association {
+    role_arn        = aws_iam_role.iam_role.arn
+    service_account = var.service_account
+  }
+
+  tags = var.tags
+}
+
+# aws_lb_target_group
+resource "aws_lb_target_group" "lb_target_group" {
+  name_prefix = var.lb_target_group_name_prefix
+  port        = var.lb_target_group_port
+  protocol    = var.lb_target_group_protocol
+  vpc_id      = aws_vpc.vpc.id
+
+  health_check {
+    enabled            = true
+    healthy_threshold  = var.lb_target_group_health_check_healthy_threshold
+    interval           = var.lb_target_group_health_check_interval
+    matcher            = var.lb_target_group_health_check_matcher
+    path               = var.lb_target_group_health_check_path
+    port               = var.lb_target_group_health_check_port
+  }
+}
+
+# aws_security_group
+resource "aws_security_group" "security_group" {
+  name        = var.security_group_name
+  description = var.security_group_description
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress {
+    from_port   = var.ingress_from_port
+    to_port     = var.ingress_to_port
+    protocol    = var.ingress_protocol
+    cidr_blocks = var.ingress_cidr_blocks
+    description = var.ingress_description
+  }
+
+  egress {
+    from_port   = var.egress_from_port
+    to_port     = var.egress_to_port
+    protocol    = var.egress_protocol
+    cidr_blocks = var.egress_cidr_blocks
+    description = var.egress_description
+  }
+
+  tags = var.tags
+}
+
+# aws_subnet  (dependency)
+resource "aws_subnet" "subnet" {
+  vpc_id = aws_vpc.vpc.id
+  cidr_block = var.cidr_block
+  availability_zone = var.availability_zone
+  assign_ipv6_address_on_creation = false
+  enable_dns64 = false
+  enable_resource_name_dns_a_record_on_launch = false
+  enable_resource_name_dns_aaaa_record_on_launch = false
+  ipv6_native = false
+  map_public_ip_on_launch = false
+  private_dns_hostname_type_on_launch = var.private_dns_hostname_type_on_launch
+  tags = var.tags
+}
+
+# aws_eks_cluster
+resource "aws_eks_cluster" "eks_cluster" {
+  name     = var.cluster_name
+  role_arn = aws_iam_role.iam_role.arn
+
+  vpc_config {
+    subnet_ids         = [aws_subnet.subnet.id]
+    security_group_ids = [aws_security_group.security_group.id]
+  }
+
+  tags = var.tags
+}
+
+# aws_lb
+resource "aws_lb" "lb" {
+  name               = var.lb_name
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.security_group.id]
+  subnets            = [aws_subnet.subnet.id]
+
+  enable_http2 = true
+}
+
+# aws_eks_node_group
+resource "aws_eks_node_group" "eks_node_group" {
+  cluster_name   = aws_eks_cluster.eks_cluster.name
+  node_role_arn  = aws_iam_role.iam_role.arn
+  subnet_ids     = [aws_subnet.subnet.id]
+
+  scaling_config {
+    desired_size = var.node_group_desired_size
+    max_size     = var.node_group_max_size
+    min_size     = var.node_group_min_size
+  }
+
+  node_group_name = var.node_group_name
+  instance_types  = var.node_group_instance_types
+  disk_size      = var.node_group_disk_size
+  ami_type       = var.node_group_ami_type
+  capacity_type  = var.node_group_capacity_type
+  
+  tags = var.tags
+}
+
+# aws_lb_listener
+resource "aws_lb_listener" "lb_listener" {
+  load_balancer_arn = aws_lb.lb.arn
+  port              = var.lb_listener_port
+  protocol          = var.lb_listener_protocol
+
+  default_action {
+    type           = var.lb_listener_default_action_type
+    target_group_arn = var.lb_listener_default_action_target_group_arn
+  }
+}
+
+

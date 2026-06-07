@@ -3,10 +3,14 @@ from __future__ import annotations
 import json
 import logging
 import re
+import os
+import httpx
+import time
 
-from ollama import chat
+
+from ollama import (Client, ResponseError)
+
 from tenacity import retry_if_exception_type
-from ollama import ResponseError
 from architecture_cache import (get_cached, save_cached)
 
 from tenacity import (
@@ -16,6 +20,16 @@ from tenacity import (
 )
 
 logger = logging.getLogger(__name__)
+
+ARCH_MODEL = os.getenv("ARCH_MODEL", "qwen3:latest")
+
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+
+OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "120"))
+
+ARCH_NUM_PREDICT = int(os.getenv("ARCH_NUM_PREDICT","512"))
+
+_ollama_client = Client(host=OLLAMA_HOST, timeout=OLLAMA_TIMEOUT)
 
 ARCHITECTURE_COMPLETIONS = {
 
@@ -93,6 +107,8 @@ ARCHITECTURE_COMPLETIONS = {
 }
 
 SYSTEM_PROMPT = """
+/no_think
+
 You are an AWS Terraform Architect.
 
 Return the COMPLETE AWS architecture required
@@ -143,41 +159,83 @@ def clean_output( text:str)->str:
 
     wait=wait_exponential(multiplier=1, min=1, max=8),
 
-    retry=retry_if_exception_type((ResponseError, ConnectionError, TimeoutError))
+    retry=retry_if_exception_type(
+        (
+            ResponseError,
+            ConnectionError,
+            TimeoutError,
+            httpx.TimeoutException,
+            httpx.TransportError
+        )
+    )
 
 )
 
 def call_llm( query:str)->list[str]:
 
-    response = chat(model="qwen3:latest",
+    start = time.perf_counter()
 
-        messages=[
+    try:
+        
+        logger.info("CALLING OLLAMA FOR ARCHITECTURE EXTRACTION")
 
-            {
+        response = _ollama_client.chat(
 
-                "role":"system",
+            model=ARCH_MODEL,
 
-                "content":SYSTEM_PROMPT
+            messages=[
 
-            },
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT
+                },
 
-            {
+                {
+                    "role": "user",
+                    "content": query
+                }
+            ],
 
-                "role":"user",
+            think=False,
 
-                "content":query
+            options={
 
+                "temperature": 0,
+
+                "num_predict": ARCH_NUM_PREDICT
             }
+        )
 
-        ],
+        logger.info("ARCH LLM CALL TOOK %.2fs", time.perf_counter() - start)
 
-        options={
+    except TypeError:
 
-            "temperature":0
+        logger.warning("Ollama client does not support think=False, retrying without it")
 
-        }
+        response = _ollama_client.chat(
 
-    )
+            model=ARCH_MODEL,
+
+            messages=[
+
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT
+                },
+
+                {
+                    "role": "user",
+                    "content": query
+                }
+            ],
+
+            options={
+
+                "temperature": 0,
+
+                "num_predict": ARCH_NUM_PREDICT
+            }
+        )
 
     text = clean_output(response["message"]["content"])
 
@@ -242,8 +300,22 @@ def extract_architecture(query:str)->list[str]:
         logger.info("Architecture cache hit")
 
         return cached
+    
+    logger.info("ARCH CACHE MISS")
+
+    logger.info("ARCH QUERY=%s", query)
+
+    logger.info("START ARCH LLM")
+
+    logger.info("ARCH MODEL=%s", ARCH_MODEL)
+
+    logger.info("ARCH TIMEOUT=%s", OLLAMA_TIMEOUT)
 
     entities = call_llm(query)
+
+    logger.info("END ARCH LLM")
+
+    logger.info("ARCH BEFORE COMPLETION=%s", entities)
 
     entities = complete_architecture(entities)
 
