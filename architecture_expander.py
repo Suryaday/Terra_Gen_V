@@ -71,12 +71,12 @@ ARCHITECTURE_COMPLETIONS = {
     ], 
 
     "aws_s3_bucket": [
-    "aws_s3_bucket_lifecycle_configuration",
-    "aws_s3_bucket_versioning"
+        "aws_s3_bucket_lifecycle_configuration",
+        "aws_s3_bucket_versioning"
     ],
 
     "aws_db_instance": [
-    "aws_db_subnet_group"
+        "aws_db_subnet_group"
     ],
 
     "aws_rds_cluster": [
@@ -93,6 +93,10 @@ ARCHITECTURE_COMPLETIONS = {
     "aws_sqs_queue": [
         "aws_sqs_queue_policy",
         "aws_sqs_queue_redrive_policy"
+    ],
+
+    "aws_sns_topic": [
+        "aws_sns_topic_subscription"
     ],
 
     "aws_nat_gateway": [

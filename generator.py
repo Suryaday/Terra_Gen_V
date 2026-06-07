@@ -53,6 +53,9 @@ ARGUMENT_ALIASES = {
     },
     "aws_ecs_task_definition": {
         "size_in_gb": "size_in_gib",
+    },
+    "aws_sqs_queue": {
+        "maximum_message_size": "max_message_size",
     }
 }
 
@@ -286,6 +289,7 @@ def _get_corrector() -> QueryCorrector:
             row["metadata"].get("entity")
             for row in bm25._metadata
             if row["metadata"].get("entity")
+            and row["metadata"].get("doc_type") == "resource"
         }
     return _corrector
 
@@ -294,6 +298,35 @@ def _get_known_entities() -> set[str]:
     _get_corrector()
     return _known_entities
 
+def remove_conflicting_entities(entities: list[str]) -> list[str]:
+
+    entities = list(dict.fromkeys(entities))
+
+    ecs_present = (
+        "aws_ecs_service" in entities
+        or
+        "aws_ecs_cluster" in entities
+    )
+
+    if not ecs_present:
+        return entities
+
+    ec2_autoscaling_family = {
+        "aws_autoscaling_group",
+        "aws_launch_template",
+        "aws_autoscaling_attachment",
+        "aws_iam_instance_profile",
+        "aws_autoscaling_policy",
+    }
+
+    filtered = [e for e in entities if e not in ec2_autoscaling_family]
+
+    removed = sorted(set(entities) - set(filtered))
+
+    if removed:
+        logger.info("REMOVED ECS CONFLICTING ENTITIES=%s", removed)
+
+    return filtered
 
 def _get_client() -> OpenAI:
 
@@ -406,6 +439,7 @@ def build_plan(query: str) -> GenerationPlan:
     arch_entities = complete_architecture(arch_entities)
     arch_entities = [RESOURCE_ALIASES.get(e, e) for e in arch_entities]
     arch_entities = validate_entities(arch_entities, known)
+    arch_entities = remove_conflicting_entities(arch_entities)
 
     logger.info("Architecture entities after completion: %s", arch_entities)
 
@@ -440,6 +474,8 @@ def build_plan(query: str) -> GenerationPlan:
     # Step 4: Expand to full dependency closure (hard deps only)
     all_entities = expand_entities(root_entities, depth=2, hard_only=True)
     all_entities = [e for e in all_entities if e in known]
+
+    all_entities = remove_conflicting_entities(all_entities)
 
     logger.info("Full entity set after expansion: %s", all_entities)
 
@@ -881,6 +917,7 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = _normalize_vpc_optional_arguments(node.entity, raw)
     raw = _normalize_cidr_block_lists(raw)
     raw = _remove_invalid_resource_types(raw)
+    raw = _fix_resource_labels(raw)
     
     print("RAW_NORMALIZE_ECR_SCAN_ON_PUSH", raw)
 
@@ -1307,7 +1344,7 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "proxy_configuration_properties": "map(string)",
 
         "client_id_list": "set(string)",
-        
+
         "oidc_client_id_list": "set(string)",
     }
 
@@ -1364,6 +1401,7 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "_security_groups",
         "_cidrs",
         "_cache_keys",
+        "_list"
     )
 
     SET_STRING_SUFFIXES = (
@@ -1404,7 +1442,7 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     #
     # Boolean naming conventions
     #
-    if var.startswith(("enable_", "associate_")):
+    if ("enable_" in var or "associate_" in var):
         return ("bool", None)
 
     if var.endswith(("_enabled", "_encrypted")):
@@ -1567,6 +1605,54 @@ def _remove_invalid_resource_types(terraform: str) -> str:
             i += 1
 
     return "\n".join(output)
+
+def _fix_resource_labels(terraform: str) -> str:
+
+    resource_labels = {}
+
+    for match in re.finditer(r'resource\s+"([^"]+)"\s+"([^"]+)"', terraform):
+        resource_type = match.group(1)
+        resource_label = match.group(2)
+
+        resource_labels[resource_type] = resource_label
+
+    for resource_type, actual_label in resource_labels.items():
+
+        pattern = (
+            rf'\b'
+            rf'({resource_type})'
+            rf'\.([a-zA-Z0-9_]+)'
+            rf'(\.[a-zA-Z0-9_]+)'
+        )
+
+        def replace(match):
+
+            found_label = match.group(2)
+
+            if found_label == actual_label:
+                return match.group(0)
+
+            logger.info(
+                "LABEL FIX %s.%s -> %s.%s",
+                resource_type,
+                found_label,
+                resource_type,
+                actual_label
+            )
+
+            return (
+                f"{resource_type}."
+                f"{actual_label}"
+                f"{match.group(3)}"
+            )
+
+        terraform = re.sub(
+            pattern,
+            replace,
+            terraform
+        )
+
+    return terraform
 
 def _generate_variables_tf(all_var_refs: list[str]) -> str:
     blocks: list[str] = []
@@ -1836,6 +1922,7 @@ def generate(query: str) -> GenerationResult:
 
     # 3. Stitch into files
     files = stitch(blocks, plan)
+    files["main.tf"] = _fix_resource_labels(files["main.tf"])
 
     # 4. Validate
     warnings = validate(files)

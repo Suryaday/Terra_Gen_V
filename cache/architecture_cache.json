@@ -1,105 +1,4 @@
 {
-  "rds sql mydatabase": [
-    "aws_rds_cluster",
-    "aws_rds_cluster_instance",
-    "aws_rds_cluster_parameter_group",
-    "aws_rds_cluster_credentials",
-    "aws_rds_cluster_role_association",
-    "aws_rds_db_instance",
-    "aws_rds_db_parameter_group",
-    "aws_rds_db_subnet_group",
-    "aws_rds_event_subscription",
-    "aws_rds_snapshot",
-    "aws_rds_subnet_group",
-    "aws_vpc",
-    "aws_db_subnet_group",
-    "aws_security_group"
-  ],
-  "jump box ec2 ssh aws_instance aws_security_group": [
-    "aws_vpc",
-    "aws_subnet",
-    "aws_internet_gateway",
-    "aws_route_table",
-    "aws_route",
-    "aws_security_group",
-    "aws_instance",
-    "aws_key_pair",
-    "aws_iam_role",
-    "aws_iam_instance_profile",
-    "aws_security_group_rule",
-    "aws_route_table_association"
-  ],
-  "lambda eventbridge trigger aws_cloudwatch_event_rule aws_lambda_permission aws_cloudwatch_event_rule aws_lambda_function": [
-    "aws_lambda_function",
-    "aws_cloudwatch_event_rule",
-    "aws_cloudwatch_event_target",
-    "aws_lambda_permission",
-    "aws_iam_role"
-  ],
-  "ecs fargate service behind alb aws_lb": [
-    "aws_alb",
-    "aws_alb_target_group",
-    "aws_alb_listener",
-    "aws_alb_listener_rule",
-    "aws_ecs_cluster",
-    "aws_ecs_task_definition",
-    "aws_ecs_service",
-    "aws_iam_role",
-    "aws_iam_role_policy_attachment",
-    "aws_iam_service_account",
-    "aws_iam_service_account_policy",
-    "aws_ecs_capacity_provider",
-    "aws_ecs_capacity_provider_strategy",
-    "aws_appautoscaling_target",
-    "aws_appautoscaling_policy"
-  ],
-  "eks cluster with node group aws_eks_cluster aws_eks_cluster": [
-    "aws_eks_cluster",
-    "aws_eks_node_group",
-    "aws_iam_role",
-    "aws_iam_role_policy_attachment",
-    "aws_iam_openid_connect_provider",
-    "aws_eks_cluster_auth",
-    "aws_iam_policy",
-    "aws_iam_policy_document",
-    "aws_iam_role_policy",
-    "aws_security_group"
-  ],
-  "nat gateway private subnet aws_nat_gateway": [
-    "aws_vpc",
-    "aws_subnet",
-    "aws_internet_gateway",
-    "aws_route_table",
-    "aws_route",
-    "aws_nat_gateway",
-    "aws_route_table_association"
-  ],
-  "s3 bucket lifecycle 30 days aws_s3_bucket": [
-    "aws_s3_bucket",
-    "aws_s3_bucket_lifecycle_rule",
-    "aws_s3_bucket_lifecycle_configuration",
-    "aws_s3_bucket_versioning"
-  ],
-  "cross account iam role aws_iam_role": [
-    "aws_iam_role",
-    "aws_iam_role_policy",
-    "aws_iam_policy",
-    "aws_iam_role_policy_attachment",
-    "aws_iam_policy_document"
-  ],
-  "route53 cname record": [
-    "aws_route53_record",
-    "aws_route53_zone"
-  ],
-  "dynamodb ttl": [
-    "aws_dynamodb_table",
-    "aws_dynamodb_table_ttl"
-  ],
-  "kms key rotation": [
-    "aws_kms_key",
-    "aws_kms_alias",
-    "aws_kms_key_rotation"
-  ],
   "rds mysql database aws_db_instance": [
     "aws_db_instance",
     "aws_db_subnet_group",
@@ -197,6 +96,7 @@
     "aws_sns_subscription",
     "aws_iam_role",
     "aws_iam_policy",
+    "aws_sns_topic_subscription",
     "aws_sqs_queue_policy",
     "aws_sqs_queue_redrive_policy"
   ],
@@ -215,5 +115,90 @@
     "aws_security_group",
     "aws_lb_listener",
     "aws_lb_target_group"
+  ],
+  "jump box ec2 ssh aws_instance aws_security_group": [
+    "aws_vpc",
+    "aws_subnet",
+    "aws_internet_gateway",
+    "aws_route_table",
+    "aws_route",
+    "aws_security_group",
+    "aws_instance",
+    "aws_key_pair",
+    "aws_iam_role",
+    "aws_iam_instance_profile",
+    "aws_security_group_rule",
+    "aws_route_table_association"
+  ],
+  "lambda eventbridge trigger aws_cloudwatch_event_rule aws_lambda_permission aws_cloudwatch_event_rule aws_lambda_function": [
+    "aws_lambda_function",
+    "aws_cloudwatch_event_rule",
+    "aws_cloudwatch_event_target",
+    "aws_lambda_permission",
+    "aws_iam_role"
+  ],
+  "ecs fargate service behind alb aws_lb": [
+    "aws_alb",
+    "aws_alb_target_group",
+    "aws_alb_listener",
+    "aws_alb_listener_rule",
+    "aws_ecs_cluster",
+    "aws_ecs_task_definition",
+    "aws_ecs_service",
+    "aws_iam_role",
+    "aws_iam_role_policy_attachment",
+    "aws_iam_service_account",
+    "aws_iam_service_account_policy",
+    "aws_ecs_capacity_provider",
+    "aws_ecs_capacity_provider_strategy",
+    "aws_appautoscaling_target",
+    "aws_appautoscaling_policy"
+  ],
+  "eks cluster with node group aws_eks_cluster aws_eks_cluster": [
+    "aws_eks_cluster",
+    "aws_eks_node_group",
+    "aws_iam_role",
+    "aws_iam_role_policy_attachment",
+    "aws_iam_openid_connect_provider",
+    "aws_eks_cluster_auth",
+    "aws_iam_policy",
+    "aws_iam_policy_document",
+    "aws_iam_role_policy",
+    "aws_security_group"
+  ],
+  "nat gateway private subnet aws_nat_gateway": [
+    "aws_vpc",
+    "aws_subnet",
+    "aws_internet_gateway",
+    "aws_route_table",
+    "aws_route",
+    "aws_nat_gateway",
+    "aws_route_table_association"
+  ],
+  "s3 bucket lifecycle 30 days aws_s3_bucket": [
+    "aws_s3_bucket",
+    "aws_s3_bucket_lifecycle_rule",
+    "aws_s3_bucket_lifecycle_configuration",
+    "aws_s3_bucket_versioning"
+  ],
+  "cross account iam role aws_iam_role": [
+    "aws_iam_role",
+    "aws_iam_role_policy",
+    "aws_iam_policy",
+    "aws_iam_role_policy_attachment",
+    "aws_iam_policy_document"
+  ],
+  "route53 cname record": [
+    "aws_route53_record",
+    "aws_route53_zone"
+  ],
+  "dynamodb ttl": [
+    "aws_dynamodb_table",
+    "aws_dynamodb_table_ttl"
+  ],
+  "kms key rotation": [
+    "aws_kms_key",
+    "aws_kms_alias",
+    "aws_kms_key_rotation"
   ]
 }
