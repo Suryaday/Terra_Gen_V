@@ -298,9 +298,9 @@ def _get_known_entities() -> set[str]:
     _get_corrector()
     return _known_entities
 
-def remove_conflicting_entities(entities: list[str]) -> list[str]:
+def remove_conflicting_entities(entities: list[str], query: str) -> list[str]:
 
-    entities = list(dict.fromkeys(entities))
+    q = query.lower()
 
     ecs_present = (
         "aws_ecs_service" in entities
@@ -308,25 +308,38 @@ def remove_conflicting_entities(entities: list[str]) -> list[str]:
         "aws_ecs_cluster" in entities
     )
 
-    if not ecs_present:
-        return entities
+    ec2_intent = any(
+        signal in q
+        for signal in (
+            "ec2",
+            "capacity provider",
+            "managed instance",
+            "managed instances",
+            "launch template",
+            "autoscaling group",
+            "asg",
+        )
+    )
 
-    ec2_autoscaling_family = {
-        "aws_autoscaling_group",
-        "aws_launch_template",
-        "aws_autoscaling_attachment",
-        "aws_iam_instance_profile",
-        "aws_autoscaling_policy",
-    }
+    if ecs_present and not ec2_intent:
 
-    filtered = [e for e in entities if e not in ec2_autoscaling_family]
+        forbidden = {
+            "aws_ecs_capacity_provider",
+            "aws_launch_template",
+            "aws_autoscaling_group",
+            "aws_autoscaling_attachment",
+            "aws_autoscaling_policy",
+            "aws_iam_instance_profile",
+        }
 
-    removed = sorted(set(entities) - set(filtered))
+        removed = forbidden & set(entities)
 
-    if removed:
-        logger.info("REMOVED ECS CONFLICTING ENTITIES=%s", removed)
+        entities = [e for e in entities if e not in forbidden]
 
-    return filtered
+        if removed:
+            logger.info("REMOVED ECS/EC2 CONFLICT ENTITIES=%s", sorted(removed))
+
+    return entities
 
 def _get_client() -> OpenAI:
 
@@ -439,7 +452,7 @@ def build_plan(query: str) -> GenerationPlan:
     arch_entities = complete_architecture(arch_entities)
     arch_entities = [RESOURCE_ALIASES.get(e, e) for e in arch_entities]
     arch_entities = validate_entities(arch_entities, known)
-    arch_entities = remove_conflicting_entities(arch_entities)
+    arch_entities = remove_conflicting_entities(arch_entities, clean)
 
     logger.info("Architecture entities after completion: %s", arch_entities)
 
@@ -475,7 +488,7 @@ def build_plan(query: str) -> GenerationPlan:
     all_entities = expand_entities(root_entities, depth=2, hard_only=True)
     all_entities = [e for e in all_entities if e in known]
 
-    all_entities = remove_conflicting_entities(all_entities)
+    all_entities = remove_conflicting_entities(all_entities, clean)
 
     logger.info("Full entity set after expansion: %s", all_entities)
 
@@ -912,6 +925,7 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = _normalize_ecs_service_connect(node.entity, raw)
     raw = _normalize_ecs_task_definition_blocks(node.entity, raw)
     raw = _normalize_ecs_deployment_configuration(node.entity, raw)
+    raw = _normalize_ecs_capacity_provider(node.entity, raw)
     raw = _normalize_list_references(raw)
     raw = _normalize_subnet_optional_arguments(raw)
     raw = _normalize_vpc_optional_arguments(node.entity, raw)
@@ -1160,6 +1174,57 @@ def _normalize_ecs_deployment_configuration(entity: str, hcl: str) -> str:
             continue
 
         if skip:
+            depth += line.count("{")
+            depth -= line.count("}")
+
+            if depth <= skip_depth:
+                skip = False
+
+            continue
+
+        output.append(line)
+
+        depth += line.count("{")
+        depth -= line.count("}")
+
+    return "\n".join(output)
+
+def _normalize_ecs_capacity_provider(entity: str, hcl: str) -> str:
+
+    if entity != "aws_ecs_capacity_provider":
+        return hcl
+
+    lines = hcl.splitlines()
+
+    output = []
+
+    skip = False
+    depth = 0
+    skip_depth = 0
+
+    for line in lines:
+
+        stripped = line.strip()
+
+        if (
+            not skip
+            and
+            stripped.startswith("network_configuration")
+        ):
+            logger.info(
+                "REMOVED ecs_capacity_provider network_configuration"
+            )
+
+            skip = True
+            skip_depth = depth
+
+            depth += line.count("{")
+            depth -= line.count("}")
+
+            continue
+
+        if skip:
+
             depth += line.count("{")
             depth -= line.count("}")
 

@@ -115,8 +115,7 @@ SYSTEM_PROMPT = """
 
 You are an AWS Terraform Architect.
 
-Return the COMPLETE AWS architecture required
-to satisfy the user's request.
+Return the COMPLETE AWS architecture required to satisfy the user's request.
 
 Rules:
 
@@ -149,6 +148,37 @@ Output:
   "aws_cloudwatch_event_target",
   "aws_lambda_permission"
 ]
+
+Input:
+ecs fargate service behind alb with autoscaling
+
+Output:
+[
+  "aws_ecs_cluster",
+  "aws_ecs_service",
+  "aws_ecs_task_definition",
+  "aws_appautoscaling_target",
+  "aws_appautoscaling_policy",
+  "aws_lb",
+  "aws_lb_listener",
+  "aws_lb_target_group",
+  "aws_security_group"
+]
+
+7. ECS launch types are mutually exclusive.
+
+   For ECS Fargate (the default unless the user explicitly asks for
+   EC2, capacity providers, or managed instances), DO NOT include:
+     - aws_ecs_capacity_provider
+     - aws_autoscaling_group
+     - aws_autoscaling_policy
+     - aws_autoscaling_attachment
+     - aws_launch_template
+     - aws_iam_instance_profile
+
+   For ECS service scaling, use application autoscaling instead:
+     - aws_appautoscaling_target
+     - aws_appautoscaling_policy
 """
 
 

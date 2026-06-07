@@ -4,22 +4,249 @@ GENERATION FAILURES
 
 ====================================================================================================
 QUERY:
-ecs fargate service behind alb
+rds mysql database
+
+MISSING:
+  - aws_db_subnet_group
+
+GENERATED:
+  - aws_db_instance
+  - aws_internet_gateway
+  - aws_route_table
+  - aws_route_table_association
+  - aws_security_group
+  - aws_subnet
+  - aws_vpc
+
+MAIN.TF:
+
+# aws_vpc
+resource "aws_vpc" "vpc" {
+  cidr_block = var.cidr_block
+
+  enable_dns_support = true
+  enable_dns_hostnames = var.enable_dns_hostnames
+  enable_network_address_usage_metrics = false
+
+  tags = var.tags
+}
+
+# aws_route_table
+resource "aws_route_table" "route_table" {
+  vpc_id = aws_vpc.vpc.id
+
+  route = []
+
+  tags = var.tags
+}
+
+# aws_route_table_association
+resource "aws_route_table_association" "route_table_association" {
+  subnet_id      = var.subnet_id
+  route_table_id = aws_route_table.route_table.id
+}
+
+# aws_internet_gateway
+resource "aws_internet_gateway" "internet_gateway" {
+  vpc_id = aws_vpc.vpc.id
+
+  tags = var.tags
+}
+
+# aws_subnet
+resource "aws_subnet" "subnet" {
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = var.subnet_cidr_block
+
+  tags = var.tags
+}
+
+# aws_security_group
+resource "aws_security_group" "security_group" {
+  name        = var.security_group_name
+  description = var.security_group_description
+  vpc_id      = aws_vpc.vpc.id
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = var.tags
+}
+
+# aws_db_instance
+resource "aws_db_instance" "db_instance" {
+  allocated_storage    = var.allocated_storage
+  engine               = "mysql"
+  instance_class       = var.instance_class
+  db_name = var.db_name
+  username             = var.db_username
+  password             = var.db_password
+  parameter_group_name = var.parameter_group_name
+  skip_final_snapshot  = var.skip_final_snapshot
+  vpc_security_group_ids = [aws_security_group.security_group.id]
+}
+
+
+====================================================================================================
+QUERY:
+ecs service with autoscaling and ecr image
 
 MISSING:
 
 GENERATED:
   - aws_appautoscaling_policy
   - aws_appautoscaling_target
-  - aws_ecs_capacity_provider
+  - aws_ecr_repository
   - aws_ecs_cluster
   - aws_ecs_service
   - aws_ecs_task_definition
+  - aws_iam_policy
   - aws_iam_role
-  - aws_iam_role_policy_attachment
-  - aws_lb
-  - aws_lb_listener
-  - aws_lb_target_group
+  - aws_iam_role_policy
+
+TERRAFORM ERROR:
+
+terraform validate failed:
+
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 81, in resource "aws_ecs_task_definition" "ecs_task_definition":
+[31mâ”‚[0m [0m  81:   [4mvolume[0m                   = var.volume[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mAn argument named "volume" is not expected here. Did you mean to define a
+[31mâ”‚[0m [0mblock of type "volume"?
+[31mâ•µ[0m[0m
+
+
+MAIN.TF:
+
+# aws_ecs_cluster
+resource "aws_ecs_cluster" "ecs_cluster" {
+  name = var.ecs_cluster_name
+
+  setting {
+    name  = "containerInsights"
+    value = var.container_insights_value
+  }
+
+  tags = var.tags
+}
+
+# aws_ecr_repository
+resource "aws_ecr_repository" "ecr_repository" {
+  name          = var.repository_name
+
+  image_scanning_configuration {
+    scan_on_push = var.scan_on_push
+  }
+
+  tags = var.tags
+}
+
+# aws_appautoscaling_policy
+resource "aws_appautoscaling_policy" "appautoscaling_policy" {
+  name               = var.appautoscaling_policy_name
+  policy_type        = "StepScaling"
+  resource_id        = var.appautoscaling_resource_id
+  scalable_dimension = var.appautoscaling_scalable_dimension
+  service_namespace  = var.appautoscaling_service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Maximum"
+
+    step_adjustment {
+      metric_interval_upper_bound = 0
+      scaling_adjustment          = -1
+    }
+  }
+}
+
+# aws_iam_role
+resource "aws_iam_role" "iam_role" {
+  assume_role_policy = var.assume_role_policy
+  name               = var.role_name
+  path               = var.role_path
+  description        = var.role_description
+  max_session_duration = var.max_session_duration
+  permissions_boundary = var.permissions_boundary
+  tags               = var.tags
+}
+
+# aws_iam_role_policy
+resource "aws_iam_role_policy" "iam_role_policy" {
+  name   = var.iam_role_policy_name
+  role   = aws_iam_role.iam_role.name
+  policy = jsonencode(var.iam_role_policy_document)
+}
+
+# aws_iam_policy
+resource "aws_iam_policy" "iam_policy" {
+  name        = var.iam_policy_name
+  description = var.iam_policy_description
+  path        = var.iam_policy_path
+  policy      = var.iam_policy_document
+  tags        = var.tags
+}
+
+# aws_ecs_task_definition
+resource "aws_ecs_task_definition" "ecs_task_definition" {
+  family                = var.family
+  container_definitions  = var.container_definitions
+  requires_compatibilities = var.requires_compatibilities
+  cpu                   = var.cpu
+  memory                = var.memory
+  network_mode          = var.network_mode
+  execution_role_arn    = aws_iam_role.iam_role.arn
+  task_role_arn         = var.task_role_arn
+  volume                = var.volume
+  tags                  = var.tags
+}
+
+# aws_appautoscaling_target
+resource "aws_appautoscaling_target" "appautoscaling_target" {
+  max_capacity       = var.max_capacity
+  min_capacity       = var.min_capacity
+  resource_id        = "service/${aws_ecs_cluster.ecs_cluster.name}/${var.ecs_service_name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+  role_arn           = aws_iam_role.iam_role.arn
+  tags               = var.tags
+}
+
+# aws_ecs_service
+resource "aws_ecs_service" "ecs_service" {
+  name            = var.ecs_service_name
+  cluster         = aws_ecs_cluster.ecs_cluster.arn
+  task_definition = aws_ecs_task_definition.ecs_task_definition.arn
+  desired_count   = var.ecs_service_desired_count
+
+  deployment_controller {
+    type = "ECS"
+  }
+}
+
+
+====================================================================================================
+QUERY:
+aurora postgres cluster
+
+MISSING:
+
+GENERATED:
+  - aws_db_subnet_group
+  - aws_iam_role
+  - aws_rds_cluster
+  - aws_rds_cluster_instance
+  - aws_rds_cluster_parameter_group
+  - aws_rds_cluster_role_association
   - aws_security_group
   - aws_subnet
   - aws_vpc
@@ -29,12 +256,415 @@ TERRAFORM ERROR:
 terraform validate failed:
 
 [31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported block type[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mInvalid dynamic for_each value[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 63, in resource "aws_ecs_capacity_provider" "ecs_capacity_provider":
-[31mâ”‚[0m [0m  63:     [4mnetwork_configuration[0m {[0m
+[31mâ”‚[0m [0m[0m  on main.tf line 9, in resource "aws_rds_cluster_parameter_group" "rds_cluster_parameter_group":
+[31mâ”‚[0m [0m   9:     for_each = [4mvar.parameters[0m[0m
+[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
+[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.parameters[0m is a string
+[31mâ”‚[0m [0m[0m
+[31mâ”‚[0m [0mCannot use a string value in for_each. An iterable collection is required.
+[31mâ•µ[0m[0m
+
+
+MAIN.TF:
+
+# aws_rds_cluster_parameter_group
+resource "aws_rds_cluster_parameter_group" "rds_cluster_parameter_group" {
+  family      = var.family
+  description = var.description
+  name        = var.name
+  region      = var.region
+
+  dynamic "parameter" {
+    for_each = var.parameters
+    content {
+      name         = parameter.value.name
+      value        = parameter.value.value
+      apply_method = parameter.value.apply_method
+    }
+  }
+
+  tags = var.tags
+}
+
+# aws_vpc
+resource "aws_vpc" "vpc" {
+  cidr_block = var.cidr_block
+
+  enable_dns_support = true
+  enable_dns_hostnames = var.enable_dns_hostnames
+  enable_network_address_usage_metrics = false
+  instance_tenancy = "default"
+
+  tags = var.tags
+}
+
+# aws_iam_role  (dependency)
+resource "aws_iam_role" "iam_role" {
+  name               = var.iam_role_name
+  assume_role_policy = var.iam_role_assume_role_policy_json
+  path               = var.iam_role_path
+  description        = var.iam_role_description
+  max_session_duration = var.iam_role_max_session_duration
+  permissions_boundary = var.iam_role_permissions_boundary
+  tags               = var.iam_role_tags
+}
+
+# aws_security_group
+resource "aws_security_group" "security_group" {
+  name        = var.security_group_name
+  description = var.security_group_description
+  vpc_id      = aws_vpc.vpc.id
+
+  tags = var.tags
+}
+
+# aws_subnet  (dependency)
+resource "aws_subnet" "subnet" {
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = var.cidr_block
+
+  tags = var.tags
+}
+
+# aws_rds_cluster_role_association
+resource "aws_rds_cluster_role_association" "rds_cluster_role_association" {
+  db_cluster_identifier = var.db_cluster_identifier
+  role_arn              = aws_iam_role.iam_role.arn
+  feature_name          = var.feature_name
+}
+
+# aws_db_subnet_group
+resource "aws_db_subnet_group" "db_subnet_group" {
+  name       = var.db_subnet_group_name
+  subnet_ids = [aws_subnet.subnet.id]
+
+  tags = var.tags
+}
+
+# aws_rds_cluster
+resource "aws_rds_cluster" "rds_cluster" {
+  engine            = "aurora-postgresql"
+  cluster_identifier = var.cluster_identifier
+  availability_zones = var.availability_zones
+  database_name     = var.database_name
+  master_username   = var.master_username
+  master_password   = var.master_password
+  backup_retention_period = var.backup_retention_period
+  preferred_backup_window = var.preferred_backup_window
+  db_subnet_group_name = aws_db_subnet_group.db_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.security_group.id]
+  tags              = var.tags
+}
+
+# aws_rds_cluster_instance
+resource "aws_rds_cluster_instance" "rds_cluster_instance" {
+  cluster_identifier = var.cluster_identifier
+  instance_class     = var.instance_class
+  engine             = "aurora-postgresql"
+  db_subnet_group_name = aws_db_subnet_group.db_subnet_group.name
+
+  tags = var.tags
+}
+
+
+====================================================================================================
+QUERY:
+sqs queue with dead letter queue
+
+MISSING:
+
+GENERATED:
+  - aws_sqs_queue
+  - aws_sqs_queue_policy
+  - aws_sqs_queue_redrive_policy
+
+TERRAFORM ERROR:
+
+terraform validate failed:
+
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported attribute[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0mBlocks of type "network_configuration" are not expected here.
+[31mâ”‚[0m [0m[0m  on main.tf line 31, in resource "aws_sqs_queue_policy" "sqs_queue_policy":
+[31mâ”‚[0m [0m  31:           "aws:SourceArn" = aws_sqs_queue_redrive_policy.sqs_queue_redrive_policy[4m.arn[0m[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mThis object has no argument, nested block, or exported attribute named
+[31mâ”‚[0m [0m"arn".
+[31mâ•µ[0m[0m
+
+
+MAIN.TF:
+
+# aws_sqs_queue
+resource "aws_sqs_queue" "sqs_queue" {
+  name = var.sqs_queue_name
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = var.sqs_dead_letter_queue_arn
+    maxReceiveCount     = var.sqs_max_receive_count
+  })
+}
+
+# aws_sqs_queue_redrive_policy
+resource "aws_sqs_queue_redrive_policy" "sqs_queue_redrive_policy" {
+  queue_url      = var.queue_url
+  redrive_policy = var.redrive_policy
+}
+
+# aws_sqs_queue_policy
+resource "aws_sqs_queue_policy" "sqs_queue_policy" {
+  queue_url = aws_sqs_queue.sqs_queue.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowRedrive"
+      Effect    = "Allow"
+      Principal = "*"
+      Action    = "SQS:SendMessage"
+      Resource  = aws_sqs_queue.sqs_queue.arn
+      Condition = {
+        ArnEquals = {
+          "aws:SourceArn" = aws_sqs_queue_redrive_policy.sqs_queue_redrive_policy.arn
+        }
+      }
+    }]
+  })
+}
+
+
+====================================================================================================
+QUERY:
+sns topic sending to sqs queue
+
+MISSING:
+
+GENERATED:
+  - aws_sns_topic
+  - aws_sns_topic_subscription
+  - aws_sqs_queue
+  - aws_sqs_queue_policy
+  - aws_sqs_queue_redrive_policy
+
+WARNINGS:
+  - Reference to aws_iam_policy_document found but not defined in main.tf
+
+TERRAFORM ERROR:
+
+terraform validate failed:
+
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mReference to undeclared resource[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 14, in resource "aws_sqs_queue_policy" "sqs_queue_policy":
+[31mâ”‚[0m [0m  14:   policy    = [4mdata.aws_iam_policy_document.policy[0m.json[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mA data resource "aws_iam_policy_document" "policy" has not been declared in
+[31mâ”‚[0m [0mthe root module.
+[31mâ•µ[0m[0m
+
+
+MAIN.TF:
+
+# aws_sns_topic
+resource "aws_sns_topic" "sns_topic" {
+  name = var.sns_topic_name
+}
+
+# aws_sqs_queue
+resource "aws_sqs_queue" "sqs_queue" {
+  name = var.sqs_queue_name
+}
+
+# aws_sqs_queue_policy
+resource "aws_sqs_queue_policy" "sqs_queue_policy" {
+  queue_url = aws_sqs_queue.sqs_queue.id
+  policy    = data.aws_iam_policy_document.policy.json
+}
+
+# aws_sqs_queue_redrive_policy
+resource "aws_sqs_queue_redrive_policy" "sqs_queue_redrive_policy" {
+  queue_url     = aws_sqs_queue.sqs_queue.id
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = var.dead_letter_queue_arn
+    maxReceiveCount     = var.max_receive_count
+  })
+}
+
+# aws_sns_topic_subscription
+resource "aws_sns_topic_subscription" "sns_topic_subscription" {
+  topic_arn = aws_sns_topic.sns_topic.arn
+  protocol  = "sqs"
+  endpoint  = aws_sqs_queue.sqs_queue.arn
+}
+
+
+====================================================================================================
+QUERY:
+jump box ec2 ssh
+
+MISSING:
+
+GENERATED:
+  - aws_instance
+  - aws_internet_gateway
+  - aws_key_pair
+  - aws_route
+  - aws_route_table
+  - aws_route_table_association
+  - aws_security_group
+  - aws_subnet
+  - aws_vpc
+
+TERRAFORM ERROR:
+
+terraform validate failed:
+
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported attribute[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 13, in resource "aws_instance" "instance":
+[31mâ”‚[0m [0m  13:   key_name                    = aws_key_pair.key_pair[4m.name[0m[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mThis object has no argument, nested block, or exported attribute named
+[31mâ”‚[0m [0m"name".
+[31mâ•µ[0m[0m
+
+
+MAIN.TF:
+
+# aws_key_pair
+resource "aws_key_pair" "key_pair" {
+  public_key = var.public_key
+  key_name   = var.key_name
+  region     = var.region
+  tags       = var.tags
+}
+
+# aws_instance
+resource "aws_instance" "instance" {
+  ami                    = var.ami
+  instance_type          = var.instance_type
+  key_name               = aws_key_pair.key_pair.name
+  subnet_id              = var.subnet_id
+  vpc_security_group_ids = var.vpc_security_group_ids
+  associate_public_ip_address = var.associate_public_ip_address
+  tags                   = var.tags
+}
+
+# aws_security_group
+resource "aws_security_group" "security_group" {
+  name        = var.security_group_name
+  description = var.security_group_description
+  vpc_id      = var.vpc_id
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_ssh_cidr]
+    description = var.ingress_description
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = var.egress_description
+  }
+  tags = var.tags
+}
+
+# aws_vpc
+resource "aws_vpc" "vpc" {
+  cidr_block = var.vpc_cidr_block
+
+  enable_dns_support = true
+  enable_dns_hostnames = true
+
+  tags = var.tags
+}
+
+# aws_subnet
+resource "aws_subnet" "subnet" {
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = var.subnet_cidr_block
+
+  tags = var.subnet_tags
+}
+
+# aws_route_table
+resource "aws_route_table" "route_table" {
+  vpc_id = aws_vpc.vpc.id
+
+  route = []
+
+  tags = var.tags
+}
+
+# aws_route
+resource "aws_route" "route" {
+  route_table_id         = aws_route_table.route_table.id
+  destination_cidr_block = var.destination_cidr_block
+  gateway_id             = var.gateway_id
+}
+
+# aws_internet_gateway
+resource "aws_internet_gateway" "internet_gateway" {
+  vpc_id = aws_vpc.vpc.id
+
+  tags = var.tags
+}
+
+# aws_route_table_association
+resource "aws_route_table_association" "route_table_association" {
+  subnet_id      = aws_subnet.subnet.id
+  route_table_id = aws_route_table.route_table.id
+}
+
+
+====================================================================================================
+QUERY:
+ecs fargate service behind alb
+
+MISSING:
+
+GENERATED:
+  - aws_appautoscaling_policy
+  - aws_appautoscaling_target
+  - aws_ecs_cluster
+  - aws_ecs_service
+  - aws_ecs_task_definition
+  - aws_eip
+  - aws_iam_policy
+  - aws_iam_role
+  - aws_iam_role_policy
+  - aws_internet_gateway
+  - aws_lb
+  - aws_lb_listener
+  - aws_lb_target_group
+  - aws_nat_gateway
+  - aws_route_table
+  - aws_route_table_association
+  - aws_security_group
+  - aws_subnet
+  - aws_vpc
+
+TERRAFORM ERROR:
+
+terraform validate failed:
+
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mIncorrect attribute value type[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 189, in resource "aws_ecs_service" "ecs_service":
+[31mâ”‚[0m [0m 189:     subnets          = [4mvar.subnets[0m[0m
+[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
+[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.subnets[0m is a string
+[31mâ”‚[0m [0m[0m
+[31mâ”‚[0m [0mInappropriate value for attribute "subnets": set of string required, but
+[31mâ”‚[0m [0mhave string.
 [31mâ•µ[0m[0m
 
 
@@ -45,27 +675,37 @@ resource "aws_ecs_cluster" "ecs_cluster" {
   name = var.ecs_cluster_name
 
   configuration {
-    execute_command_configuration {
-      kms_key_id  = var.execute_command_kms_key_id
-      logging     = var.execute_command_logging
+    # Optional managed storage configuration block, can be removed if not used
+  }
+}
+
+# aws_appautoscaling_policy
+resource "aws_appautoscaling_policy" "appautoscaling_policy" {
+  name               = var.policy_name
+  resource_id        = var.resource_id
+  scalable_dimension = var.scalable_dimension
+  service_namespace  = var.service_namespace
+  policy_type        = var.policy_type
+
+  target_tracking_scaling_policy_configuration {
+    target_value = var.target_value
+
+    disable_scale_in   = var.disable_scale_in
+    scale_in_cooldown  = var.scale_in_cooldown
+    scale_out_cooldown = var.scale_out_cooldown
+
+    customized_metric_specification {
+      metric_name = var.metric_name
+      namespace   = var.namespace
+      statistic   = var.statistic
+      unit        = var.unit
+
+      dimensions {
+        name  = var.metric_dimension_name
+        value = var.metric_dimension_value
+      }
     }
-
-    managed_storage_configuration {
-      fargate_ephemeral_storage_kms_key_id = var.fargate_ephemeral_storage_kms_key_id
-      kms_key_id                           = var.managed_storage_kms_key_id
-    }
   }
-
-  service_connect_defaults {
-    namespace = var.service_connect_namespace_arn
-  }
-
-  setting {
-    name  = var.cluster_setting_name
-    value = var.cluster_setting_value
-  }
-
-  tags = var.tags
 }
 
 # aws_iam_role
@@ -73,75 +713,39 @@ resource "aws_iam_role" "iam_role" {
   assume_role_policy = var.assume_role_policy
   description       = var.description
   force_detach_policies = var.force_detach_policies
-  max_session_duration  = var.max_session_duration
-  name               = var.name
-  name_prefix        = var.name_prefix
-  path               = var.path
+  max_session_duration = var.max_session_duration
+  name              = var.name
+  name_prefix       = var.name_prefix
+  path              = var.path
   permissions_boundary = var.permissions_boundary
-  tags               = var.tags
-}
+  tags              = var.tags
 
-# aws_iam_role_policy_attachment
-resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment" {
-  role       = aws_iam_role.iam_role.name
-  policy_arn = var.policy_arn
-}
-
-# aws_ecs_capacity_provider
-resource "aws_ecs_capacity_provider" "ecs_capacity_provider" {
-  name = var.ecs_capacity_provider_name
-
-  managed_instances_provider {
-    infrastructure_role_arn = var.infrastructure_role_arn
-
-    instance_launch_template {
-      ec2_instance_profile_arn = var.ec2_instance_profile_arn
-      network_configuration {
-        subnets         = var.subnet_ids
-        security_groups = var.security_group_ids
-      }
-    }
-
-    network_configuration {
-      subnets         = var.subnet_ids
-      security_groups = var.security_group_ids
-    }
-  }
-
-  cluster = aws_ecs_cluster.ecs_cluster.name
-
-  tags = var.tags
-}
-
-# aws_appautoscaling_policy
-resource "aws_appautoscaling_policy" "appautoscaling_policy" {
-  name               = var.appautoscaling_policy_name
-  resource_id        = var.appautoscaling_policy_resource_id
-  scalable_dimension = var.appautoscaling_policy_scalable_dimension
-  service_namespace  = var.appautoscaling_policy_service_namespace
-
-  target_tracking_scaling_policy_configuration {
-    target_value = var.target_value
-
-    disable_scale_in    = false
-    scale_in_cooldown   = var.scale_in_cooldown
-    scale_out_cooldown  = var.scale_out_cooldown
-
-    predefined_metric_specification {
-      predefined_metric_type = var.predefined_metric_type
-    }
+  inline_policy {
+    name   = var.inline_policy_name
+    policy = var.inline_policy_json
   }
 }
 
-# aws_vpc  (dependency)
-resource "aws_vpc" "vpc" {
-  cidr_block = var.cidr_block
+# aws_iam_role_policy
+resource "aws_iam_role_policy" "iam_role_policy" {
+  name  = var.iam_role_policy_name
+  role  = aws_iam_role.iam_role.name
+  policy = jsonencode(var.iam_role_policy_document)
+}
 
-  enable_dns_support           = true
-  enable_dns_hostnames         = var.enable_dns_hostnames
-  enable_network_address_usage_metrics = false
+# aws_iam_policy
+resource "aws_iam_policy" "iam_policy" {
+  name        = var.iam_policy_name
+  description = var.iam_policy_description
+  path        = var.iam_policy_path
+  policy      = var.iam_policy_document_json
+  tags        = var.tags
+}
 
-  tags = var.tags
+# aws_eip  (dependency)
+resource "aws_eip" "eip" {
+  domain = "vpc"
+  tags   = var.tags
 }
 
 # aws_ecs_task_definition
@@ -149,17 +753,15 @@ resource "aws_ecs_task_definition" "ecs_task_definition" {
   family                   = var.family
   container_definitions    = var.container_definitions
   requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
   cpu                      = var.cpu
   memory                   = var.memory
-  network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.iam_role.arn
 
   runtime_platform {
     operating_system_family = var.operating_system_family
     cpu_architecture        = var.cpu_architecture
   }
-
-  tags = var.tags
 }
 
 # aws_appautoscaling_target
@@ -169,25 +771,59 @@ resource "aws_appautoscaling_target" "appautoscaling_target" {
   resource_id        = var.resource_id
   scalable_dimension = var.scalable_dimension
   service_namespace  = var.service_namespace
+  role_arn           = aws_iam_role.iam_role.arn
 
   suspended_state {
-    dynamic_scaling_in_suspended  = false
-    dynamic_scaling_out_suspended = false
-    scheduled_scaling_suspended   = false
+    dynamic_scaling_in_suspended   = false
+    dynamic_scaling_out_suspended  = false
+    scheduled_scaling_suspended    = false
   }
-
-  role_arn = aws_iam_role.iam_role.arn
 
   tags = var.tags
 }
 
-# aws_lb_target_group
-resource "aws_lb_target_group" "lb_target_group" {
-  name       = var.lb_target_group_name
-  target_type = var.lb_target_group_target_type
-  port       = var.lb_target_group_port
-  protocol   = var.lb_target_group_protocol
+# aws_vpc
+resource "aws_vpc" "vpc" {
+  cidr_block = var.cidr_block
+
+  enable_dns_support = true
+
+  tags = var.tags
+}
+
+# aws_subnet
+resource "aws_subnet" "subnet" {
   vpc_id     = aws_vpc.vpc.id
+  cidr_block = var.subnet_cidr_block
+
+  tags = var.tags
+}
+
+# aws_route_table
+resource "aws_route_table" "route_table" {
+  vpc_id = aws_vpc.vpc.id
+
+  tags = var.tags
+}
+
+# aws_route_table_association
+resource "aws_route_table_association" "route_table_association" {
+  subnet_id      = aws_subnet.subnet.id
+  route_table_id = aws_route_table.route_table.id
+}
+
+# aws_internet_gateway
+resource "aws_internet_gateway" "internet_gateway" {
+  vpc_id = aws_vpc.vpc.id
+
+  tags = var.tags
+}
+
+# aws_nat_gateway
+resource "aws_nat_gateway" "nat_gateway" {
+  allocation_id = aws_eip.eip.id
+  subnet_id     = aws_subnet.subnet.id
+  tags         = var.tags
 }
 
 # aws_security_group
@@ -213,63 +849,66 @@ resource "aws_security_group" "security_group" {
   tags = var.tags
 }
 
-# aws_subnet  (dependency)
-resource "aws_subnet" "subnet" {
-  vpc_id     = aws_vpc.vpc.id
-  cidr_block = var.subnet_cidr_block
-
-  tags = var.tags
-}
-
 # aws_ecs_service
 resource "aws_ecs_service" "ecs_service" {
-  name            = var.service_name
+  name            = var.name
   cluster         = aws_ecs_cluster.ecs_cluster.arn
   task_definition = aws_ecs_task_definition.ecs_task_definition.arn
   launch_type     = "FARGATE"
   desired_count   = var.desired_count
 
+  network_configuration {
+    subnets         = var.subnets
+    security_groups = var.security_groups
+    assign_public_ip = var.assign_public_ip
+  }
+
   load_balancer {
-    target_group_arn = aws_lb_target_group.lb_target_group.arn
+    target_group_arn = var.target_group_arn
     container_name   = var.container_name
     container_port   = var.container_port
   }
 
-  network_configuration {
-    subnets         = [aws_subnet.subnet.id]
-    security_groups = [aws_security_group.security_group.id]
-    assign_public_ip = var.assign_public_ip
-  }
-
-  platform_version = var.platform_version
-  tags             = var.tags
+  platform_version                = var.platform_version
+  health_check_grace_period_seconds = var.health_check_grace_period_seconds
+  propagate_tags                 = var.propagate_tags
 }
 
 # aws_lb
 resource "aws_lb" "lb" {
   name               = var.lb_name
-  internal           = var.lb_internal
+  internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.security_group.id]
   subnets            = [aws_subnet.subnet.id]
-
-  enable_http2                      = true
-  enable_cross_zone_load_balancing  = true
-  enable_deletion_protection         = false
-
-  tags = var.tags
+  enable_http2       = true
+  enable_deletion_protection = false
+  enable_cross_zone_load_balancing = false
+  tags               = var.tags
 }
 
 # aws_lb_listener
 resource "aws_lb_listener" "lb_listener" {
   load_balancer_arn = aws_lb.lb.arn
-  port              = var.listener_port
-  protocol          = var.listener_protocol
+  port              = var.lb_listener_port
+  protocol          = var.lb_listener_protocol
 
   default_action {
     type             = "forward"
-    target_group_arn = var.target_group_arn
+    target_group_arn = var.lb_listener_target_group_arn
   }
+
+  certificate_arn = var.lb_listener_certificate_arn
+  ssl_policy      = var.lb_listener_ssl_policy
+}
+
+# aws_lb_target_group
+resource "aws_lb_target_group" "lb_target_group" {
+  name        = var.lb_target_group_name
+  target_type = var.lb_target_group_target_type
+  port        = var.lb_target_group_port
+  protocol    = var.lb_target_group_protocol
+  vpc_id      = aws_vpc.vpc.id
 }
 
 
