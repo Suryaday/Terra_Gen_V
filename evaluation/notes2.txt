@@ -1,0 +1,47 @@
+What I would do tomorrow
+Keep the prompt rule.
+Commit the current passing version.
+Create branch:
+feature/resource-cardinality
+Upgrade symbol table to carry:
+entity
+label
+count
+for_each
+collection
+Feed that metadata into generation context.
+Remove the prompt rule.
+Verify still 10/10.
+
+If it still passes after removing the prompt rule, you've converted a workaround into a genuine architectural fix.
+
+
+
+ADD COST GUARD AROUND GEE
+
+
+What I would do next
+
+In order:
+
+Today
+Fix _headers inference bug
+Add list-reference normalizer for:
+subnet_ids
+security_group_ids
+vpc_zone_identifier
+
+Run the failed EKS case again.
+
+Then
+Run full benchmark.
+
+Only after seeing benchmark results:
+
+Address deprecated IAM arguments.
+Address multi-subnet architecture.
+Address CIDR variable collisions.
+
+
+
+give me all the context, memory, details, data points of the project so far - anything that will be required to successfully continue this conversation in another window

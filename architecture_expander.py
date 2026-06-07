@@ -24,6 +24,11 @@ ARCHITECTURE_COMPLETIONS = {
         "aws_lambda_permission"
     ],
 
+    "aws_cloudfront_distribution": [
+        "aws_s3_bucket",
+        "aws_cloudfront_origin_access_identity"
+    ],
+
     "aws_lambda_function": [
         "aws_iam_role",
         "aws_lambda_permission"
@@ -74,34 +79,55 @@ ARCHITECTURE_COMPLETIONS = {
     "aws_sqs_queue": [
         "aws_sqs_queue_policy",
         "aws_sqs_queue_redrive_policy"
+    ],
+
+    "aws_nat_gateway": [
+        "aws_route_table",
+        "aws_route_table_association"
+    ],
+
+    "aws_internet_gateway": [
+        "aws_route_table",
+        "aws_route_table_association"
     ]
 }
 
 SYSTEM_PROMPT = """
 You are an AWS Terraform Architect.
 
-Given a user architecture request, return ONLY JSON.
+Return the COMPLETE AWS architecture required
+to satisfy the user's request.
 
 Rules:
 
-1. Output ONLY terraform AWS resources
+1. Output ONLY a JSON array.
+2. Return Terraform AWS resource types only.
+3. Include supporting resources required for the architecture to function.
+4. Prefer complete deployable architectures over isolated resources.
+5. Do not return explanations.
+6. Do not return markdown.
 
-2. Return JSON array
-
-3. No explanations
-
-Example:
+Examples:
 
 Input:
+cloudfront distribution with s3 origin
 
+Output:
+[
+  "aws_cloudfront_distribution",
+  "aws_s3_bucket",
+  "aws_cloudfront_origin_access_identity"
+]
+
+Input:
 lambda eventbridge trigger
 
 Output:
-
 [
-"aws_cloudwatch_event_rule",
-"aws_cloudwatch_event_target",
-"aws_lambda_permission"
+  "aws_lambda_function",
+  "aws_cloudwatch_event_rule",
+  "aws_cloudwatch_event_target",
+  "aws_lambda_permission"
 ]
 """
 

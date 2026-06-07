@@ -880,6 +880,8 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = _normalize_subnet_optional_arguments(raw)
     raw = _normalize_vpc_optional_arguments(node.entity, raw)
     raw = _normalize_cidr_block_lists(raw)
+    raw = _remove_invalid_resource_types(raw)
+    raw = _normalize_schema_conformance(node.entity, raw)
     
     print("RAW_NORMALIZE_ECR_SCAN_ON_PUSH", raw)
 
@@ -1369,6 +1371,14 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "_whitelisted_names",
     )
 
+    SET_STRING_NAMES = {
+        "headers",
+        "allowed_methods",
+        "cached_methods",
+        "locations",
+        "whitelisted_names",
+    }
+
     MAP_STRING_HINTS = (
         "tags",
         "environment_variables",
@@ -1425,6 +1435,9 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
 
     if var.endswith(NUMBER_SUFFIXES):
         return ("number", None)
+    
+    if var in SET_STRING_NAMES:
+        return ("set(string)", None)
 
     if var.endswith(SET_STRING_SUFFIXES):
         return ("set(string)", None)
@@ -1521,6 +1534,47 @@ def _normalize_ecr_scan_on_push(entity: str, hcl: str) -> str:
 
     return "\n".join(lines)
 
+def _remove_invalid_resource_types(terraform: str) -> str:
+
+    known = _get_known_entities()
+
+    lines = terraform.splitlines()
+
+    output = []
+
+    i = 0
+
+    while i < len(lines):
+
+        line = lines[i]
+
+        match = re.match(
+            r'^\s*resource\s+"([^"]+)"\s+"([^"]+)"\s*\{', line)
+
+        if not match:
+            output.append(line)
+            i += 1
+            continue
+
+        resource_type = match.group(1)
+
+        if resource_type in known:
+            output.append(line)
+            i += 1
+            continue
+
+        logger.warning("REMOVING INVALID RESOURCE TYPE: %s", resource_type)
+
+        depth = line.count("{") - line.count("}")
+
+        i += 1
+
+        while i < len(lines) and depth > 0:
+            depth += lines[i].count("{")
+            depth -= lines[i].count("}")
+            i += 1
+
+    return "\n".join(output)
 
 def _generate_variables_tf(all_var_refs: list[str]) -> str:
     blocks: list[str] = []
@@ -1556,6 +1610,120 @@ def _generate_variables_tf(all_var_refs: list[str]) -> str:
 
     return "\n\n".join(blocks) + "\n" if blocks else "# No variables required\n"
 
+SCHEMA_RULES = {
+
+    "aws_ecs_task_definition": {
+
+        "block_only": {
+            "placement_constraints",
+            "volume",
+        }
+    },
+
+    "aws_ecs_service": {
+
+        "block_only": {
+            "capacity_provider_strategy",
+        }
+    },
+
+    "aws_cloudfront_distribution": {
+
+        "block_only": {
+            "lambda_function_association",
+            "function_association",
+        },
+
+        "attribute_only": {
+            "whitelisted_names",
+        }
+    }
+}
+
+def _normalize_schema_conformance(entity: str, hcl: str) -> str:
+
+    rules = SCHEMA_RULES.get(entity)
+
+    if not rules:
+        return hcl
+
+    lines = hcl.splitlines()
+
+    output = []
+
+    skip_dynamic = False
+    depth = 0
+    skip_depth = 0
+
+    block_only = rules.get("block_only", set())
+    attribute_only = rules.get("attribute_only", set())
+
+    for line in lines:
+
+        stripped = line.strip()
+
+        #
+        # Remove:
+        #
+        # lambda_function_association = var.x
+        #
+        for field in block_only:
+
+            if stripped.startswith(f"{field} ="):
+                logger.info(
+                    "REMOVED BLOCK-ONLY ARG: %s (%s)",
+                    field,
+                    entity,
+                )
+                break
+        else:
+
+            #
+            # Remove:
+            #
+            # dynamic "whitelisted_names"
+            #
+            dynamic_match = re.match(
+                r'dynamic\s+"([^"]+)"',
+                stripped,
+            )
+
+            if (
+                dynamic_match
+                and
+                dynamic_match.group(1) in attribute_only
+            ):
+
+                skip_dynamic = True
+                skip_depth = depth
+
+                logger.info(
+                    "REMOVED ATTRIBUTE-ONLY DYNAMIC BLOCK: %s (%s)",
+                    dynamic_match.group(1),
+                    entity,
+                )
+
+                depth += line.count("{")
+                depth -= line.count("}")
+
+                continue
+
+            if skip_dynamic:
+
+                depth += line.count("{")
+                depth -= line.count("}")
+
+                if depth <= skip_depth:
+                    skip_dynamic = False
+
+                continue
+
+            output.append(line)
+
+        depth += line.count("{")
+        depth -= line.count("}")
+
+    return "\n".join(output)
 
 def _generate_outputs_tf(blocks: list[GeneratedBlock]) -> str:
     outputs: list[str] = []
