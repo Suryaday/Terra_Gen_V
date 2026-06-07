@@ -293,7 +293,6 @@ def _get_corrector() -> QueryCorrector:
         }
     return _corrector
 
-
 def _get_known_entities() -> set[str]:
     _get_corrector()
     return _known_entities
@@ -373,6 +372,20 @@ def get_generation_deps(resource: str) -> list[str]:
     optional = deps.get("optional", [])
 
     return list(dict.fromkeys(hard + optional))
+
+def _is_argument_assignment(stripped: str, arg: str) -> bool:
+    """
+    True when a stripped HCL line assigns `arg`, e.g. 'arg = value'.
+
+    Tolerant of the alignment padding Terraform/LLMs emit:
+        volume                   = var.volume
+
+    The trailing '\\s*=' guarantees the name is terminated by '=' (HCL
+    identifiers contain neither spaces nor '='), so 'volume' will NOT match
+    'volume_configuration =' and 'cidr_block' will NOT match 'cidr_blocks ='.
+    """
+    return re.match(rf"{re.escape(arg)}\s*=", stripped) is not None
+
 
 # ======================================================
 # TOPOLOGICAL SORT
@@ -1031,7 +1044,7 @@ def _normalize_subnet_optional_arguments(terraform: str) -> str:
 
         for arg in DENYLIST:
 
-            if stripped.startswith(f"{arg} ="):
+            if _is_argument_assignment(stripped, arg):
                 logger.info("REMOVED SUBNET ARG: %s", arg)
                 remove = True
                 break
@@ -1065,7 +1078,7 @@ def _normalize_vpc_optional_arguments(entity:str, terraform: str) -> str:
 
         for arg in DENYLIST:
 
-            if stripped.startswith(f"{arg} ="):
+            if _is_argument_assignment(stripped, arg):
                 logger.info("REMOVED VPC ARG: %s", arg)
                 remove = True
                 break
@@ -1139,11 +1152,11 @@ def _normalize_ecs_task_definition_blocks(entity: str, hcl: str) -> str:
     for line in hcl.splitlines():
         stripped = line.strip()
 
-        if stripped.startswith("placement_constraints ="):
+        if _is_argument_assignment(stripped, "placement_constraints"):
             logger.info("REMOVED ecs_task_definition placement_constraints arg")
             continue
 
-        if stripped.startswith("volume ="):
+        if _is_argument_assignment(stripped, "volume"):
             logger.info("REMOVED ecs_task_definition volume arg")
             continue
 
@@ -1486,6 +1499,12 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "annotations",
     )
 
+    LIST_STRING_NAMES = {
+        "subnets",
+        "security_groups",
+        "headers",
+    }
+
     #
     # Exact overrides first
     #
@@ -1502,6 +1521,9 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         return ("map(any)", None)
 
     if var.endswith("_configuration"):
+        return ("map(any)", None)
+    
+    if var == "parameters":
         return ("map(any)", None)
     
     #
@@ -1527,6 +1549,9 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         return ("bool", None)
     
     # Explicit suffix-based rules
+
+    if var in LIST_STRING_NAMES:
+        return ("list(string)", None)
     
     if var.endswith(LIST_ANY_SUFFIXES):
         return ("list(any)", None)

@@ -31,6 +31,8 @@ ARCH_NUM_PREDICT = int(os.getenv("ARCH_NUM_PREDICT","512"))
 
 _ollama_client = Client(host=OLLAMA_HOST, timeout=OLLAMA_TIMEOUT)
 
+ARCH_CACHE_VERSION = 2
+
 ARCHITECTURE_COMPLETIONS = {
 
     "aws_cloudwatch_event_rule": [
@@ -327,7 +329,9 @@ def complete_architecture(entities: list[str]) -> list[str]:
 
 def extract_architecture(query:str)->list[str]:
 
-    cached = get_cached(query)
+    cache_key = f"v{ARCH_CACHE_VERSION}:{query}"
+
+    cached = get_cached(cache_key)
 
     if cached is not None:
 
@@ -353,6 +357,6 @@ def extract_architecture(query:str)->list[str]:
 
     entities = complete_architecture(entities)
 
-    save_cached(query, entities)
+    save_cached(cache_key, entities)
 
     return entities

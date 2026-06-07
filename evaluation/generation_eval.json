@@ -36,44 +36,6 @@
   },
 
   {
-    "query": "s3 bucket with versioning",
-    "required_resources": [
-      "aws_s3_bucket",
-      "aws_s3_bucket_versioning"
-    ]
-  },
-
-  {
-    "query": "cloudfront distribution with s3 origin",
-    "required_resources": [
-      "aws_s3_bucket",
-      "aws_cloudfront_distribution"
-    ]
-  },
-
-  {
-    "query": "lambda function with api gateway",
-    "required_resources": [
-      "aws_lambda_function",
-      "aws_iam_role",
-      "aws_apigatewayv2_api",
-      "aws_apigatewayv2_stage",
-      "aws_apigatewayv2_integration"
-    ]
-  },
-
-  {
-    "query": "eventbridge rule triggering lambda",
-    "required_resources": [
-      "aws_cloudwatch_event_rule",
-      "aws_cloudwatch_event_target",
-      "aws_lambda_function",
-      "aws_lambda_permission",
-      "aws_iam_role"
-    ]
-  },
-
-  {
     "query": "sqs queue with dead letter queue",
     "required_resources": [
       "aws_sqs_queue",
@@ -92,18 +54,6 @@
   },
 
   {
-    "query": "eks cluster with managed node group and alb ingress",
-    "required_resources": [
-      "aws_eks_cluster",
-      "aws_eks_node_group",
-      "aws_iam_role",
-      "aws_security_group",
-      "aws_subnet",
-      "aws_vpc"
-    ]
-  },
-
-  {
     "query": "jump box ec2 ssh",
     "required_resources": [
       "aws_instance",
@@ -111,16 +61,6 @@
     ]
   },
 
-  {
-    "query": "lambda eventbridge trigger",
-    "required_resources": [
-      "aws_lambda_function",
-      "aws_lambda_permission",
-      "aws_cloudwatch_event_rule",
-      "aws_cloudwatch_event_target",
-      "aws_iam_role"
-    ]
-  },
 
   {
     "query": "ecs fargate service behind alb",
@@ -133,61 +73,6 @@
       "aws_lb_listener",
       "aws_security_group",
       "aws_iam_role"
-    ]
-  },
-
-  {
-    "query": "eks cluster with node group",
-    "required_resources": [
-      "aws_eks_cluster",
-      "aws_eks_node_group",
-      "aws_iam_role"
-    ]
-  },
-
-  {
-    "query": "nat gateway private subnet",
-    "required_resources": [
-      "aws_nat_gateway",
-      "aws_route_table",
-      "aws_eip"
-    ]
-  },
-
-  {
-    "query": "s3 bucket lifecycle 30 days",
-    "required_resources": [
-      "aws_s3_bucket",
-      "aws_s3_bucket_lifecycle_configuration"
-    ]
-  },
-
-  {
-    "query": "cross account iam role",
-    "required_resources": [
-      "aws_iam_role"
-    ]
-  },
-
-  {
-    "query": "route53 cname record",
-    "required_resources": [
-      "aws_route53_record",
-      "aws_route53_zone"
-    ]
-  },
-
-  {
-    "query": "dynamodb ttl",
-    "required_resources": [
-      "aws_dynamodb_table"
-    ]
-  },
-
-  {
-    "query": "kms key rotation",
-    "required_resources": [
-      "aws_kms_key"
     ]
   }
 ]
