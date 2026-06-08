@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import textwrap
+import hashlib
 
 from collections import defaultdict, deque, Counter
 from dataclasses import dataclass, field
@@ -1036,6 +1037,7 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
 
         raw = (response.choices[0].message.content.strip())
         logger.info("RAW RESPONSE %s:\n%s", node.entity, raw[:2000])
+        logger.info("HCL HASH %s = %s", node.entity, hashlib.md5(raw.encode()).hexdigest())
 
     except Exception as exc:
         logger.error("Generation failed for %s: %s", node.entity, exc)
@@ -1659,6 +1661,10 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         "headers",
     }
 
+    STRING_OVERRIDES = {
+        "ecs_service_propagate_tags",
+    }
+
     #
     # Exact overrides first
     #
@@ -1703,6 +1709,9 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
         return ("bool", None)
     
     # Explicit suffix-based rules
+
+    if var in STRING_OVERRIDES:
+        return ("string", None)
 
     if var in LIST_STRING_NAMES:
         return ("list(string)", None)
@@ -1757,23 +1766,16 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     return ("string", None)
 
 def _normalize_lb_listener_forward(entity: str, hcl: str) -> str:
-
     if entity != "aws_lb_listener":
         return hcl
+    
+    if not ("forward {" in hcl and "target_group_arn =" in hcl):
+        return hcl                     
 
-    if ("forward {" in hcl and "target_group_arn =" in hcl):
-        pattern = (
-            r'forward\s*\{\s*'
-            r'target_group_arn\s*=\s*([^\n]+?)\s*'
-            r'\}'
-        )
+    pattern = r'forward\s*\{\s*target_group_arn\s*=\s*([^]+?)\s*\}'
 
-    return re.sub(
-        pattern,
-        r'target_group_arn = \1',
-        hcl,
-        flags=re.DOTALL,
-    )
+    return re.sub(pattern, r'target_group_arn = \1', hcl, flags=re.DOTALL)
+
 
 def _normalize_list_references(terraform: str) -> str:
 
