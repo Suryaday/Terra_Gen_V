@@ -13,6 +13,7 @@ _cache_lock = threading.Lock()
 
 
 CACHE_FILE = (Path("cache") / "architecture_cache.json")
+ARCH_CACHE_VERSION = 5
 
 
 _cache: dict[str,list[str]] = {}

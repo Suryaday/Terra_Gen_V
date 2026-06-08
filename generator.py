@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 from collections import OrderedDict
+from collections import defaultdict
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -56,7 +57,19 @@ ARGUMENT_ALIASES = {
     },
     "aws_sqs_queue": {
         "maximum_message_size": "max_message_size",
+    },
+    "aws_ecs_cluster": {
+        "cloudwatch_log_group_name": "cloud_watch_log_group_name"
+    },
+    "cloudwatch_encryption_enabled": {
+        "cloud_watch_encryption_enabled"
     }
+}
+
+ATTRIBUTE_ALIASES = {
+
+    ("aws_key_pair", "name"): "key_name",
+
 }
 
 # ======================================================
@@ -436,6 +449,81 @@ def _topo_sort(entities: list[str]) -> list[str]:
 
     return result
 
+def _normalize_rds_parameter_blocks(entity: str, hcl: str) -> str:
+
+    if entity != "aws_rds_cluster_parameter_group":
+        return hcl
+
+    lines = hcl.splitlines()
+
+    output = []
+
+    skip = False
+    depth = 0
+    skip_depth = 0
+
+    for line in lines:
+
+        stripped = line.strip()
+
+        if (
+            not skip
+            and stripped.startswith("parameter {")
+        ):
+            logger.info(
+                "REMOVED invalid parameter block"
+            )
+
+            skip = True
+            skip_depth = depth
+
+            depth += line.count("{")
+            depth -= line.count("}")
+
+            continue
+
+        if skip:
+
+            depth += line.count("{")
+            depth -= line.count("}")
+
+            if depth <= skip_depth:
+                skip = False
+
+            continue
+
+        output.append(line)
+
+        depth += line.count("{")
+        depth -= line.count("}")
+
+    return "\n".join(output)
+
+def _normalize_cloudfront_required_blocks(entity: str, hcl: str) -> str:
+
+    if entity != "aws_cloudfront_distribution":
+        return hcl
+
+    if "viewer_certificate {" in hcl:
+        return hcl
+
+    logger.info(
+        "INJECTED viewer_certificate block"
+    )
+
+    block = """
+
+    viewer_certificate {
+        cloudfront_default_certificate = true
+    }
+    """
+
+    pos = hcl.rfind("}")
+
+    if pos == -1:
+        return hcl
+
+    return hcl[:pos] + block + "\n}" + hcl[pos + 1:]
 
 # ======================================================
 # PLAN BUILDING
@@ -939,14 +1027,16 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = _normalize_ecs_task_definition_blocks(node.entity, raw)
     raw = _normalize_ecs_deployment_configuration(node.entity, raw)
     raw = _normalize_ecs_capacity_provider(node.entity, raw)
+    raw = _normalize_rds_parameter_blocks(node.entity, raw)
+    raw = _normalize_cloudfront_required_blocks(node.entity, raw)
     raw = _normalize_list_references(raw)
     raw = _normalize_subnet_optional_arguments(raw)
     raw = _normalize_vpc_optional_arguments(node.entity, raw)
+    raw = _normalize_ecs_cluster_arguments(node.entity, raw)
     raw = _normalize_cidr_block_lists(raw)
+    raw = _remove_fake_reference_segments(raw)
+    raw = _normalize_attribute_aliases(raw)
     raw = _remove_invalid_resource_types(raw)
-    raw = _fix_resource_labels(raw)
-    
-    print("RAW_NORMALIZE_ECR_SCAN_ON_PUSH", raw)
 
     var_refs = _extract_var_refs(raw)
     #symbol_table[node.entity] = (f"{node.entity}.{node.label}")
@@ -984,6 +1074,14 @@ def generate_label(entity: str, existing: set[str]):
         candidate = "resource"
     return candidate.replace("-", "_")
 
+def _remove_fake_reference_segments(terraform: str) -> str:
+
+    return re.sub(
+        r'(aws_[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+)\.references(?:\[[^\]]+\])?\.',
+        r'\1.',
+        terraform,
+    )
+
 def _normalize_argument_aliases(entity: str, hcl: str) -> str:
 
     aliases = ARGUMENT_ALIASES.get(entity)
@@ -1018,6 +1116,24 @@ def _normalize_argument_aliases(entity: str, hcl: str) -> str:
         lines.append(line)
 
     return "\n".join(lines)
+
+def _normalize_attribute_aliases(terraform: str) -> str:
+
+    for (resource_type, old_attr), new_attr in ATTRIBUTE_ALIASES.items():
+
+        pattern = (
+            rf'({re.escape(resource_type)}'
+            rf'\.[a-zA-Z0-9_]+)\.'
+            rf'{re.escape(old_attr)}\b'
+        )
+
+        terraform = re.sub(
+            pattern,
+            rf'\1.{new_attr}',
+            terraform,
+        )
+
+    return terraform
 
 def _normalize_subnet_optional_arguments(terraform: str) -> str:
 
@@ -1091,8 +1207,8 @@ def _normalize_vpc_optional_arguments(entity:str, terraform: str) -> str:
 def _normalize_cidr_block_lists(terraform: str) -> str:
 
     patterns = [
-        r'(\bcidr_blocks\s*=\s*)\[var\.([a-zA-Z0-9_]*cidr_blocks)\]',
-        r'(\bipv6_cidr_blocks\s*=\s*)\[var\.([a-zA-Z0-9_]*cidr_blocks)\]',
+        r'(\bcidr_blocks\s*=\s*)\[var\.([a-zA-Z0-9_]+)\]',
+        r'(\bipv6_cidr_blocks\s*=\s*)\[var\.([a-zA-Z0-9_]+)\]',
     ]
 
     for pattern in patterns:
@@ -1378,6 +1494,18 @@ _KNOWN_VARS: dict[str, tuple[str, str, str]] = {
         "true",
         "Public endpoint access",
     ),
+
+    "policy_json": (
+        "string",
+        '"{}"',
+        "IAM policy JSON"
+    ),
+
+    "sqs_dead_letter_queue_arn": (
+        "string",
+        '"arn:aws:sqs:us-east-1:123456789012:dlq"',
+        "Dead letter queue ARN",
+    ),
 }
 
 def infer_variable_type(var_name: str) -> tuple[str, str | None]:
@@ -1654,6 +1782,35 @@ def _normalize_ecr_scan_on_push(entity: str, hcl: str) -> str:
 
     return "\n".join(lines)
 
+def _normalize_ecs_cluster_arguments(entity: str, hcl: str) -> str:
+
+    if entity != "aws_ecs_cluster":
+        return hcl
+
+    denylist = {
+        "s3_encryption_enabled",
+    }
+
+    out = []
+
+    for line in hcl.splitlines():
+
+        stripped = line.strip()
+
+        if any(
+            _is_argument_assignment(stripped, arg)
+            for arg in denylist
+        ):
+            logger.info(
+                "REMOVED ECS CLUSTER ARG=%s",
+                stripped,
+            )
+            continue
+
+        out.append(line)
+
+    return "\n".join(out)
+
 def _remove_invalid_resource_types(terraform: str) -> str:
 
     known = _get_known_entities()
@@ -1698,49 +1855,92 @@ def _remove_invalid_resource_types(terraform: str) -> str:
 
 def _fix_resource_labels(terraform: str) -> str:
 
-    resource_labels = {}
+    labels_by_type = defaultdict(set)
 
-    for match in re.finditer(r'resource\s+"([^"]+)"\s+"([^"]+)"', terraform):
+    for match in re.finditer(
+        r'resource\s+"([^"]+)"\s+"([^"]+)"',
+        terraform
+    ):
+        labels_by_type[
+            match.group(1)
+        ].add(
+            match.group(2)
+        )
+
+    def replace(match):
+
         resource_type = match.group(1)
-        resource_label = match.group(2)
+        found_label = match.group(2)
 
-        resource_labels[resource_type] = resource_label
-
-    for resource_type, actual_label in resource_labels.items():
-
-        pattern = (
-            rf'\b'
-            rf'({resource_type})'
-            rf'\.([a-zA-Z0-9_]+)'
-            rf'(\.[a-zA-Z0-9_]+)'
+        valid_labels = labels_by_type.get(
+            resource_type,
+            set(),
         )
 
-        def replace(match):
+        #
+        # already valid
+        #
+        if found_label in valid_labels:
+            return match.group(0)
 
-            found_label = match.group(2)
+        #
+        # ambiguous -> leave untouched
+        #
+        if len(valid_labels) != 1:
+            return match.group(0)
 
-            if found_label == actual_label:
-                return match.group(0)
+        actual_label = next(iter(valid_labels))
 
-            logger.info(
-                "LABEL FIX %s.%s -> %s.%s",
-                resource_type,
-                found_label,
-                resource_type,
-                actual_label
-            )
-
-            return (
-                f"{resource_type}."
-                f"{actual_label}"
-                f"{match.group(3)}"
-            )
-
-        terraform = re.sub(
-            pattern,
-            replace,
-            terraform
+        logger.info(
+            "LABEL FIX %s.%s -> %s.%s",
+            resource_type,
+            found_label,
+            resource_type,
+            actual_label,
         )
+
+        return (
+            f"{resource_type}."
+            f"{actual_label}"
+            f"{match.group(3)}"
+        )
+
+    pattern = (
+        r'\b'
+        r'(aws_[a-z0-9_]+)'
+        r'\.([a-zA-Z0-9_]+)'
+        r'(\.[a-zA-Z0-9_]+)'
+    )
+
+    return re.sub(
+        pattern,
+        replace,
+        terraform,
+    )
+
+def _fix_invalid_sqs_attributes(terraform: str) -> str:
+
+    terraform = re.sub(
+        r'aws_sqs_queue\.[^.]+\.dead_letter_target_arn',
+        'var.sqs_dead_letter_queue_arn',
+        terraform,
+    )
+
+    terraform = re.sub(
+        r'aws_sqs_queue_redrive_policy\.[^.]+\.arn',
+        'var.sqs_dead_letter_queue_arn',
+        terraform,
+    )
+
+    return terraform
+
+def _fix_undeclared_data_references(terraform: str) -> str:
+
+    terraform = re.sub(
+        r'data\.aws_iam_policy_document\.[^.]+\.json',
+        'var.policy_json',
+        terraform,
+    )
 
     return terraform
 
@@ -1859,6 +2059,7 @@ def stitch(blocks: list[GeneratedBlock], plan: GenerationPlan) -> dict[str, str]
 
     # main.tf: resource blocks separated by blank lines with entity comments
     main_parts: list[str] = []
+
     for block in blocks:
         comment = f"# {block.entity}"
         if block.entity not in plan.root_entities:
@@ -2012,7 +2213,22 @@ def generate(query: str) -> GenerationResult:
 
     # 3. Stitch into files
     files = stitch(blocks, plan)
-    files["main.tf"] = _fix_resource_labels(files["main.tf"])
+
+    main_tf = files["main.tf"]
+
+    main_tf = _fix_resource_labels(main_tf)
+
+    main_tf = _fix_invalid_sqs_attributes(main_tf)
+
+    main_tf = _fix_undeclared_data_references(main_tf)
+
+    files["main.tf"] = main_tf
+
+    all_tf = "\n".join(files.values())
+
+    all_vars = sorted(set(re.findall(r"var\.([A-Za-z0-9_]+)", all_tf)))
+
+    files["variables.tf"] = _generate_variables_tf(all_vars)
 
     # 4. Validate
     warnings = validate(files)

@@ -31,7 +31,7 @@ ARCH_NUM_PREDICT = int(os.getenv("ARCH_NUM_PREDICT","512"))
 
 _ollama_client = Client(host=OLLAMA_HOST, timeout=OLLAMA_TIMEOUT)
 
-ARCH_CACHE_VERSION = 2
+ARCH_CACHE_VERSION = 5
 
 ARCHITECTURE_COMPLETIONS = {
 
@@ -94,7 +94,6 @@ ARCHITECTURE_COMPLETIONS = {
 
     "aws_sqs_queue": [
         "aws_sqs_queue_policy",
-        "aws_sqs_queue_redrive_policy"
     ],
 
     "aws_sns_topic": [
