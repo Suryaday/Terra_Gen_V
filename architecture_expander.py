@@ -19,6 +19,8 @@ from tenacity import (
     wait_exponential
 )
 
+from architecture_cache import ARCH_CACHE_VERSION
+
 logger = logging.getLogger(__name__)
 
 ARCH_MODEL = os.getenv("ARCH_MODEL", "qwen3:latest")
@@ -31,7 +33,6 @@ ARCH_NUM_PREDICT = int(os.getenv("ARCH_NUM_PREDICT","512"))
 
 _ollama_client = Client(host=OLLAMA_HOST, timeout=OLLAMA_TIMEOUT)
 
-ARCH_CACHE_VERSION = 6
 
 ARCHITECTURE_COMPLETIONS = {
 
