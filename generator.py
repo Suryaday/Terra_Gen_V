@@ -48,6 +48,15 @@ RESOURCE_ALIASES = {
     "aws_alb_target_group": "aws_lb_target_group",
 }
 
+PLANNER_NAME_ALIASES = {
+
+    "aws_rds_db_instance":
+        "aws_db_instance",
+
+    "aws_rds_db_subnet_group":
+        "aws_db_subnet_group",
+}
+
 ARGUMENT_ALIASES = {
     "aws_db_instance": {
         "name": "db_name",
@@ -544,20 +553,22 @@ def build_plan(query: str) -> GenerationPlan:
     # Step 2: Use architecture expander for multi-resource architectural queries
     arch_entities = extract_architecture(clean)
 
+    arch_entities = [PLANNER_NAME_ALIASES.get(e, e) for e in arch_entities]
+
     arch_entities = [RESOURCE_ALIASES.get(e, e) for e in arch_entities]
 
     logger.info("PRE VALIDATION=%s", arch_entities)
 
+    valid = validate_entities(arch_entities, known)
+
+    dropped = set(arch_entities) - set(valid)
+
+    if dropped:
+        logger.warning("INVALID ENTITIES DROPPED=%s", sorted(dropped))
+
+    arch_entities = valid
+
     arch_entities = validate_entities(arch_entities, known)
-
-    logger.info("ARCH BEFORE COMPLETION: %s", arch_entities)
-
-    arch_entities = complete_architecture(arch_entities)
-    arch_entities = [RESOURCE_ALIASES.get(e, e) for e in arch_entities]
-    arch_entities = validate_entities(arch_entities, known)
-    arch_entities = remove_conflicting_entities(arch_entities, clean)
-
-    logger.info("Architecture entities after completion: %s", arch_entities)
 
     # Step 3: Also extract entity names directly from the corrected query
     # (any aws_xxx tokens in clean_query are valid entity hints)
@@ -575,7 +586,17 @@ def build_plan(query: str) -> GenerationPlan:
             seen.add(e)
             root_entities.append(e)
 
+    logger.info("ROOT BEFORE COMPLETION=%s", root_entities)
+
+    root_entities = complete_architecture(root_entities)
+
+    root_entities = [RESOURCE_ALIASES.get(e, e) for e in root_entities]
+
     root_entities = validate_entities(root_entities, known)
+
+    root_entities = remove_conflicting_entities(root_entities, clean)
+
+    logger.info("ROOT AFTER COMPLETION=%s", root_entities)
 
     if not root_entities:
         logger.warning("Could not extract any root entities from query: %s", query)
