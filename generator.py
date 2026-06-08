@@ -1020,6 +1020,8 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
 
             max_completion_tokens=MAX_TOKENS,
 
+            temperature=0,
+
             messages=[
                 {
                     "role": "system",
@@ -1052,6 +1054,7 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = _normalize_ecs_capacity_provider(node.entity, raw)
     raw = _normalize_rds_parameter_blocks(node.entity, raw)
     raw = _normalize_cloudfront_required_blocks(node.entity, raw)
+    raw = _normalize_lb_listener_forward(node.entity, raw)
     raw = _normalize_list_references(raw)
     raw = _normalize_subnet_optional_arguments(raw)
     raw = _normalize_vpc_optional_arguments(node.entity, raw)
@@ -1752,6 +1755,25 @@ def infer_variable_type(var_name: str) -> tuple[str, str | None]:
     # Default
     #
     return ("string", None)
+
+def _normalize_lb_listener_forward(entity: str, hcl: str) -> str:
+
+    if entity != "aws_lb_listener":
+        return hcl
+
+    if ("forward {" in hcl and "target_group_arn =" in hcl):
+        pattern = (
+            r'forward\s*\{\s*'
+            r'target_group_arn\s*=\s*([^\n]+?)\s*'
+            r'\}'
+        )
+
+    return re.sub(
+        pattern,
+        r'target_group_arn = \1',
+        hcl,
+        flags=re.DOTALL,
+    )
 
 def _normalize_list_references(terraform: str) -> str:
 
