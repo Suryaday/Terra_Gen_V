@@ -546,6 +546,8 @@ def build_plan(query: str) -> GenerationPlan:
 
     arch_entities = [RESOURCE_ALIASES.get(e, e) for e in arch_entities]
 
+    logger.info("PRE VALIDATION=%s", arch_entities)
+
     arch_entities = validate_entities(arch_entities, known)
 
     logger.info("ARCH BEFORE COMPLETION: %s", arch_entities)

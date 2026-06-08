@@ -8,36 +8,98 @@ rds mysql database
 
 MISSING:
   - aws_db_subnet_group
+  - aws_vpc
 
 GENERATED:
   - aws_db_instance
   - aws_internet_gateway
+  - aws_rds_cluster
   - aws_route_table
   - aws_route_table_association
   - aws_security_group
   - aws_subnet
-  - aws_vpc
+
+WARNINGS:
+  - Reference to aws_vpc found but not defined in main.tf
+  - Reference to aws_vpc found but not defined in main.tf
+  - Reference to aws_vpc found but not defined in main.tf
+  - Reference to aws_vpc found but not defined in main.tf
+  - aws_subnet requires aws_vpc (hard dependency) but it is not generated
+  - aws_route_table requires aws_vpc (hard dependency) but it is not generated
+
+TERRAFORM ERROR:
+
+terraform validate failed:
+
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mReference to undeclared resource[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 15, in resource "aws_route_table" "route_table":
+[31mâ”‚[0m [0m  15:   vpc_id = [4maws_vpc.vpc[0m.id[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mA managed resource "aws_vpc" "vpc" has not been declared in the root
+[31mâ”‚[0m [0mmodule.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mReference to undeclared resource[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 33, in resource "aws_internet_gateway" "internet_gateway":
+[31mâ”‚[0m [0m  33:   vpc_id = [4maws_vpc.vpc[0m.id[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mA managed resource "aws_vpc" "vpc" has not been declared in the root
+[31mâ”‚[0m [0mmodule.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mReference to undeclared resource[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 40, in resource "aws_subnet" "subnet":
+[31mâ”‚[0m [0m  40:   vpc_id     = [4maws_vpc.vpc[0m.id[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mA managed resource "aws_vpc" "vpc" has not been declared in the root
+[31mâ”‚[0m [0mmodule.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mReference to undeclared resource[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 50, in resource "aws_security_group" "security_group":
+[31mâ”‚[0m [0m  50:   vpc_id      = [4maws_vpc.vpc[0m.id[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mA managed resource "aws_vpc" "vpc" has not been declared in the root
+[31mâ”‚[0m [0mmodule.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mReference to undeclared resource[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on outputs.tf line 3, in output "vpc_id":
+[31mâ”‚[0m [0m   3:   value       = [4maws_vpc.vpc[0m.id[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mA managed resource "aws_vpc" "vpc" has not been declared in the root
+[31mâ”‚[0m [0mmodule.
+[31mâ•µ[0m[0m
+
 
 MAIN.TF:
 
 # aws_vpc
-resource "aws_vpc" "vpc" {
-  cidr_block = var.vpc_cidr_block
-
-  enable_dns_support              = true
-  enable_dns_hostnames            = var.enable_dns_hostnames
-  enable_network_address_usage_metrics = false
-
-  instance_tenancy = var.instance_tenancy
-
-  tags = var.vpc_tags
+resource "aws_rds_cluster" "rds_mysql_cluster" {
+  engine         = "aurora-mysql"
+  engine_version = var.engine_version
+  database_name  = var.database_name
+  master_username = var.master_username
+  master_password = var.master_password
+  vpc_security_group_ids = var.vpc_security_group_ids
+  db_subnet_group_name = var.db_subnet_group_name
+  tags = var.tags
 }
 
 # aws_route_table
 resource "aws_route_table" "route_table" {
   vpc_id = aws_vpc.vpc.id
 
-  route = []
+  route {
+    cidr_block = var.destination_cidr_block
+    gateway_id = var.gateway_id
+  }
 
   tags = var.tags
 }
@@ -60,7 +122,7 @@ resource "aws_subnet" "subnet" {
   vpc_id     = aws_vpc.vpc.id
   cidr_block = var.subnet_cidr_block
 
-  tags = var.subnet_tags
+  tags = var.tags
 }
 
 # aws_security_group
@@ -68,20 +130,6 @@ resource "aws_security_group" "security_group" {
   name        = var.security_group_name
   description = var.security_group_description
   vpc_id      = aws_vpc.vpc.id
-
-  ingress {
-    from_port   = var.ingress_from_port
-    to_port     = var.ingress_to_port
-    protocol    = var.ingress_protocol
-    cidr_blocks = var.ingress_cidr_blocks
-  }
-
-  egress {
-    from_port   = var.egress_from_port
-    to_port     = var.egress_to_port
-    protocol    = var.egress_protocol
-    cidr_blocks = var.egress_cidr_blocks
-  }
 
   tags = var.tags
 }
@@ -103,259 +151,172 @@ resource "aws_db_instance" "db_instance" {
 
 ====================================================================================================
 QUERY:
-aurora postgres cluster
+ecs service with autoscaling and ecr image
 
 MISSING:
 
 GENERATED:
-  - aws_db_subnet_group
+  - aws_appautoscaling_policy
+  - aws_appautoscaling_target
+  - aws_ecr_repository
+  - aws_ecs_cluster
+  - aws_ecs_service
+  - aws_ecs_task_definition
+  - aws_iam_policy
   - aws_iam_role
-  - aws_rds_cluster
-  - aws_rds_cluster_instance
-  - aws_rds_cluster_parameter_group
-  - aws_rds_cluster_role_association
-  - aws_security_group
-  - aws_subnet
-  - aws_vpc
+  - aws_iam_role_policy
 
 TERRAFORM ERROR:
 
 terraform validate failed:
 
 [31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1meach.value cannot be used in this context[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 11, in resource "aws_rds_cluster_parameter_group" "rds_cluster_parameter_group":
-[31mâ”‚[0m [0m  11:     name         = [4meach.value[0m.name[0m
+[31mâ”‚[0m [0m[0m  on main.tf line 103, in resource "aws_ecs_service" "ecs_service":
+[31mâ”‚[0m [0m 103:   [4mcapacity_provider_strategy[0m = var.ecs_service_capacity_provider_strategy[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0mA reference to "each.value" has been used in a context in which it is
-[31mâ”‚[0m [0munavailable, such as when the configuration no longer contains the value in
-[31mâ”‚[0m [0mits "for_each" expression. Remove this reference to each.value in your
-[31mâ”‚[0m [0mconfiguration to work around this error.
+[31mâ”‚[0m [0mAn argument named "capacity_provider_strategy" is not expected here. Did
+[31mâ”‚[0m [0myou mean to define a block of type "capacity_provider_strategy"?
 [31mâ•µ[0m[0m
 [31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1meach.value cannot be used in this context[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mIncorrect attribute value type[0m
 [31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 12, in resource "aws_rds_cluster_parameter_group" "rds_cluster_parameter_group":
-[31mâ”‚[0m [0m  12:     value        = [4meach.value[0m.value[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0mA reference to "each.value" has been used in a context in which it is
-[31mâ”‚[0m [0munavailable, such as when the configuration no longer contains the value in
-[31mâ”‚[0m [0mits "for_each" expression. Remove this reference to each.value in your
-[31mâ”‚[0m [0mconfiguration to work around this error.
-[31mâ•µ[0m[0m
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1meach.value cannot be used in this context[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 13, in resource "aws_rds_cluster_parameter_group" "rds_cluster_parameter_group":
-[31mâ”‚[0m [0m  13:     apply_method = [4meach.value[0m.apply_method[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0mA reference to "each.value" has been used in a context in which it is
-[31mâ”‚[0m [0munavailable, such as when the configuration no longer contains the value in
-[31mâ”‚[0m [0mits "for_each" expression. Remove this reference to each.value in your
-[31mâ”‚[0m [0mconfiguration to work around this error.
+[31mâ”‚[0m [0m[0m  on main.tf line 113, in resource "aws_ecs_service" "ecs_service":
+[31mâ”‚[0m [0m 113:     alarm_names = [4mvar.ecs_service_alarm_names[0m[0m
+[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
+[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.ecs_service_alarm_names[0m is a string
+[31mâ”‚[0m [0m[0m
+[31mâ”‚[0m [0mInappropriate value for attribute "alarm_names": set of string required,
+[31mâ”‚[0m [0mbut have string.
 [31mâ•µ[0m[0m
 
 
 MAIN.TF:
 
-# aws_rds_cluster_parameter_group
-resource "aws_rds_cluster_parameter_group" "rds_cluster_parameter_group" {
-  family      = var.family
-  description = var.description
-  name        = var.name
-  region      = var.region
-  tags        = var.tags
-
-  parameter {
-    for_each = var.parameters
-    name         = each.value.name
-    value        = each.value.value
-    apply_method = each.value.apply_method
-  }
+# aws_ecs_cluster
+resource "aws_ecs_cluster" "ecs_cluster" {
+  name = var.ecs_cluster_name
 }
 
-# aws_vpc
-resource "aws_vpc" "vpc" {
-  cidr_block = var.cidr_block
+# aws_ecr_repository
+resource "aws_ecr_repository" "ecr_repository" {
+  name                 = var.ecr_repository_name
 
-  enable_dns_support = true
-  enable_dns_hostnames = var.enable_dns_hostnames
-  enable_network_address_usage_metrics = false
-  instance_tenancy = var.instance_tenancy
+  image_scanning_configuration {
+    scan_on_push = var.scan_on_push
+  }
 
   tags = var.tags
 }
 
-# aws_iam_role  (dependency)
+# aws_appautoscaling_policy
+resource "aws_appautoscaling_policy" "appautoscaling_policy" {
+  name               = var.policy_name
+  policy_type        = "StepScaling"
+  resource_id        = var.resource_id
+  scalable_dimension = var.scalable_dimension
+  service_namespace  = var.service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = var.cooldown
+    metric_aggregation_type = var.metric_aggregation_type
+
+    step_adjustment {
+      metric_interval_upper_bound = 0
+      scaling_adjustment          = -1
+    }
+  }
+}
+
+# aws_iam_role
 resource "aws_iam_role" "iam_role" {
-  name               = var.iam_role_name
-  assume_role_policy = var.iam_role_assume_role_policy
+  assume_role_policy = var.assume_role_policy
 
   tags = var.tags
 }
 
-# aws_security_group
-resource "aws_security_group" "security_group" {
-  name        = var.security_group_name
-  description = var.security_group_description
-  vpc_id      = aws_vpc.vpc.id
-
-  tags = var.tags
+# aws_iam_role_policy
+resource "aws_iam_role_policy" "iam_role_policy" {
+  name   = var.iam_role_policy_name
+  role   = aws_iam_role.iam_role.name
+  policy = jsonencode(var.iam_role_policy_document)
 }
 
-# aws_subnet  (dependency)
-resource "aws_subnet" "subnet" {
-  vpc_id     = aws_vpc.vpc.id
-  cidr_block = var.subnet_cidr_block
-
-  tags = var.tags
+# aws_iam_policy
+resource "aws_iam_policy" "iam_policy" {
+  name        = var.iam_policy_name
+  description = var.iam_policy_description
+  path        = "/"
+  policy      = var.iam_policy_document_json
+  tags        = var.tags
 }
 
-# aws_rds_cluster_role_association
-resource "aws_rds_cluster_role_association" "rds_cluster_role_association" {
-  db_cluster_identifier = var.db_cluster_identifier
-  role_arn              = aws_iam_role.iam_role.arn
-  feature_name          = var.feature_name
-  region                = var.region
-}
+# aws_ecs_task_definition
+resource "aws_ecs_task_definition" "ecs_task_definition" {
+  family                = var.family
+  container_definitions  = var.container_definitions
+  cpu                   = var.cpu
+  memory                = var.memory
+  execution_role_arn    = aws_iam_role.iam_role.arn
+  network_mode          = var.network_mode
+  requires_compatibilities = var.requires_compatibilities
 
-# aws_db_subnet_group
-resource "aws_db_subnet_group" "db_subnet_group" {
-  subnet_ids  = [aws_subnet.subnet.id]
-  name       = var.db_subnet_group_name
-  description = var.db_subnet_group_description
-  tags       = var.tags
-}
-
-# aws_rds_cluster
-resource "aws_rds_cluster" "rds_cluster" {
-  engine             = "aurora-postgresql"
-  cluster_identifier  = var.cluster_identifier
-  availability_zones  = var.availability_zones
-  database_name      = var.database_name
-  master_username     = var.master_username
-  master_password     = var.master_password
-  backup_retention_period = var.backup_retention_period
-  preferred_backup_window = var.preferred_backup_window
-  db_subnet_group_name = aws_db_subnet_group.db_subnet_group.name
-  vpc_security_group_ids = [aws_security_group.security_group.id]
-  copy_tags_to_snapshot  = var.copy_tags_to_snapshot
-  deletion_protection    = var.deletion_protection
-  tags                  = var.tags
-}
-
-# aws_rds_cluster_instance
-resource "aws_rds_cluster_instance" "rds_cluster_instance" {
-  cluster_identifier = aws_rds_cluster.rds_cluster.id
-  engine             = "aurora-postgresql"
-  instance_class     = var.instance_class
-  db_subnet_group_name = aws_db_subnet_group.db_subnet_group.name
-  publicly_accessible = var.publicly_accessible
-  tags               = var.tags
-}
-
-
-====================================================================================================
-QUERY:
-cloudfront distribution with s3 origin
-
-MISSING:
-
-GENERATED:
-  - aws_cloudfront_distribution
-  - aws_cloudfront_origin_access_identity
-  - aws_s3_bucket
-  - aws_s3_bucket_lifecycle_configuration
-  - aws_s3_bucket_versioning
-
-TERRAFORM ERROR:
-
-terraform validate failed:
-
-[31mâ•·[0m[0m
-[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mInsufficient viewer_certificate blocks[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0m[0m  on main.tf line 2, in resource "aws_cloudfront_distribution" "cloudfront_distribution":
-[31mâ”‚[0m [0m   2: resource "aws_cloudfront_distribution" "cloudfront_distribution" [4m{[0m[0m
-[31mâ”‚[0m [0m
-[31mâ”‚[0m [0mAt least 1 "viewer_certificate" blocks are required.
-[31mâ•µ[0m[0m
-
-
-MAIN.TF:
-
-# aws_cloudfront_distribution
-resource "aws_cloudfront_distribution" "cloudfront_distribution" {
-  origin {
-    domain_name = var.origin_domain_name
-    origin_id   = var.origin_id
-
-    s3_origin_config {
-      origin_access_identity = var.origin_access_identity
-    }
-  }
-
-  default_cache_behavior {
-    allowed_methods  = var.allowed_methods
-    cached_methods   = var.cached_methods
-    target_origin_id = var.origin_id
-    viewer_protocol_policy = var.viewer_protocol_policy
-  }
-
-  enabled    = var.enabled
-  is_ipv6_enabled = var.is_ipv6_enabled
-  comment    = var.comment
-  restrictions {
-    geo_restriction {
-      restriction_type = var.restriction_type
-      locations        = var.locations
-    }
+  volume {
+    name = var.volume_name
+    host_path = var.volume_host_path
   }
 }
 
-# aws_s3_bucket
-resource "aws_s3_bucket" "s3_bucket" {
-  bucket = var.bucket_name
-  tags   = var.tags
+# aws_appautoscaling_target
+resource "aws_appautoscaling_target" "appautoscaling_target" {
+  max_capacity       = var.max_capacity
+  min_capacity       = var.min_capacity
+  resource_id        = var.resource_id
+  scalable_dimension = var.scalable_dimension
+  service_namespace  = var.service_namespace
+  role_arn           = aws_iam_role.iam_role.arn
 }
 
-# aws_cloudfront_origin_access_identity
-resource "aws_cloudfront_origin_access_identity" "cloudfront_origin_access_identity" {
-  comment = var.origin_access_identity_comment
-}
+# aws_ecs_service
+resource "aws_ecs_service" "ecs_service" {
+  name    = var.ecs_service_name
+  cluster = aws_ecs_cluster.ecs_cluster.arn
+  task_definition = aws_ecs_task_definition.ecs_task_definition.arn
+  desired_count   = var.ecs_service_desired_count
 
-# aws_s3_bucket_lifecycle_configuration
-resource "aws_s3_bucket_lifecycle_configuration" "s3_bucket_lifecycle_configuration" {
-  bucket = aws_s3_bucket.s3_bucket.id
+  launch_type = var.ecs_service_launch_type
 
-  rule {
-    id     = var.lifecycle_rule_id
-    status = var.lifecycle_rule_status
-
-    filter {}
-
-    expiration {
-      days = var.expiration_days
-    }
-
-    noncurrent_version_expiration {
-      noncurrent_days = var.noncurrent_version_expiration_noncurrent_days
-    }
-
-    abort_incomplete_multipart_upload {
-      days_after_initiation = var.abort_incomplete_multipart_upload_days_after_initiation
-    }
+  deployment_controller {
+    type = var.ecs_service_deployment_controller_type
   }
-}
 
-# aws_s3_bucket_versioning
-resource "aws_s3_bucket_versioning" "s3_bucket_versioning" {
-  bucket = aws_s3_bucket.s3_bucket.id
 
-  versioning_configuration {
-    status = var.versioning_status
+  enable_ecs_managed_tags = var.ecs_service_enable_ecs_managed_tags
+  enable_execute_command  = var.ecs_service_enable_execute_command
+
+  capacity_provider_strategy = var.ecs_service_capacity_provider_strategy
+
+  service_registries {
+    registry_arn  = var.ecs_service_registry_arn
+    container_name = var.ecs_service_registry_container_name
+    container_port = var.ecs_service_registry_container_port
+    port           = var.ecs_service_registry_port
   }
+
+  alarms {
+    alarm_names = var.ecs_service_alarm_names
+    enable      = var.ecs_service_alarm_enable
+    rollback    = var.ecs_service_alarm_rollback
+  }
+
+  availability_zone_rebalancing = var.ecs_service_availability_zone_rebalancing
+
+  force_delete       = var.ecs_service_force_delete
+  force_new_deployment = var.ecs_service_force_new_deployment
+
+  tags = var.ecs_service_tags
 }
 
 

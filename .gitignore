@@ -11,3 +11,5 @@ Archive Code/
 *.jar
 
 *.env
+
+cache/
