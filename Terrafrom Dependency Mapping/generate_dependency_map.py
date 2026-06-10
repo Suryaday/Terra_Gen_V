@@ -65,6 +65,44 @@ def extract_attributes_with_requirements(block: dict, is_parent_required: bool =
             
     return attributes
 
+def extract_resource_schema(block: dict) -> dict:
+    """
+    Captures the FULL per-resource schema shape (recursively) so downstream
+    correction can be driven by provider ground-truth instead of hand tables:
+
+      - arguments       : scalar fields -> {type, required}
+      - blocks          : nested blocks -> {required, min_items, max_items, ...}
+      - attributes      : every readable attribute name (for reference validation)
+
+    `type` is the raw Terraform JSON type (e.g. "string" or ["set","string"]).
+    """
+    out = {"arguments": {}, "blocks": {}, "attributes": []}
+
+    for name, data in block.get("attributes", {}).items():
+        # Every attribute is readable (exported); record it for ref validation.
+        out["attributes"].append(name)
+        # Configurable arguments are anything not purely computed.
+        if data.get("required") or data.get("optional"):
+            out["arguments"][name] = {
+                "type": data.get("type"),
+                "required": bool(data.get("required", False)),
+            }
+
+    for name, bdata in block.get("block_types", {}).items():
+        min_items = bdata.get("min_items", 0)
+        sub = extract_resource_schema(bdata.get("block", {}))
+        out["blocks"][name] = {
+            "required": min_items > 0,
+            "min_items": min_items,
+            "max_items": bdata.get("max_items", 0),
+            "arguments": sub["arguments"],
+            "blocks": sub["blocks"],
+            "attributes": sub["attributes"],
+        }
+
+    return out
+
+
 def resolve_dependency(attribute_name: str, valid_resources: Set[str]) -> str | None:
     """Bulletproof 4-stage dynamic resolution logic."""
     
@@ -265,6 +303,25 @@ def main():
         f.write("\n")
         
     print(f"Success! Map generated with {len(dependency_map)} resource relationships.")
+
+    # ======================================================
+    # NEW: emit the full per-resource schema (ground truth for
+    # schema-driven correction — block-vs-argument, required blocks,
+    # valid attributes, argument types). Same schema JSON, no extra fetch.
+    # ======================================================
+    import os
+
+    resource_schema = {
+        name: extract_resource_schema(sd.get("block", {}))
+        for name, sd in resource_schemas.items()
+    }
+
+    os.makedirs("schema", exist_ok=True)
+    schema_out = os.path.join("schema", "resource_schema.json")
+    with open(schema_out, "w") as f:
+        json.dump(resource_schema, f)
+
+    print(f"Success! Resource schema written for {len(resource_schema)} resources -> {schema_out}.")
 
 if __name__ == "__main__":
     main()
