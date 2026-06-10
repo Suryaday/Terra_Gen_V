@@ -1,0 +1,103 @@
+{
+  "aws_ecs_task_definition": {
+    "arguments": {
+      "family": {"type": "string", "required": true},
+      "container_definitions": {"type": "string", "required": true},
+      "cpu": {"type": "string", "required": false},
+      "memory": {"type": "string", "required": false},
+      "network_mode": {"type": "string", "required": false},
+      "execution_role_arn": {"type": "string", "required": false},
+      "requires_compatibilities": {"type": ["set", "string"], "required": false}
+    },
+    "blocks": {
+      "volume": {"required": false, "min_items": 0, "max_items": 0, "arguments": {}, "blocks": {}, "attributes": []},
+      "runtime_platform": {"required": false, "min_items": 0, "max_items": 1, "arguments": {}, "blocks": {}, "attributes": []},
+      "placement_constraints": {"required": false, "min_items": 0, "max_items": 10, "arguments": {}, "blocks": {}, "attributes": []}
+    },
+    "attributes": ["id", "arn", "family", "revision", "execution_role_arn"]
+  },
+  "aws_ecs_service": {
+    "arguments": {
+      "name": {"type": "string", "required": true},
+      "cluster": {"type": "string", "required": false},
+      "task_definition": {"type": "string", "required": false},
+      "desired_count": {"type": "number", "required": false},
+      "launch_type": {"type": "string", "required": false}
+    },
+    "blocks": {
+      "capacity_provider_strategy": {"required": false, "min_items": 0, "max_items": 0, "arguments": {}, "blocks": {}, "attributes": []},
+      "network_configuration": {"required": false, "min_items": 0, "max_items": 1, "arguments": {}, "blocks": {}, "attributes": []},
+      "load_balancer": {"required": false, "min_items": 0, "max_items": 0, "arguments": {}, "blocks": {}, "attributes": []},
+      "deployment_controller": {"required": false, "min_items": 0, "max_items": 1, "arguments": {}, "blocks": {}, "attributes": []}
+    },
+    "attributes": ["id", "name", "cluster", "iam_role"]
+  },
+  "aws_cloudfront_distribution": {
+    "arguments": {
+      "enabled": {"type": "bool", "required": true},
+      "is_ipv6_enabled": {"type": "bool", "required": false},
+      "comment": {"type": "string", "required": false}
+    },
+    "blocks": {
+      "origin": {"required": true, "min_items": 1, "max_items": 0, "arguments": {}, "blocks": {}, "attributes": []},
+      "default_cache_behavior": {"required": true, "min_items": 1, "max_items": 1, "arguments": {}, "blocks": {}, "attributes": []},
+      "restrictions": {"required": true, "min_items": 1, "max_items": 1, "arguments": {}, "blocks": {}, "attributes": []},
+      "viewer_certificate": {"required": true, "min_items": 1, "max_items": 1, "arguments": {}, "blocks": {}, "attributes": []}
+    },
+    "attributes": ["id", "arn", "domain_name", "hosted_zone_id"]
+  },
+  "aws_lb_listener": {
+    "arguments": {
+      "load_balancer_arn": {"type": "string", "required": true},
+      "port": {"type": "number", "required": false},
+      "protocol": {"type": "string", "required": false},
+      "certificate_arn": {"type": "string", "required": false},
+      "ssl_policy": {"type": "string", "required": false}
+    },
+    "blocks": {
+      "default_action": {"required": true, "min_items": 1, "max_items": 0, "arguments": {}, "blocks": {}, "attributes": []}
+    },
+    "attributes": ["id", "arn"]
+  },
+  "aws_lb": {
+    "arguments": {
+      "name": {"type": "string", "required": false},
+      "internal": {"type": "bool", "required": false},
+      "load_balancer_type": {"type": "string", "required": false},
+      "subnets": {"type": ["set", "string"], "required": false},
+      "security_groups": {"type": ["set", "string"], "required": false},
+      "enable_http2": {"type": "bool", "required": false}
+    },
+    "blocks": {
+      "access_logs": {"required": false, "min_items": 0, "max_items": 1, "arguments": {}, "blocks": {}, "attributes": []}
+    },
+    "attributes": ["id", "arn", "dns_name", "zone_id"]
+  },
+  "aws_iam_openid_connect_provider": {
+    "arguments": {
+      "url": {"type": "string", "required": true},
+      "client_id_list": {"type": ["set", "string"], "required": true},
+      "thumbprint_list": {"type": ["list", "string"], "required": false},
+      "tags": {"type": ["map", "string"], "required": false}
+    },
+    "blocks": {},
+    "attributes": ["id", "arn"]
+  },
+  "aws_key_pair": {
+    "arguments": {
+      "key_name": {"type": "string", "required": false},
+      "key_name_prefix": {"type": "string", "required": false},
+      "public_key": {"type": "string", "required": true}
+    },
+    "blocks": {},
+    "attributes": ["id", "arn", "key_name", "key_pair_id", "fingerprint", "key_type"]
+  },
+  "aws_sqs_queue_redrive_policy": {
+    "arguments": {
+      "queue_url": {"type": "string", "required": true},
+      "redrive_policy": {"type": "string", "required": true}
+    },
+    "blocks": {},
+    "attributes": ["id"]
+  }
+}
