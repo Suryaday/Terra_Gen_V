@@ -4,9 +4,9 @@
 DEPENDENCY_METADATA = {
     "provider": "hashicorp/aws",
     "version": "unknown",
-    "generated_at": "2026-05-29T13:04:27.881261Z",
-    "resource_count": 1526,
-    "mapped_resources": 581
+    "generated_at": "2026-06-11T06:32:14.395561Z",
+    "resource_count": 1672,
+    "mapped_resources": 636
 }
 
 RESOURCE_DEPENDENCIES = {
@@ -221,6 +221,13 @@ RESOURCE_DEPENDENCIES = {
             "aws_subnet"
         ]
     },
+    "aws_appsync_api": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role",
+            "aws_waf_web_acl"
+        ]
+    },
     "aws_appsync_datasource": {
         "hard": [],
         "optional": [
@@ -242,7 +249,14 @@ RESOURCE_DEPENDENCIES = {
     "aws_athena_workgroup": {
         "hard": [],
         "optional": [
+            "aws_instance",
             "aws_kms_key"
+        ]
+    },
+    "aws_auditmanager_assessment": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role"
         ]
     },
     "aws_auditmanager_assessment_delegation": {
@@ -308,6 +322,13 @@ RESOURCE_DEPENDENCIES = {
         "hard": [],
         "optional": [
             "aws_cloudformation_stack"
+        ]
+    },
+    "aws_backup_plan": {
+        "hard": [],
+        "optional": [
+            "aws_backup_vault",
+            "aws_iam_role"
         ]
     },
     "aws_backup_report_plan": {
@@ -405,15 +426,92 @@ RESOURCE_DEPENDENCIES = {
             "aws_s3_bucket"
         ]
     },
+    "aws_bedrockagent_flow": {
+        "hard": [
+            "aws_iam_role"
+        ],
+        "optional": [
+            "aws_s3_bucket"
+        ]
+    },
     "aws_bedrockagent_knowledge_base": {
+        "hard": [
+            "aws_iam_role"
+        ],
+        "optional": [
+            "aws_kendra_index",
+            "aws_s3_bucket"
+        ]
+    },
+    "aws_bedrockagentcore_agent_runtime": {
         "hard": [
             "aws_iam_role"
         ],
         "optional": []
     },
+    "aws_bedrockagentcore_browser": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role"
+        ]
+    },
+    "aws_bedrockagentcore_code_interpreter": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role"
+        ]
+    },
+    "aws_bedrockagentcore_gateway": {
+        "hard": [
+            "aws_iam_role"
+        ],
+        "optional": [
+            "aws_kms_key"
+        ]
+    },
+    "aws_bedrockagentcore_gateway_target": {
+        "hard": [],
+        "optional": [
+            "aws_security_group",
+            "aws_subnet"
+        ]
+    },
+    "aws_bedrockagentcore_harness": {
+        "hard": [
+            "aws_iam_role"
+        ],
+        "optional": []
+    },
+    "aws_bedrockagentcore_memory": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role"
+        ]
+    },
+    "aws_bedrockagentcore_memory_strategy": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role"
+        ]
+    },
+    "aws_bedrockagentcore_online_evaluation_config": {
+        "hard": [
+            "aws_iam_role"
+        ],
+        "optional": [
+            "aws_cloudwatch_log_group"
+        ]
+    },
+    "aws_bedrockagentcore_token_vault_cmk": {
+        "hard": [],
+        "optional": [
+            "aws_kms_key"
+        ]
+    },
     "aws_budgets_budget": {
         "hard": [],
         "optional": [
+            "aws_billing_view",
             "aws_sns_topic"
         ]
     },
@@ -496,6 +594,15 @@ RESOURCE_DEPENDENCIES = {
         "hard": [],
         "optional": [
             "aws_acm_certificate",
+            "aws_wafv2_web_acl"
+        ]
+    },
+    "aws_cloudfront_multitenant_distribution": {
+        "hard": [],
+        "optional": [
+            "aws_acm_certificate",
+            "aws_key_pair",
+            "aws_lambda_function",
             "aws_wafv2_web_acl"
         ]
     },
@@ -604,6 +711,12 @@ RESOURCE_DEPENDENCIES = {
             "aws_iam_role"
         ]
     },
+    "aws_cloudwatch_log_transformer": {
+        "hard": [
+            "aws_cloudwatch_log_group"
+        ],
+        "optional": []
+    },
     "aws_cloudwatch_metric_stream": {
         "hard": [
             "aws_iam_role"
@@ -681,6 +794,13 @@ RESOURCE_DEPENDENCIES = {
         "hard": [],
         "optional": [
             "aws_iam_role"
+        ]
+    },
+    "aws_cognito_log_delivery_configuration": {
+        "hard": [],
+        "optional": [
+            "aws_cloudwatch_log_group",
+            "aws_s3_bucket"
         ]
     },
     "aws_cognito_managed_user_pool_client": {
@@ -792,6 +912,12 @@ RESOURCE_DEPENDENCIES = {
         ]
     },
     "aws_connect_lambda_function_association": {
+        "hard": [
+            "aws_instance"
+        ],
+        "optional": []
+    },
+    "aws_connect_phone_number_contact_flow_association": {
         "hard": [
             "aws_instance"
         ],
@@ -1246,9 +1372,7 @@ RESOURCE_DEPENDENCIES = {
         "hard": [
             "aws_dx_gateway"
         ],
-        "optional": [
-            "aws_vpn_gateway"
-        ]
+        "optional": []
     },
     "aws_dx_gateway_association_proposal": {
         "hard": [
@@ -1397,12 +1521,30 @@ RESOURCE_DEPENDENCIES = {
         ],
         "optional": []
     },
+    "aws_ec2_local_gateway_route_table": {
+        "hard": [],
+        "optional": [
+            "aws_route_table"
+        ]
+    },
+    "aws_ec2_local_gateway_route_table_virtual_interface_group_association": {
+        "hard": [
+            "aws_route_table"
+        ],
+        "optional": []
+    },
     "aws_ec2_local_gateway_route_table_vpc_association": {
         "hard": [
             "aws_route_table",
             "aws_vpc"
         ],
         "optional": []
+    },
+    "aws_ec2_secondary_subnet": {
+        "hard": [],
+        "optional": [
+            "aws_subnet"
+        ]
     },
     "aws_ec2_subnet_cidr_reservation": {
         "hard": [
@@ -1512,6 +1654,12 @@ RESOURCE_DEPENDENCIES = {
             "aws_iam_role"
         ]
     },
+    "aws_ecs_capacity_provider": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role"
+        ]
+    },
     "aws_ecs_cluster": {
         "hard": [],
         "optional": [
@@ -1519,6 +1667,24 @@ RESOURCE_DEPENDENCIES = {
             "aws_kms_key",
             "aws_s3_bucket"
         ]
+    },
+    "aws_ecs_daemon": {
+        "hard": [
+            "aws_ecs_task_definition"
+        ],
+        "optional": []
+    },
+    "aws_ecs_daemon_task_definition": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role"
+        ]
+    },
+    "aws_ecs_express_gateway_service": {
+        "hard": [
+            "aws_iam_role"
+        ],
+        "optional": []
     },
     "aws_ecs_service": {
         "hard": [
@@ -1578,6 +1744,14 @@ RESOURCE_DEPENDENCIES = {
         "hard": [],
         "optional": [
             "aws_iam_role"
+        ]
+    },
+    "aws_eks_capability": {
+        "hard": [
+            "aws_iam_role"
+        ],
+        "optional": [
+            "aws_instance"
         ]
     },
     "aws_eks_cluster": {
@@ -1706,6 +1880,7 @@ RESOURCE_DEPENDENCIES = {
     "aws_emrserverless_application": {
         "hard": [],
         "optional": [
+            "aws_cloudwatch_log_group",
             "aws_security_group",
             "aws_subnet"
         ]
@@ -1733,11 +1908,17 @@ RESOURCE_DEPENDENCIES = {
             "aws_s3_bucket"
         ]
     },
+    "aws_fis_target_account_configuration": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role"
+        ]
+    },
     "aws_flow_log": {
         "hard": [],
         "optional": [
-            "aws_cloudwatch_log_group",
             "aws_iam_role",
+            "aws_nat_gateway",
             "aws_subnet",
             "aws_vpc"
         ]
@@ -1794,6 +1975,13 @@ RESOURCE_DEPENDENCIES = {
             "aws_vpc"
         ]
     },
+    "aws_fsx_s3_access_point_attachment": {
+        "hard": [],
+        "optional": [
+            "aws_s3_access_point",
+            "aws_vpc"
+        ]
+    },
     "aws_fsx_windows_file_system": {
         "hard": [
             "aws_subnet"
@@ -1829,6 +2017,12 @@ RESOURCE_DEPENDENCIES = {
             "aws_iam_role"
         ]
     },
+    "aws_glue_catalog": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role"
+        ]
+    },
     "aws_glue_catalog_table_optimizer": {
         "hard": [],
         "optional": [
@@ -1838,6 +2032,7 @@ RESOURCE_DEPENDENCIES = {
     "aws_glue_connection": {
         "hard": [],
         "optional": [
+            "aws_kms_key",
             "aws_subnet"
         ]
     },
@@ -1885,6 +2080,7 @@ RESOURCE_DEPENDENCIES = {
         "hard": [],
         "optional": [
             "aws_iam_role",
+            "aws_kms_key",
             "aws_security_group",
             "aws_subnet"
         ]
@@ -1939,6 +2135,18 @@ RESOURCE_DEPENDENCIES = {
             "aws_launch_template"
         ]
     },
+    "aws_imagebuilder_image": {
+        "hard": [],
+        "optional": [
+            "aws_cloudwatch_log_group"
+        ]
+    },
+    "aws_imagebuilder_image_pipeline": {
+        "hard": [],
+        "optional": [
+            "aws_cloudwatch_log_group"
+        ]
+    },
     "aws_imagebuilder_image_recipe": {
         "hard": [],
         "optional": [
@@ -1971,6 +2179,7 @@ RESOURCE_DEPENDENCIES = {
         "optional": [
             "aws_kms_key",
             "aws_network_interface",
+            "aws_placement_group",
             "aws_security_group",
             "aws_spot_instance_request",
             "aws_subnet"
@@ -2148,10 +2357,25 @@ RESOURCE_DEPENDENCIES = {
             "aws_vpc_endpoint_service"
         ]
     },
+    "aws_lakeformation_identity_center_configuration": {
+        "hard": [
+            "aws_instance"
+        ],
+        "optional": []
+    },
     "aws_lakeformation_resource": {
         "hard": [],
         "optional": [
             "aws_iam_role"
+        ]
+    },
+    "aws_lambda_capacity_provider": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role",
+            "aws_kms_key",
+            "aws_security_group",
+            "aws_subnet"
         ]
     },
     "aws_lambda_event_source_mapping": {
@@ -2161,7 +2385,9 @@ RESOURCE_DEPENDENCIES = {
         ]
     },
     "aws_lambda_function": {
-        "hard": ["aws_iam_role"],
+        "hard": [
+            "aws_iam_role"
+        ],
         "optional": [
             "aws_kms_key",
             "aws_security_group",
@@ -2187,9 +2413,12 @@ RESOURCE_DEPENDENCIES = {
         ]
     },
     "aws_lb_listener": {
-        "hard": ["aws_lb"],
+        "hard": [
+            "aws_lb"
+        ],
         "optional": [
-            "aws_acm_certificate"
+            "aws_acm_certificate",
+            "aws_lb_target_group"
         ]
     },
     "aws_lb_listener_certificate": {
@@ -2332,11 +2561,11 @@ RESOURCE_DEPENDENCIES = {
         ]
     },
     "aws_macie2_classification_export_configuration": {
-        "hard": [],
-        "optional": [
+        "hard": [
             "aws_kms_key",
             "aws_s3_bucket"
-        ]
+        ],
+        "optional": []
     },
     "aws_main_route_table_association": {
         "hard": [
@@ -2450,6 +2679,12 @@ RESOURCE_DEPENDENCIES = {
         ],
         "optional": []
     },
+    "aws_nat_gateway_eip_association": {
+        "hard": [
+            "aws_nat_gateway"
+        ],
+        "optional": []
+    },
     "aws_neptune_cluster": {
         "hard": [],
         "optional": [
@@ -2535,11 +2770,19 @@ RESOURCE_DEPENDENCIES = {
         "optional": []
     },
     "aws_networkfirewall_firewall": {
-        "hard": [
+        "hard": [],
+        "optional": [
             "aws_subnet",
             "aws_vpc"
+        ]
+    },
+    "aws_networkfirewall_vpc_endpoint_association": {
+        "hard": [
+            "aws_vpc"
         ],
-        "optional": []
+        "optional": [
+            "aws_subnet"
+        ]
     },
     "aws_networkmanager_connect_peer": {
         "hard": [],
@@ -2584,12 +2827,59 @@ RESOURCE_DEPENDENCIES = {
             "aws_vpc"
         ]
     },
+    "aws_observabilityadmin_centralization_rule_for_organization": {
+        "hard": [],
+        "optional": [
+            "aws_kms_key"
+        ]
+    },
+    "aws_observabilityadmin_s3_table_integration": {
+        "hard": [
+            "aws_iam_role"
+        ],
+        "optional": [
+            "aws_kms_key",
+            "aws_s3_bucket"
+        ]
+    },
+    "aws_odb_cloud_autonomous_vm_cluster": {
+        "hard": [],
+        "optional": [
+            "aws_odb_network"
+        ]
+    },
+    "aws_odb_cloud_vm_cluster": {
+        "hard": [],
+        "optional": [
+            "aws_odb_network"
+        ]
+    },
+    "aws_odb_network": {
+        "hard": [],
+        "optional": [
+            "aws_placement_group"
+        ]
+    },
+    "aws_odb_network_peering_connection": {
+        "hard": [],
+        "optional": [
+            "aws_odb_network"
+        ]
+    },
+    "aws_opensearch_application": {
+        "hard": [],
+        "optional": [
+            "aws_instance",
+            "aws_kms_key"
+        ]
+    },
     "aws_opensearch_domain": {
         "hard": [],
         "optional": [
             "aws_acm_certificate",
             "aws_cloudwatch_log_group",
             "aws_iam_role",
+            "aws_instance",
             "aws_kms_key",
             "aws_security_group",
             "aws_subnet",
@@ -2626,110 +2916,6 @@ RESOURCE_DEPENDENCIES = {
             "aws_security_group"
         ]
     },
-    "aws_opsworks_custom_layer": {
-        "hard": [],
-        "optional": [
-            "aws_cloudwatch_log_group",
-            "aws_security_group"
-        ]
-    },
-    "aws_opsworks_ecs_cluster_layer": {
-        "hard": [
-            "aws_ecs_cluster"
-        ],
-        "optional": [
-            "aws_cloudwatch_log_group",
-            "aws_security_group"
-        ]
-    },
-    "aws_opsworks_ganglia_layer": {
-        "hard": [],
-        "optional": [
-            "aws_cloudwatch_log_group",
-            "aws_security_group"
-        ]
-    },
-    "aws_opsworks_haproxy_layer": {
-        "hard": [],
-        "optional": [
-            "aws_cloudwatch_log_group",
-            "aws_security_group"
-        ]
-    },
-    "aws_opsworks_instance": {
-        "hard": [],
-        "optional": [
-            "aws_ami",
-            "aws_ecs_cluster",
-            "aws_instance",
-            "aws_security_group",
-            "aws_subnet"
-        ]
-    },
-    "aws_opsworks_java_app_layer": {
-        "hard": [],
-        "optional": [
-            "aws_cloudwatch_log_group",
-            "aws_security_group"
-        ]
-    },
-    "aws_opsworks_memcached_layer": {
-        "hard": [],
-        "optional": [
-            "aws_cloudwatch_log_group",
-            "aws_security_group"
-        ]
-    },
-    "aws_opsworks_mysql_layer": {
-        "hard": [],
-        "optional": [
-            "aws_cloudwatch_log_group",
-            "aws_security_group"
-        ]
-    },
-    "aws_opsworks_nodejs_app_layer": {
-        "hard": [],
-        "optional": [
-            "aws_cloudwatch_log_group",
-            "aws_security_group"
-        ]
-    },
-    "aws_opsworks_php_app_layer": {
-        "hard": [],
-        "optional": [
-            "aws_cloudwatch_log_group",
-            "aws_security_group"
-        ]
-    },
-    "aws_opsworks_rails_app_layer": {
-        "hard": [],
-        "optional": [
-            "aws_cloudwatch_log_group",
-            "aws_security_group"
-        ]
-    },
-    "aws_opsworks_rds_db_instance": {
-        "hard": [
-            "aws_db_instance"
-        ],
-        "optional": []
-    },
-    "aws_opsworks_stack": {
-        "hard": [
-            "aws_iam_role"
-        ],
-        "optional": [
-            "aws_default_subnet",
-            "aws_vpc"
-        ]
-    },
-    "aws_opsworks_static_web_layer": {
-        "hard": [],
-        "optional": [
-            "aws_cloudwatch_log_group",
-            "aws_security_group"
-        ]
-    },
     "aws_organizations_account": {
         "hard": [],
         "optional": [
@@ -2739,6 +2925,7 @@ RESOURCE_DEPENDENCIES = {
     "aws_osis_pipeline": {
         "hard": [],
         "optional": [
+            "aws_iam_role",
             "aws_kms_key",
             "aws_security_group",
             "aws_subnet"
@@ -2762,6 +2949,14 @@ RESOURCE_DEPENDENCIES = {
         ],
         "optional": []
     },
+    "aws_pinpointsmsvoicev2_event_destination": {
+        "hard": [],
+        "optional": [
+            "aws_cloudwatch_log_group",
+            "aws_iam_role",
+            "aws_sns_topic"
+        ]
+    },
     "aws_pipes_pipe": {
         "hard": [
             "aws_iam_role"
@@ -2772,6 +2967,12 @@ RESOURCE_DEPENDENCIES = {
             "aws_s3_bucket",
             "aws_sns_topic",
             "aws_sqs_queue"
+        ]
+    },
+    "aws_prometheus_query_logging_configuration": {
+        "hard": [],
+        "optional": [
+            "aws_cloudwatch_log_group"
         ]
     },
     "aws_prometheus_scraper": {
@@ -2892,7 +3093,6 @@ RESOURCE_DEPENDENCIES = {
         "optional": [
             "aws_iam_role",
             "aws_kms_key",
-            "aws_s3_bucket",
             "aws_security_group"
         ]
     },
@@ -2923,6 +3123,13 @@ RESOURCE_DEPENDENCIES = {
     "aws_redshift_event_subscription": {
         "hard": [
             "aws_sns_topic"
+        ],
+        "optional": []
+    },
+    "aws_redshift_idc_application": {
+        "hard": [
+            "aws_iam_role",
+            "aws_instance"
         ],
         "optional": []
     },
@@ -3008,7 +3215,7 @@ RESOURCE_DEPENDENCIES = {
             "aws_nat_gateway",
             "aws_network_interface",
             "aws_vpc_endpoint",
-            "aws_vpc_peering_connection", 
+            "aws_vpc_peering_connection",
             "aws_internet_gateway"
         ]
     },
@@ -3124,6 +3331,12 @@ RESOURCE_DEPENDENCIES = {
         ],
         "optional": []
     },
+    "aws_s3_bucket_metadata_configuration": {
+        "hard": [],
+        "optional": [
+            "aws_kms_key"
+        ]
+    },
     "aws_s3_bucket_notification": {
         "hard": [],
         "optional": [
@@ -3168,6 +3381,23 @@ RESOURCE_DEPENDENCIES = {
         ],
         "optional": []
     },
+    "aws_s3files_file_system": {
+        "hard": [
+            "aws_iam_role"
+        ],
+        "optional": [
+            "aws_kms_key"
+        ]
+    },
+    "aws_s3files_mount_target": {
+        "hard": [
+            "aws_subnet"
+        ],
+        "optional": [
+            "aws_network_interface",
+            "aws_vpc"
+        ]
+    },
     "aws_s3outposts_endpoint": {
         "hard": [
             "aws_security_group",
@@ -3193,11 +3423,47 @@ RESOURCE_DEPENDENCIES = {
         ],
         "optional": []
     },
+    "aws_s3tables_table_bucket_replication": {
+        "hard": [
+            "aws_s3_bucket"
+        ],
+        "optional": []
+    },
     "aws_s3tables_table_policy": {
         "hard": [
             "aws_s3_bucket"
         ],
         "optional": []
+    },
+    "aws_s3tables_table_replication": {
+        "hard": [],
+        "optional": [
+            "aws_s3_bucket"
+        ]
+    },
+    "aws_s3vectors_index": {
+        "hard": [
+            "aws_s3_bucket"
+        ],
+        "optional": []
+    },
+    "aws_s3vectors_vector_bucket": {
+        "hard": [
+            "aws_s3_bucket"
+        ],
+        "optional": []
+    },
+    "aws_s3vectors_vector_bucket_policy": {
+        "hard": [
+            "aws_s3_bucket"
+        ],
+        "optional": []
+    },
+    "aws_sagemaker_algorithm": {
+        "hard": [],
+        "optional": [
+            "aws_kms_key"
+        ]
     },
     "aws_sagemaker_app": {
         "hard": [],
@@ -3247,6 +3513,7 @@ RESOURCE_DEPENDENCIES = {
     "aws_sagemaker_endpoint_configuration": {
         "hard": [],
         "optional": [
+            "aws_iam_role",
             "aws_kms_key"
         ]
     },
@@ -3266,7 +3533,31 @@ RESOURCE_DEPENDENCIES = {
             "aws_kms_key"
         ]
     },
+    "aws_sagemaker_hyper_parameter_tuning_job": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role",
+            "aws_kms_key",
+            "aws_security_group"
+        ]
+    },
     "aws_sagemaker_image": {
+        "hard": [
+            "aws_iam_role"
+        ],
+        "optional": []
+    },
+    "aws_sagemaker_labeling_job": {
+        "hard": [
+            "aws_iam_role"
+        ],
+        "optional": [
+            "aws_kms_key",
+            "aws_security_group",
+            "aws_sns_topic"
+        ]
+    },
+    "aws_sagemaker_mlflow_app": {
         "hard": [
             "aws_iam_role"
         ],
@@ -3283,6 +3574,20 @@ RESOURCE_DEPENDENCIES = {
             "aws_iam_role"
         ],
         "optional": [
+            "aws_security_group"
+        ]
+    },
+    "aws_sagemaker_model_card": {
+        "hard": [],
+        "optional": [
+            "aws_kms_key"
+        ]
+    },
+    "aws_sagemaker_monitoring_schedule": {
+        "hard": [],
+        "optional": [
+            "aws_iam_role",
+            "aws_kms_key",
             "aws_security_group"
         ]
     },
@@ -3307,6 +3612,15 @@ RESOURCE_DEPENDENCIES = {
         "optional": [
             "aws_sagemaker_image",
             "aws_sagemaker_image_version"
+        ]
+    },
+    "aws_sagemaker_training_job": {
+        "hard": [
+            "aws_iam_role"
+        ],
+        "optional": [
+            "aws_kms_key",
+            "aws_security_group"
         ]
     },
     "aws_sagemaker_user_profile": {
@@ -3358,6 +3672,13 @@ RESOURCE_DEPENDENCIES = {
             "aws_security_group"
         ],
         "optional": []
+    },
+    "aws_securityhub_connector_v2": {
+        "hard": [],
+        "optional": [
+            "aws_instance",
+            "aws_kms_key"
+        ]
     },
     "aws_securitylake_custom_log_source": {
         "hard": [],
@@ -3508,6 +3829,7 @@ RESOURCE_DEPENDENCIES = {
             "aws_instance",
             "aws_kms_key",
             "aws_network_interface",
+            "aws_placement_group",
             "aws_security_group",
             "aws_subnet"
         ]
@@ -3515,7 +3837,6 @@ RESOURCE_DEPENDENCIES = {
     "aws_ssm_association": {
         "hard": [],
         "optional": [
-            "aws_instance",
             "aws_s3_bucket"
         ]
     },
@@ -3571,6 +3892,12 @@ RESOURCE_DEPENDENCIES = {
         ],
         "optional": []
     },
+    "aws_ssoadmin_customer_managed_policy_attachments_exclusive": {
+        "hard": [
+            "aws_instance"
+        ],
+        "optional": []
+    },
     "aws_ssoadmin_instance_access_control_attributes": {
         "hard": [
             "aws_instance"
@@ -3578,6 +3905,12 @@ RESOURCE_DEPENDENCIES = {
         "optional": []
     },
     "aws_ssoadmin_managed_policy_attachment": {
+        "hard": [
+            "aws_instance"
+        ],
+        "optional": []
+    },
+    "aws_ssoadmin_managed_policy_attachments_exclusive": {
         "hard": [
             "aws_instance"
         ],
@@ -3659,6 +3992,15 @@ RESOURCE_DEPENDENCIES = {
             "aws_vpc"
         ]
     },
+    "aws_timestreaminfluxdb_db_cluster": {
+        "hard": [
+            "aws_security_group",
+            "aws_subnet"
+        ],
+        "optional": [
+            "aws_s3_bucket"
+        ]
+    },
     "aws_timestreaminfluxdb_db_instance": {
         "hard": [
             "aws_security_group",
@@ -3712,6 +4054,16 @@ RESOURCE_DEPENDENCIES = {
     "aws_transfer_server": {
         "hard": [],
         "optional": [
+            "aws_security_group",
+            "aws_subnet",
+            "aws_vpc",
+            "aws_vpc_endpoint"
+        ]
+    },
+    "aws_transfer_web_app": {
+        "hard": [],
+        "optional": [
+            "aws_instance",
             "aws_security_group",
             "aws_subnet",
             "aws_vpc",
@@ -3783,6 +4135,12 @@ RESOURCE_DEPENDENCIES = {
         ]
     },
     "aws_vpc_dhcp_options_association": {
+        "hard": [
+            "aws_vpc"
+        ],
+        "optional": []
+    },
+    "aws_vpc_encryption_control": {
         "hard": [
             "aws_vpc"
         ],
@@ -3933,6 +4291,12 @@ RESOURCE_DEPENDENCIES = {
             "aws_security_group_rule"
         ]
     },
+    "aws_vpc_security_group_rules_exclusive": {
+        "hard": [
+            "aws_security_group"
+        ],
+        "optional": []
+    },
     "aws_vpc_security_group_vpc_association": {
         "hard": [
             "aws_security_group",
@@ -3967,6 +4331,7 @@ RESOURCE_DEPENDENCIES = {
         ],
         "optional": [
             "aws_cloudwatch_log_group",
+            "aws_vpn_concentrator",
             "aws_vpn_gateway"
         ]
     },
@@ -4008,12 +4373,22 @@ RESOURCE_DEPENDENCIES = {
         ],
         "optional": []
     },
-    "aws_worklink_fleet": {
+    "aws_wafv2_web_acl_rule": {
+        "hard": [
+            "aws_wafv2_web_acl"
+        ],
+        "optional": []
+    },
+    "aws_wafv2_web_acl_rule_group_association": {
+        "hard": [
+            "aws_wafv2_web_acl"
+        ],
+        "optional": []
+    },
+    "aws_workmail_organization": {
         "hard": [],
         "optional": [
-            "aws_security_group",
-            "aws_subnet",
-            "aws_vpc"
+            "aws_kms_key"
         ]
     },
     "aws_workspaces_directory": {
