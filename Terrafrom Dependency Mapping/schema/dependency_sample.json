@@ -1,0 +1,86 @@
+{
+  "aws_vpc": {
+    "arguments": {
+      "cidr_block": {"type": "string", "required": false},
+      "instance_tenancy": {"type": "string", "required": false},
+      "enable_dns_support": {"type": "bool", "required": false},
+      "enable_dns_hostnames": {"type": "bool", "required": false}
+    },
+    "blocks": {},
+    "attributes": ["id", "arn", "owner_id", "default_route_table_id", "default_network_acl_id", "default_security_group_id", "main_route_table_id"]
+  },
+  "aws_subnet": {
+    "arguments": {
+      "vpc_id": {"type": "string", "required": true},
+      "cidr_block": {"type": "string", "required": false},
+      "availability_zone": {"type": "string", "required": false}
+    },
+    "blocks": {},
+    "attributes": ["id", "arn", "owner_id"]
+  },
+  "aws_route_table": {
+    "arguments": {
+      "vpc_id": {"type": "string", "required": true}
+    },
+    "blocks": {},
+    "attributes": ["id", "arn", "owner_id"]
+  },
+  "aws_route_table_association": {
+    "arguments": {
+      "route_table_id": {"type": "string", "required": true},
+      "subnet_id": {"type": "string", "required": false},
+      "gateway_id": {"type": "string", "required": false}
+    },
+    "blocks": {},
+    "attributes": ["id"]
+  },
+  "aws_internet_gateway": {
+    "arguments": {
+      "vpc_id": {"type": "string", "required": false}
+    },
+    "blocks": {},
+    "attributes": ["id", "arn", "owner_id"]
+  },
+  "aws_security_group": {
+    "arguments": {
+      "name": {"type": "string", "required": false},
+      "description": {"type": "string", "required": false},
+      "vpc_id": {"type": "string", "required": false}
+    },
+    "blocks": {},
+    "attributes": ["id", "arn", "owner_id"]
+  },
+  "aws_db_subnet_group": {
+    "arguments": {
+      "name": {"type": "string", "required": false},
+      "subnet_ids": {"type": ["set", "string"], "required": true}
+    },
+    "blocks": {},
+    "attributes": ["id", "arn"]
+  },
+  "aws_db_instance": {
+    "arguments": {
+      "allocated_storage": {"type": "number", "required": false},
+      "engine": {"type": "string", "required": false},
+      "instance_class": {"type": "string", "required": false},
+      "username": {"type": "string", "required": false},
+      "password": {"type": "string", "required": false},
+      "db_name": {"type": "string", "required": false},
+      "db_subnet_group_name": {"type": "string", "required": false},
+      "vpc_security_group_ids": {"type": ["set", "string"], "required": false},
+      "skip_final_snapshot": {"type": "bool", "required": false}
+    },
+    "blocks": {},
+    "attributes": ["id", "arn", "endpoint", "resource_id"]
+  },
+  "aws_iam_role": {
+    "arguments": {
+      "assume_role_policy": {"type": "string", "required": true},
+      "name": {"type": "string", "required": false},
+      "path": {"type": "string", "required": false},
+      "description": {"type": "string", "required": false}
+    },
+    "blocks": {},
+    "attributes": ["id", "arn", "unique_id", "name"]
+  }
+}

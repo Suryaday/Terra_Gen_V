@@ -13,3 +13,8 @@ Archive Code/
 *.env
 
 cache/
+
+*.exe
+
+terraform-cache/
+*.exe

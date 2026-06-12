@@ -17,7 +17,9 @@ from collections import defaultdict
 from openai import OpenAI
 from dotenv import load_dotenv
 
-from auto_dependency_map import RESOURCE_DEPENDENCIES
+#from auto_dependency_map import RESOURCE_DEPENDENCIES
+from auto_dependency_map_candidate import RESOURCE_DEPENDENCIES
+
 from dependency_expander import expand_entities
 from architecture_expander import extract_architecture
 from architecture_expander import complete_architecture
@@ -30,6 +32,13 @@ from retrieval_types import RetrievalResult
 
 from context_builder import build_xml_context
 
+from schema_normalizer import normalize_block_vs_argument
+from schema_index import find_argument_type
+from schema_typing import terraform_type_to_hcl
+from schema_validator import validate_resource
+
+###########################################################################################################
+
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
@@ -40,6 +49,8 @@ INDEX_FILE = Path("vectorstore/bm25.pkl").resolve()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2048"))
+
+SCHEMA_FINDING_COUNTS = Counter()
 
 _client: Optional[OpenAI] = None
 
@@ -70,9 +81,6 @@ ARGUMENT_ALIASES = {
     },
     "aws_ecs_cluster": {
         "cloudwatch_log_group_name": "cloud_watch_log_group_name"
-    },
-    "cloudwatch_encryption_enabled": {
-        "cloud_watch_encryption_enabled"
     }
 }
 
@@ -105,6 +113,7 @@ class GeneratedBlock:
     label: str
     hcl: str                            # raw HCL for this resource block
     var_refs: list[str]                 # var.xxx names extracted from HCL
+    var_sources: dict[str, tuple[str, str]]
 
 @dataclass
 class GenerationResult:
@@ -982,6 +991,24 @@ Rules:
 def _extract_var_refs(hcl: str) -> list[str]:
     return sorted(set(re.findall(r"var\.([a-z0-9_]+)", hcl)))
 
+def _extract_var_sources(entity: str, hcl: str) -> dict[str, tuple[str, str]]:
+
+    result = defaultdict(list)
+
+    for line in hcl.splitlines():
+
+        m = re.match(r"\s*([A-Za-z0-9_]+)\s*=\s*var\.([A-Za-z0-9_]+)", line)
+
+        if not m:
+            continue
+
+        arg_name = m.group(1)
+        var_name = m.group(2)
+
+        result[var_name].append((entity, arg_name))
+
+    return dict(result)
+
 
 def generate_resource(query: str, node: ResourceNode, context: str, symbol_table: dict[str, str]) -> GeneratedBlock:
   
@@ -1064,10 +1091,33 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = _normalize_cidr_block_lists(raw)
     raw = _remove_fake_reference_segments(raw)
     raw = _normalize_attribute_aliases(raw)
+
+    #11 June
+    logger.info("RUNNING VALIDATOR FOR %s", node.entity)
+    findings = validate_resource(entity=node.entity, hcl=raw)
+    logger.info("VALIDATOR RETURNED %s FINDINGS FOR %s", len(findings), node.entity)
+
+    for finding in findings:
+        logger.info(
+            "SCHEMA FINDING "
+            "kind=%s "
+            "entity=%s "
+            "field=%s",
+            finding.kind,
+            finding.entity,
+            finding.field
+        )
+
+        SCHEMA_FINDING_COUNTS[finding.kind] += 1
+
+    #11 JUNE 
     raw = _remove_invalid_resource_types(raw)
+    raw = normalize_block_vs_argument(node.entity, raw)
 
     var_refs = _extract_var_refs(raw)
-    #symbol_table[node.entity] = (f"{node.entity}.{node.label}")
+    var_sources = _extract_var_sources(node.entity, raw)
+
+
     symbol_table[node.entity] = node.label
     logger.info("SYMBOL TABLE NOW=%s", symbol_table)
 
@@ -1076,12 +1126,7 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     logger.info("\n===== RAW MODEL OUTPUT =====\n%s\n============================", raw)
     logger.info("OUTPUT LENGTH=%s", len(raw))
 
-    return GeneratedBlock(
-        entity=node.entity,
-        label=node.label,
-        hcl=raw,
-        var_refs=var_refs,
-    )
+    return GeneratedBlock(entity=node.entity, label=node.label, hcl=raw, var_refs=var_refs, var_sources=var_sources)
 
 def generate_label(entity: str, existing: set[str]):
 
@@ -1241,13 +1286,13 @@ def _normalize_cidr_block_lists(terraform: str) -> str:
 
     for pattern in patterns:
 
-        hcl = re.sub(
+        terraform = re.sub(
             pattern,
             r'\1var.\2',
             terraform,
         )
 
-    return hcl
+    return terraform
 
 def _normalize_ecs_service_connect(entity: str, hcl: str) -> str:
     if entity != "aws_ecs_service":
@@ -1536,6 +1581,34 @@ _KNOWN_VARS: dict[str, tuple[str, str, str]] = {
     ),
 }
 
+def infer_variable_type_from_schema(sources):
+
+    candidate_types = []
+
+    for entity, arg in sources:
+
+        raw_type = find_argument_type(entity, arg)
+
+        hcl_type = terraform_type_to_hcl(raw_type)
+
+        if hcl_type:
+            candidate_types.append(hcl_type)
+
+    if not candidate_types:
+        return None
+    
+    logger.info("SCHEMA LOOKUP entity=%s arg=%s type=%s", entity, arg, candidate_types)
+
+    unique = set(candidate_types)
+
+    if len(unique) > 1:
+
+        logger.warning("VAR TYPE CONFLICT=%s", candidate_types)
+
+        return None
+
+    return candidate_types[0]
+
 def infer_variable_type(var_name: str) -> tuple[str, str | None]:
 
     logger.info("DISCOVERED VAR=%s", var_name)
@@ -1772,7 +1845,7 @@ def _normalize_lb_listener_forward(entity: str, hcl: str) -> str:
     if not ("forward {" in hcl and "target_group_arn =" in hcl):
         return hcl                     
 
-    pattern = r'forward\s*\{\s*target_group_arn\s*=\s*([^]+?)\s*\}'
+    pattern = r'forward\s*\{\s*target_group_arn\s*=\s*([^}]+?)\s*\}'
 
     return re.sub(pattern, r'target_group_arn = \1', hcl, flags=re.DOTALL)
 
@@ -1991,35 +2064,53 @@ def _fix_undeclared_data_references(terraform: str) -> str:
 
     return terraform
 
-def _generate_variables_tf(all_var_refs: list[str]) -> str:
+def _generate_variables_tf(all_var_refs: list[str], all_var_sources) -> str:
+
+    logger.info("Entered _generate_variables_tf")
+    logger.info("All_VAR_SOURCES=%s", all_var_sources)
+
     blocks: list[str] = []
 
     for var_name in sorted(set(all_var_refs)):
-        known = _KNOWN_VARS.get(var_name)
 
-        if known:
-            vtype, default, description = known
-            block = (
-                f'variable "{var_name}" {{\n'
-                f'  description = "{description}"\n'
-                f'  type        = {vtype}\n'
-                f'  default     = {default}\n'
-                f'}}'
+        source = all_var_sources.get(var_name)
+
+        schema_type = None
+
+        if source:
+            schema_type = infer_variable_type_from_schema(source)
+
+        if schema_type:
+
+            logger.info(
+                "SCHEMA TYPE %s -> %s",
+                var_name,
+                schema_type,
             )
+
+            inferred_type = schema_type
+            default = None
+
         else:
-            # Generic fallback for unknown variables
+
             inferred_type, default = infer_variable_type(var_name)
 
-            block = (
-                f'variable "{var_name}" {{\n'
-                f'  description = "TODO: describe {var_name}"\n'
-                f'  type        = {inferred_type}\n'
+            logger.info(
+                "HEURISTIC TYPE %s -> %s",
+                var_name,
+                inferred_type,
             )
 
-            if default is not None:
-                 block += (f'  default     = {default}\n')
+        block = (
+            f'variable "{var_name}" {{\n'
+            f'  description = "TODO: describe {var_name}"\n'
+            f'  type        = {inferred_type}\n'
+        )
 
-            block += "}"
+        if default is not None:
+            block += f'  default     = {default}\n'
+
+        block += "}"
 
         blocks.append(block)
 
@@ -2096,8 +2187,17 @@ def stitch(blocks: list[GeneratedBlock], plan: GenerationPlan) -> dict[str, str]
     """
     # Collect all variable references across all blocks
     all_vars: list[str] = []
+    all_var_sources = defaultdict(list)
+
     for block in blocks:
+
         all_vars.extend(block.var_refs)
+
+        for var_name, sources in block.var_sources.items():
+            all_var_sources[var_name].extend(sources)
+
+    all_var_sources = dict(all_var_sources)
+    logger.info("ALL VAR SOURCES=%s", all_var_sources)
 
     # Always include region and tags for providers.tf
     for essential in ("region", "tags", "environment", "project"):
@@ -2117,7 +2217,7 @@ def stitch(blocks: list[GeneratedBlock], plan: GenerationPlan) -> dict[str, str]
 
     return {
         "providers.tf":  _generate_providers_tf(),
-        "variables.tf":  _generate_variables_tf(all_vars),
+        "variables.tf":  _generate_variables_tf(all_vars, all_var_sources),
         "main.tf":       main_tf,
         "outputs.tf":    _generate_outputs_tf(blocks),
     }
@@ -2271,11 +2371,37 @@ def generate(query: str) -> GenerationResult:
 
     files["main.tf"] = main_tf
 
-    all_tf = "\n".join(files.values())
+    existing_vars = set(re.findall(r'variable\s+"([^"]+)"', files["variables.tf"]))
 
-    all_vars = sorted(set(re.findall(r"var\.([A-Za-z0-9_]+)", all_tf)))
+    logger.info("EXISTING VARS=%s", sorted(existing_vars))
 
-    files["variables.tf"] = _generate_variables_tf(all_vars)
+    current_refs = set(re.findall(r'var\.([A-Za-z0-9_]+)', files["main.tf"]))
+    
+    logger.info("CURRENT REFS=%s", sorted(current_refs))
+
+    missing = current_refs - existing_vars
+
+    logger.info("MISSING VARS=%s", sorted(missing))
+
+    if missing:
+
+        logger.warning("MISSING VARIABLE DECLARATIONS=%s", sorted(missing))
+
+        for var_name in sorted(missing):
+
+            var_type, default = infer_variable_type(var_name)
+
+            block = (
+                f'variable "{var_name}" {{\n'
+                f'  type = {var_type}\n'
+            )
+
+            if default is not None:
+                block += f'  default = {default}\n'
+
+            block += '}\n\n'
+
+            files["variables.tf"] += block
 
     # 4. Validate
     warnings = validate(files)
@@ -2299,6 +2425,13 @@ def print_result(result: GenerationResult) -> None:
             print(f"  ⚠  {w}")
 
     print("=" * 72)
+
+    logger.info("=" * 60)
+    logger.info("SCHEMA FINDING SUMMARY")
+    logger.info("=" * 60)
+
+    for k, v in SCHEMA_FINDING_COUNTS.items():
+        logger.info("%s = %s", k, v)
 
     for filename, content in result.files.items():
         print(f"\n{'-' * 30} {filename} {'-' * 30}\n")
