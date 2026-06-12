@@ -143,6 +143,62 @@ def required_blocks(entity: str) -> list[str]:
     r = get_resource_schema(entity) or {}
     return [name for name, b in r.get("blocks", {}).items() if b.get("min_items", 0) > 0]
 
+def required_arguments(entity: str, block_path: str | None = None):
+
+    schema = get_resource_schema(entity)
+
+    if not schema:
+        return []
+
+    node = schema
+
+    if block_path:
+
+        for part in block_path.split("."):
+
+            blocks = node.get("blocks", {})
+
+            if part not in blocks:
+                return []
+
+            node = blocks[part]
+
+    result = []
+
+    for arg_name, arg_schema in node.get("arguments", {}).items():
+
+        if arg_schema.get("required"):
+            result.append(arg_name)
+
+    return sorted(result)
+
+def argument_type(entity: str, block_path: str, arg_name: str):
+
+    schema = get_resource_schema(entity)
+
+    if not schema:
+        return None
+
+    node = schema
+
+    if block_path:
+
+        for part in block_path.split("."):
+
+            blocks = node.get("blocks", {})
+
+            if part not in blocks:
+                return None
+
+            node = blocks[part]
+
+    arg = node.get("arguments", {}).get(arg_name)
+
+    if not arg:
+        return None
+
+    return arg.get("type")
+
 def valid_attributes(entity: str) -> set[str]:
     """Return the set of valid exported attribute names for reference validation."""
     r = get_resource_schema(entity)
@@ -173,6 +229,50 @@ def tf_type_to_hcl(tf_type) -> str | None:
         if kind == "object":
             return "map(any)"
     return "any"
+
+def is_block_at_path(entity: str, block_path: str, field: str) -> bool:
+
+    schema = get_resource_schema(entity)
+
+    if not schema:
+        return False
+
+    node = schema
+
+    if block_path:
+
+        for part in block_path.split("."):
+
+            blocks = node.get("blocks", {})
+
+            if part not in blocks:
+                return False
+
+            node = blocks[part]
+
+    return field in node.get("blocks", {})
+
+def is_argument_at_path(entity: str, block_path: str, field: str) -> bool:
+
+    schema = get_resource_schema(entity)
+
+    if not schema:
+        return False
+
+    node = schema
+
+    if block_path:
+
+        for part in block_path.split("."):
+
+            blocks = node.get("blocks", {})
+
+            if part not in blocks:
+                return False
+
+            node = blocks[part]
+
+    return field in node.get("arguments", {})
 
 def print_conflict_summary():
 

@@ -37,24 +37,65 @@ def validate_resource(entity: str, hcl: str, generated_types: set[str] | None = 
     if not schema_index.available():
         return findings
 
-    # 1. BLOCK_AS_ARGUMENT: top-level fields assigned as scalars that are actually blocks
-    depth = 0
+    block_stack = []
+
     for line in hcl.splitlines():
+
         stripped = line.strip()
-        if depth == 1 and "{" not in stripped:
-            m = _ASSIGN.match(stripped)
-            if m:
-                field = m.group(1)
-                if schema_index.is_block(entity, field) and not schema_index.is_argument(entity, field):
-                    findings.append(Finding(
+
+        code = re.sub(
+            r'"(?:\\.|[^"\\])*"',
+            "",
+            stripped
+        )
+
+        opens = code.count("{")
+        closes = code.count("}")
+
+        m = _ASSIGN.match(stripped)
+
+        if m and "{" not in stripped:
+
+            field = m.group(1)
+
+            block_path = ".".join(block_stack)
+
+            logger.info("VALIDATOR CHECK path=%s field=%s", block_path, field)
+
+            if (schema_index.is_block_at_path(entity, block_path, field)
+                and
+                not schema_index.is_argument_at_path(entity, block_path, field)):
+
+                findings.append(
+                    Finding(
                         kind="BLOCK_AS_ARGUMENT",
                         entity=entity,
-                        field=field,
-                        detail=f"{field} is a nested block, not a scalar argument",
-                    ))
-        depth += line.count("{") - line.count("}")
+                        field=(
+                            f"{block_path}.{field}"
+                            if block_path
+                            else field
+                        ),
+                        detail=(
+                            f"{field} is a nested block, "
+                            f"not a scalar argument"
+                        ),
+                    )
+                )
 
-    logger.info("REQUIRED BLOCKS FOR %s = %s", entity, schema_index.required_blocks(entity))   
+        if (opens > closes and code.endswith("{") and "=" not in code):
+
+            block_name = code[:-1].strip()
+
+            if (block_name and not block_name.startswith("resource")):
+                block_stack.append(block_name)
+
+        net_closes = closes - opens
+
+        for _ in range(max(0, net_closes)):
+            if block_stack:
+                block_stack.pop()
+
+        logger.info("REQUIRED BLOCKS FOR %s = %s", entity, schema_index.required_blocks(entity))   
 
     # 2. MISSING_REQUIRED_BLOCK
     for block_name in schema_index.required_blocks(entity):

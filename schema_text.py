@@ -1,22 +1,16 @@
-from schema_index import find_argument_type
-from schema_typing import terraform_type_to_hcl
-from generator import infer_variable_type_from_schema
+from schema_index import required_arguments, argument_type
 
 print(
-    find_argument_type(
-        "aws_ecs_service",
-        "subnets",
+    required_arguments(
+        "aws_lb_listener",
+        "default_action"
     )
 )
 
 print(
-        terraform_type_to_hcl("string"),
-        terraform_type_to_hcl("number"),
-        terraform_type_to_hcl("bool"),
-        terraform_type_to_hcl(["list", "string"]),
-        terraform_type_to_hcl(["set", "string"]),
-        terraform_type_to_hcl(["map", "string"]),
-        terraform_type_to_hcl(["set", ["object", {...}]])
+    argument_type(
+        "aws_lb_listener",
+        "default_action",
+        "type"
+    )
 )
-
-print(infer_variable_type_from_schema("aws_lb"))

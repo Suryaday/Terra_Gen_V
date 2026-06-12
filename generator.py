@@ -1001,38 +1001,57 @@ def _extract_var_sources(entity: str, hcl: str):
 
         stripped = line.strip()
 
-        close_count = stripped.count("}")
+        code = re.sub(
+            r'"(?:\\.|[^"\\])*"',
+            "",
+            stripped
+        )
 
-        for _ in range(close_count):
+        opens = code.count("{")
+        closes = code.count("}")
+
+        m = re.match(
+            r"\s*([A-Za-z0-9_]+)\s*=\s*var\.([A-Za-z0-9_]+)",
+            line
+        )
+
+        if m:
+
+            arg_name = m.group(1)
+            var_name = m.group(2)
+
+            path = ".".join(block_stack + [arg_name])
+
+            result[var_name].append((entity, path))
+
+            logger.info(
+                "VAR SOURCE var=%s entity=%s path=%s",
+                var_name,
+                entity,
+                path
+            )
+
+        if (
+            opens > closes
+            and code.endswith("{")
+            and "=" not in code
+        ):
+
+            block_name = code[:-1].strip()
+
+            if (
+                block_name
+                and not block_name.startswith("resource")
+            ):
+                block_stack.append(block_name)
+
+        net_closes = closes - opens
+
+        for _ in range(max(0, net_closes)):
             if block_stack:
                 block_stack.pop()
 
-
-        if (stripped.endswith("{") and "=" not in stripped):
-
-            block_name = stripped[:-1].strip()
-
-            if block_name and not block_name.startswith("resource"):
-                block_stack.append(block_name)
-
-            continue
-
-        m = re.match(r"\s*([A-Za-z0-9_]+)\s*=\s*var\.([A-Za-z0-9_]+)", line)
-
-        if not m:
-            continue
-
-        arg_name = m.group(1)
-        var_name = m.group(2)
-
-        path = ".".join(block_stack + [arg_name])
-
-        result[var_name].append((entity, path))
-
-        logger.info("VAR SOURCE var=%s entity=%s path=%s", var_name, entity, path)
-
     return dict(result)
-
 
 def generate_resource(query: str, node: ResourceNode, context: str, symbol_table: dict[str, str], generated_types) -> GeneratedBlock:
   

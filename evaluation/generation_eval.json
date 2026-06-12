@@ -10,18 +10,157 @@
       "aws_subnet"
     ]
   },
-
   {
-    "query": "ecs fargate service behind alb",
+    "query": "rest api gateway with lambda backend",
     "required_resources": [
-      "aws_ecs_service",
-      "aws_ecs_task_definition",
-      "aws_ecs_cluster",
-      "aws_lb",
-      "aws_lb_target_group",
-      "aws_lb_listener",
-      "aws_security_group",
+      "aws_api_gateway_rest_api",
+      "aws_lambda_function",
+      "aws_lambda_permission",
       "aws_iam_role"
+    ]
+  },
+  {
+    "query": "cloudwatch log group with 30 day retention",
+    "required_resources": [
+      "aws_cloudwatch_log_group"
+    ]
+  },
+  {
+    "query": "elasticache redis cluster",
+    "required_resources": [
+      "aws_elasticache_cluster",
+      "aws_elasticache_subnet_group",
+      "aws_security_group",
+      "aws_subnet",
+      "aws_vpc"
+    ]
+  },
+  {
+    "query": "efs file system with mount target",
+    "required_resources": [
+      "aws_efs_file_system",
+      "aws_efs_mount_target",
+      "aws_security_group",
+      "aws_subnet",
+      "aws_vpc"
+    ]
+  },
+  {
+    "query": "secrets manager secret with version",
+    "required_resources": [
+      "aws_secretsmanager_secret",
+      "aws_secretsmanager_secret_version"
+    ]
+  },
+  {
+    "query": "step function state machine",
+    "required_resources": [
+      "aws_sfn_state_machine",
+      "aws_iam_role"
+    ]
+  },
+  {
+    "query": "cloudwatch metric alarm for ec2 cpu",
+    "required_resources": [
+      "aws_cloudwatch_metric_alarm",
+      "aws_instance"
+    ]
+  },
+  {
+    "query": "ec2 autoscaling group with launch template",
+    "required_resources": [
+      "aws_autoscaling_group",
+      "aws_launch_template",
+      "aws_security_group",
+      "aws_vpc",
+      "aws_subnet"
+    ]
+  },
+  {
+    "query": "rds postgres with read replica",
+    "required_resources": [
+      "aws_db_instance",
+      "aws_db_subnet_group",
+      "aws_security_group",
+      "aws_subnet",
+      "aws_vpc"
+    ]
+  },
+  {
+    "query": "s3 static website hosting",
+    "required_resources": [
+      "aws_s3_bucket",
+      "aws_s3_bucket_website_configuration",
+      "aws_s3_bucket_policy"
+    ]
+  },
+  {
+    "query": "waf web acl for cloudfront",
+    "required_resources": [
+      "aws_wafv2_web_acl",
+      "aws_cloudfront_distribution"
+    ]
+  },
+  {
+    "query": "transit gateway with vpc attachment",
+    "required_resources": [
+      "aws_ec2_transit_gateway",
+      "aws_ec2_transit_gateway_vpc_attachment",
+      "aws_vpc",
+      "aws_subnet"
+    ]
+  },
+  {
+    "query": "iam user with inline policy",
+    "required_resources": [
+      "aws_iam_user",
+      "aws_iam_user_policy"
+    ]
+  },
+  {
+    "query": "ecr repository with lifecycle policy",
+    "required_resources": [
+      "aws_ecr_repository",
+      "aws_ecr_lifecycle_policy"
+    ]
+  },
+  {
+    "query": "dynamodb table with global secondary index",
+    "required_resources": [
+      "aws_dynamodb_table"
+    ]
+  },
+  {
+    "query": "vpc endpoint for s3",
+    "required_resources": [
+      "aws_vpc_endpoint",
+      "aws_vpc"
+    ]
+  },
+  {
+    "query": "kinesis data stream",
+    "required_resources": [
+      "aws_kinesis_stream"
+    ]
+  },
+  {
+    "query": "scheduled lambda with eventbridge cron",
+    "required_resources": [
+      "aws_cloudwatch_event_rule",
+      "aws_cloudwatch_event_target",
+      "aws_lambda_function",
+      "aws_lambda_permission",
+      "aws_iam_role"
+    ]
+  },
+  {
+    "query": "vpc with public and private subnets",
+    "required_resources": [
+      "aws_vpc",
+      "aws_subnet",
+      "aws_internet_gateway",
+      "aws_route_table",
+      "aws_route_table_association"
     ]
   }
 ]

@@ -2,4 +2,660 @@
 GENERATION FAILURES
 ====================================================================================================
 
-No failures.
+====================================================================================================
+QUERY:
+rest api gateway with lambda backend
+
+MISSING:
+  - aws_api_gateway_rest_api
+
+GENERATED:
+  - aws_apigatewayv2_api
+  - aws_apigatewayv2_integration
+  - aws_apigatewayv2_stage
+  - aws_iam_policy
+  - aws_iam_role
+  - aws_iam_role_policy
+  - aws_iam_role_policy_attachment
+  - aws_lambda_function
+  - aws_lambda_permission
+
+MAIN.TF:
+
+# aws_apigatewayv2_api
+resource "aws_apigatewayv2_api" "apigatewayv2_api" {
+  name          = var.api_name
+  protocol_type = "HTTP"
+  tags          = var.tags
+}
+
+# aws_apigatewayv2_stage
+resource "aws_apigatewayv2_stage" "apigatewayv2_stage" {
+  api_id = aws_apigatewayv2_api.apigatewayv2_api.id
+  name   = var.stage_name
+
+  auto_deploy = true
+
+  access_log_settings {
+    destination_arn = var.access_log_destination_arn
+    format          = var.access_log_format
+  }
+
+  tags = var.tags
+}
+
+# aws_apigatewayv2_integration
+resource "aws_apigatewayv2_integration" "apigatewayv2_integration" {
+  api_id                = var.api_id
+  integration_type      = "AWS_PROXY"
+  connection_type       = "INTERNET"
+  integration_method    = "POST"
+  integration_uri       = var.integration_uri
+  passthrough_behavior  = "WHEN_NO_MATCH"
+}
+
+# aws_iam_role
+resource "aws_iam_role" "iam_role" {
+  name = var.iam_role_name
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Sid = ""
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
+# aws_iam_policy
+resource "aws_iam_policy" "iam_policy" {
+  name        = var.iam_policy_name
+  description = var.iam_policy_description
+  path        = var.iam_policy_path
+  policy      = var.iam_policy_document
+  tags        = var.tags
+}
+
+# aws_lambda_permission
+resource "aws_lambda_permission" "lambda_permission" {
+  statement_id  = var.lambda_permission_statement_id
+  action        = "lambda:InvokeFunction"
+  function_name = var.lambda_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${var.api_gateway_rest_api_execution_arn}/*"
+}
+
+# aws_lambda_function
+resource "aws_lambda_function" "lambda_function" {
+  function_name = var.function_name
+  role          = aws_iam_role.iam_role.arn
+  handler       = var.handler
+  runtime       = var.runtime
+  filename      = var.filename
+
+  environment {
+    variables = var.environment_variables
+  }
+
+  tags = var.tags
+}
+
+# aws_iam_role_policy
+resource "aws_iam_role_policy" "iam_role_policy" {
+  name = var.iam_role_policy_name
+  role = aws_iam_role.iam_role.name
+  policy = var.iam_role_policy_document
+}
+
+# aws_iam_role_policy_attachment
+resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment" {
+  role       = aws_iam_role.iam_role.name
+  policy_arn = var.policy_arn
+}
+
+
+====================================================================================================
+QUERY:
+cloudwatch metric alarm for ec2 cpu
+
+MISSING:
+  - aws_instance
+
+GENERATED:
+  - aws_cloudwatch_log_group
+  - aws_cloudwatch_metric_alarm
+
+MAIN.TF:
+
+# aws_cloudwatch_metric_alarm
+resource "aws_cloudwatch_metric_alarm" "cloudwatch_metric_alarm" {
+  alarm_name          = var.alarm_name
+  comparison_operator = var.comparison_operator
+  evaluation_periods  = var.evaluation_periods
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = var.period
+  statistic           = var.statistic
+  threshold           = var.threshold
+  alarm_description   = var.alarm_description
+  dimensions = {
+    InstanceId = var.instance_id
+  }
+  insufficient_data_actions = var.insufficient_data_actions
+  alarm_actions             = var.alarm_actions
+  ok_actions                = var.ok_actions
+  actions_enabled           = var.actions_enabled
+  unit                      = var.unit
+  tags                      = var.tags
+}
+
+# aws_cloudwatch_log_group
+resource "aws_cloudwatch_log_group" "cloudwatch_log_group" {
+  name = var.cloudwatch_log_group_name
+
+  tags = var.tags
+}
+
+
+====================================================================================================
+QUERY:
+ec2 autoscaling group with launch template
+
+MISSING:
+
+GENERATED:
+  - aws_autoscaling_group
+  - aws_autoscaling_policy
+  - aws_iam_instance_profile
+  - aws_iam_role
+  - aws_launch_template
+  - aws_security_group
+  - aws_subnet
+  - aws_vpc
+
+TERRAFORM ERROR:
+
+terraform validate failed:
+
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mInsufficient metric_data_queries blocks[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 129, in resource "aws_autoscaling_policy" "autoscaling_policy":
+[31mâ”‚[0m [0m 129:       customized_scaling_metric_specification [4m{[0m[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mAt least 1 "metric_data_queries" blocks are required.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 130, in resource "aws_autoscaling_policy" "autoscaling_policy":
+[31mâ”‚[0m [0m 130:         [4mmetric_data_queries[0m = var.metric_data_queries[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mAn argument named "metric_data_queries" is not expected here. Did you mean
+[31mâ”‚[0m [0mto define a block of type "metric_data_queries"?
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 148, in resource "aws_autoscaling_policy" "autoscaling_policy":
+[31mâ”‚[0m [0m 148:       [4mmetric_dimension[0m = var.metric_dimension[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mAn argument named "metric_dimension" is not expected here. Did you mean to
+[31mâ”‚[0m [0mdefine a block of type "metric_dimension"?
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 154, in resource "aws_autoscaling_policy" "autoscaling_policy":
+[31mâ”‚[0m [0m 154:       [4mmetrics[0m          = var.metrics[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0mAn argument named "metrics" is not expected here. Did you mean to define a
+[31mâ”‚[0m [0mblock of type "metrics"?
+[31mâ•µ[0m[0m
+
+
+MAIN.TF:
+
+# aws_iam_role
+resource "aws_iam_role" "iam_role" {
+  assume_role_policy = var.assume_role_policy
+  name               = var.name
+  path               = var.path
+  description        = var.description
+  force_detach_policies = var.force_detach_policies
+  max_session_duration  = var.max_session_duration
+  permissions_boundary  = var.permissions_boundary
+  tags                 = var.tags
+}
+
+# aws_vpc
+resource "aws_vpc" "vpc" {
+  cidr_block = var.cidr_block
+
+  enable_dns_support              = var.enable_dns_support
+  enable_dns_hostnames            = var.enable_dns_hostnames
+  enable_network_address_usage_metrics = var.enable_network_address_usage_metrics
+  instance_tenancy              = var.instance_tenancy
+
+  tags = var.tags
+}
+
+# aws_iam_instance_profile
+resource "aws_iam_instance_profile" "iam_instance_profile" {
+  name = var.iam_instance_profile_name
+  role = aws_iam_role.iam_role.name
+  path = var.iam_instance_profile_path
+  tags = var.iam_instance_profile_tags
+}
+
+# aws_subnet
+resource "aws_subnet" "subnet" {
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = var.subnet_cidr_block
+
+  tags = var.tags
+}
+
+# aws_security_group
+resource "aws_security_group" "security_group" {
+  name        = var.security_group_name
+  description = var.security_group_description
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress {
+    from_port   = var.ingress_from_port
+    to_port     = var.ingress_to_port
+    protocol    = var.ingress_protocol
+    cidr_blocks = var.ingress_cidr_blocks
+  }
+
+  egress {
+    from_port   = var.egress_from_port
+    to_port     = var.egress_to_port
+    protocol    = var.egress_protocol
+    cidr_blocks = var.egress_cidr_blocks
+  }
+
+  tags = var.tags
+}
+
+# aws_launch_template
+resource "aws_launch_template" "launch_template" {
+  name = var.launch_template_name
+
+  image_id      = var.ami_id
+  instance_type = var.instance_type
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.iam_instance_profile.name
+  }
+
+  network_interfaces {
+    security_groups = [aws_security_group.security_group.id]
+    subnet_id       = aws_subnet.subnet.id
+    associate_public_ip_address = var.associate_public_ip_address
+    delete_on_termination        = true
+    device_index                = 0
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags          = var.tags
+  }
+}
+
+# aws_autoscaling_group
+resource "aws_autoscaling_group" "autoscaling_group" {
+  max_size = var.max_size
+  min_size = var.min_size
+
+  launch_template {
+    id      = aws_launch_template.launch_template.id
+    version = var.launch_template_version
+  }
+}
+
+# aws_autoscaling_policy
+resource "aws_autoscaling_policy" "autoscaling_policy" {
+  name                   = var.policy_name
+  autoscaling_group_name = aws_autoscaling_group.autoscaling_group.name
+  adjustment_type        = var.adjustment_type
+  policy_type            = var.policy_type
+  estimated_instance_warmup = var.estimated_instance_warmup
+  enabled                = var.enabled
+
+  cooldown               = var.cooldown
+  scaling_adjustment     = var.scaling_adjustment
+  min_adjustment_magnitude = var.min_adjustment_magnitude
+
+  metric_aggregation_type = var.metric_aggregation_type
+
+  predictive_scaling_configuration {
+    max_capacity_breach_behavior = var.max_capacity_breach_behavior
+    max_capacity_buffer          = var.max_capacity_buffer
+    mode                        = var.mode
+    scheduling_buffer_time      = var.scheduling_buffer_time
+
+    metric_specification {
+      target_value = var.target_value
+
+      predefined_load_metric_specification {
+        predefined_metric_type = var.predefined_metric_type
+        resource_label        = var.resource_label
+      }
+
+      customized_scaling_metric_specification {
+        metric_data_queries = var.metric_data_queries
+      }
+    }
+  }
+
+  step_adjustment {
+    scaling_adjustment          = var.step_scaling_adjustment
+    metric_interval_lower_bound = var.metric_interval_lower_bound
+    metric_interval_upper_bound = var.metric_interval_upper_bound
+  }
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = var.predefined_metric_type
+      resource_label        = var.resource_label
+    }
+
+    customized_metric_specification {
+      metric_dimension = var.metric_dimension
+      metric_name      = var.metric_name
+      namespace        = var.namespace
+      period           = var.period
+      statistic        = var.statistic
+      unit             = var.unit
+      metrics          = var.metrics
+    }
+
+    target_value     = var.target_value
+    disable_scale_in = var.disable_scale_in
+  }
+}
+
+
+====================================================================================================
+QUERY:
+waf web acl for cloudfront
+
+MISSING:
+  - aws_cloudfront_distribution
+  - aws_wafv2_web_acl
+
+GENERATED:
+  - aws_waf_byte_match_set
+  - aws_waf_rate_based_rule
+  - aws_waf_regex_match_set
+  - aws_waf_regex_pattern_set
+  - aws_waf_rule_group
+  - aws_waf_web_acl
+
+TERRAFORM ERROR:
+
+terraform validate failed:
+
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mInvalid dynamic for_each value[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 11, in resource "aws_waf_web_acl" "waf_web_acl":
+[31mâ”‚[0m [0m  11:     for_each = [4mvar.rules[0m[0m
+[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
+[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.rules[0m is a string
+[31mâ”‚[0m [0m[0m
+[31mâ”‚[0m [0mCannot use a string value in for_each. An iterable collection is required.
+[31mâ•µ[0m[0m
+[31mâ•·[0m[0m
+[31mâ”‚[0m [0m[1m[31mError: [0m[0m[1mInvalid dynamic for_each value[0m
+[31mâ”‚[0m [0m
+[31mâ”‚[0m [0m[0m  on main.tf line 29, in resource "aws_waf_web_acl" "waf_web_acl":
+[31mâ”‚[0m [0m  29:       for_each = [4mvar.redacted_fields[0m[0m
+[31mâ”‚[0m [0m    [90mâ”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[0m
+[31mâ”‚[0m [0m[0m    [90mâ”‚[0m [1mvar.redacted_fields[0m is a string
+[31mâ”‚[0m [0m[0m
+[31mâ”‚[0m [0mCannot use a string value in for_each. An iterable collection is required.
+[31mâ•µ[0m[0m
+
+
+MAIN.TF:
+
+# aws_waf_web_acl
+resource "aws_waf_web_acl" "waf_web_acl" {
+  name        = var.name
+  metric_name = var.metric_name
+
+  default_action {
+    type = var.default_action_type
+  }
+
+  dynamic "rules" {
+    for_each = var.rules
+    content {
+      priority = rules.value.priority
+      rule_id  = rules.value.rule_id
+      action {
+        type = rules.value.action_type
+      }
+      type = lookup(rules.value, "type", null)
+      override_action {
+        type = lookup(rules.value.override_action, "type", null)
+      }
+    }
+  }
+
+  logging_configuration {
+    log_destination = var.log_destination
+
+    dynamic "redacted_fields" {
+      for_each = var.redacted_fields
+      content {
+        field_to_match {
+          type = redacted_fields.value.field_to_match.type
+          data = lookup(redacted_fields.value.field_to_match, "data", null)
+        }
+      }
+    }
+  }
+
+  tags = var.tags
+}
+
+# aws_waf_rule_group
+resource "aws_waf_rule_group" "waf_rule_group" {
+  metric_name = var.metric_name
+  name        = var.name
+
+  activated_rule {
+    action {
+      type = var.activated_rule_action_type
+    }
+    priority = var.activated_rule_priority
+    rule_id  = var.activated_rule_rule_id
+    type     = var.activated_rule_type
+  }
+
+  tags = var.tags
+}
+
+# aws_waf_regex_pattern_set
+resource "aws_waf_regex_pattern_set" "waf_regex_pattern_set" {
+  name                  = var.name
+  regex_pattern_strings = var.regex_pattern_strings
+}
+
+# aws_waf_byte_match_set
+resource "aws_waf_byte_match_set" "waf_byte_match_set" {
+  name = var.byte_match_set_name
+
+  byte_match_tuples {
+    text_transformation   = var.text_transformation
+    target_string         = var.target_string
+    positional_constraint = var.positional_constraint
+
+    field_to_match {
+      type = var.field_to_match_type
+      data = var.field_to_match_data
+    }
+  }
+}
+
+# aws_waf_rate_based_rule
+resource "aws_waf_rate_based_rule" "waf_rate_based_rule" {
+  name        = var.name
+  metric_name = var.metric_name
+  rate_key    = "IP"
+  rate_limit  = var.rate_limit
+
+  predicates {
+    data_id = var.data_id
+    negated = var.negated
+    type    = var.type
+  }
+
+  tags = var.tags
+}
+
+# aws_waf_regex_match_set
+resource "aws_waf_regex_match_set" "waf_regex_match_set" {
+  name = var.regex_match_set_name
+
+  regex_match_tuple {
+    field_to_match {
+      type = var.field_to_match_type
+      data = var.field_to_match_data
+    }
+
+    regex_pattern_set_id = aws_waf_regex_pattern_set.waf_regex_pattern_set.id
+    text_transformation  = var.text_transformation
+  }
+}
+
+
+====================================================================================================
+QUERY:
+transit gateway with vpc attachment
+
+MISSING:
+  - aws_ec2_transit_gateway_vpc_attachment
+
+GENERATED:
+  - aws_ec2_transit_gateway
+  - aws_route
+  - aws_route_table
+  - aws_subnet
+  - aws_vpc
+
+MAIN.TF:
+
+# aws_ec2_transit_gateway
+resource "aws_ec2_transit_gateway" "ec2_transit_gateway" {
+  amazon_side_asn               = var.amazon_side_asn
+  auto_accept_shared_attachments = var.auto_accept_shared_attachments
+  default_route_table_association = var.default_route_table_association
+  default_route_table_propagation = var.default_route_table_propagation
+  description                   = var.description
+  dns_support                  = var.dns_support
+  encryption_support           = var.encryption_support
+  security_group_referencing_support = var.security_group_referencing_support
+  multicast_support            = var.multicast_support
+  tags                        = var.tags
+  transit_gateway_cidr_blocks  = var.transit_gateway_cidr_blocks
+  vpn_ecmp_support             = var.vpn_ecmp_support
+  region                      = var.region
+}
+
+# aws_vpc
+resource "aws_vpc" "vpc" {
+  cidr_block = var.cidr_block
+  enable_dns_support = true
+  enable_dns_hostnames = var.enable_dns_hostnames
+  enable_network_address_usage_metrics = var.enable_network_address_usage_metrics
+  instance_tenancy = var.instance_tenancy
+  tags = var.tags
+}
+
+# aws_route_table
+resource "aws_route_table" "route_table" {
+  vpc_id = aws_vpc.vpc.id
+
+  route {
+    cidr_block         = var.transit_gateway_cidr_block
+    transit_gateway_id = aws_ec2_transit_gateway.ec2_transit_gateway.id
+  }
+
+  tags = var.tags
+}
+
+# aws_subnet
+resource "aws_subnet" "subnet" {
+  vpc_id = aws_vpc.vpc.id
+  cidr_block = var.cidr_block
+  availability_zone = var.availability_zone
+  assign_ipv6_address_on_creation = false
+  enable_dns64 = false
+  enable_resource_name_dns_aaaa_record_on_launch = false
+  enable_resource_name_dns_a_record_on_launch = false
+  ipv6_native = false
+  map_public_ip_on_launch = false
+  private_dns_hostname_type_on_launch = var.private_dns_hostname_type_on_launch
+  tags = var.tags
+}
+
+# aws_route
+resource "aws_route" "route" {
+  route_table_id         = aws_route_table.route_table.id
+  destination_cidr_block = var.destination_cidr_block
+  transit_gateway_id     = aws_ec2_transit_gateway.ec2_transit_gateway.id
+}
+
+
+====================================================================================================
+QUERY:
+iam user with inline policy
+
+MISSING:
+  - aws_iam_user_policy
+
+GENERATED:
+  - aws_iam_policy
+  - aws_iam_user
+  - aws_iam_user_policy_attachment
+
+MAIN.TF:
+
+# aws_iam_user
+resource "aws_iam_user" "iam_user" {
+  name = var.iam_user_name
+  path = var.iam_user_path
+  permissions_boundary = var.iam_user_permissions_boundary
+  force_destroy = var.iam_user_force_destroy
+  tags = var.iam_user_tags
+}
+
+# aws_iam_policy
+resource "aws_iam_policy" "iam_policy" {
+  name   = var.iam_policy_name
+  policy = var.iam_policy_document
+  path   = var.iam_policy_path
+  description = var.iam_policy_description
+  tags   = var.tags
+}
+
+# aws_iam_user_policy_attachment
+resource "aws_iam_user_policy_attachment" "iam_user_policy_attachment" {
+  user       = aws_iam_user.iam_user.name
+  policy_arn = aws_iam_policy.iam_policy.arn
+}
+
+
