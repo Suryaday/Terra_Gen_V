@@ -129,6 +129,15 @@ def get_nested_argument_type(entity: str, block_path: str, field: str):
     arg = node.get("arguments", {}).get(field)
     return arg.get("type") if arg else None
 
+def find_argument_type_by_path(entity: str, path: str):
+
+    if "." not in path:
+        return get_argument_type(entity, path)
+
+    block_path, _, field = path.rpartition(".")
+
+    return get_nested_argument_type(entity, block_path, field)
+
 def required_blocks(entity: str) -> list[str]:
     """Return names of top-level blocks where min_items > 0."""
     r = get_resource_schema(entity) or {}

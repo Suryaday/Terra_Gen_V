@@ -33,7 +33,7 @@ from retrieval_types import RetrievalResult
 from context_builder import build_xml_context
 
 from schema_normalizer import normalize_block_vs_argument
-from schema_index import find_argument_type
+from schema_index import (find_argument_type, find_argument_type_by_path)
 from schema_typing import terraform_type_to_hcl
 from schema_validator import validate_resource
 from schema_index import print_conflict_summary
@@ -991,11 +991,31 @@ Rules:
 def _extract_var_refs(hcl: str) -> list[str]:
     return sorted(set(re.findall(r"var\.([a-z0-9_]+)", hcl)))
 
-def _extract_var_sources(entity: str, hcl: str) -> dict[str, tuple[str, str]]:
+def _extract_var_sources(entity: str, hcl: str):
 
     result = defaultdict(list)
 
+    block_stack = []
+
     for line in hcl.splitlines():
+
+        stripped = line.strip()
+
+        close_count = stripped.count("}")
+
+        for _ in range(close_count):
+            if block_stack:
+                block_stack.pop()
+
+
+        if (stripped.endswith("{") and "=" not in stripped):
+
+            block_name = stripped[:-1].strip()
+
+            if block_name and not block_name.startswith("resource"):
+                block_stack.append(block_name)
+
+            continue
 
         m = re.match(r"\s*([A-Za-z0-9_]+)\s*=\s*var\.([A-Za-z0-9_]+)", line)
 
@@ -1005,7 +1025,11 @@ def _extract_var_sources(entity: str, hcl: str) -> dict[str, tuple[str, str]]:
         arg_name = m.group(1)
         var_name = m.group(2)
 
-        result[var_name].append((entity, arg_name))
+        path = ".".join(block_stack + [arg_name])
+
+        result[var_name].append((entity, path))
+
+        logger.info("VAR SOURCE var=%s entity=%s path=%s", var_name, entity, path)
 
     return dict(result)
 
@@ -1588,9 +1612,9 @@ def infer_variable_type_from_schema(sources):
 
     candidate_types = []
 
-    for entity, arg in sources:
+    for entity, path in sources:
 
-        raw_type = find_argument_type(entity, arg)
+        raw_type = find_argument_type_by_path(entity, path)
 
         hcl_type = terraform_type_to_hcl(raw_type)
 
@@ -1600,7 +1624,7 @@ def infer_variable_type_from_schema(sources):
     if not candidate_types:
         return None
     
-    logger.info("SCHEMA LOOKUP entity=%s arg=%s type=%s", entity, arg, candidate_types)
+    logger.info("SCHEMA LOOKUP entity=%s arg=%s type=%s", entity, path, candidate_types)
 
     unique = set(candidate_types)
 
