@@ -77,7 +77,7 @@ def infer_variable_type_from_schema(entity: str, arg_name: str, var_name: str) -
             return (schema_type, None)
         # else fall back to infer_variable_type(var_name)
     """
-    tf_type = schema_index.get_argument_type(entity, arg_name)
+    tf_type = schema_index.find_argument_type(entity, arg_name)
     if tf_type is None:
         return None
     return schema_index.tf_type_to_hcl(tf_type)

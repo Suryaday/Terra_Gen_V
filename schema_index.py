@@ -17,8 +17,11 @@ import json
 import logging
 import os
 from pathlib import Path
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
+
+SCHEMA_CONFLICTS = defaultdict(set)
 
 _SCHEMA_PATH = Path(os.getenv("RESOURCE_SCHEMA_FILE", "schema/resource_schema.json"))
 
@@ -95,6 +98,8 @@ def find_argument_type(resource: str, arg_name: str):
 
     if len(unique) > 1:
 
+        SCHEMA_CONFLICTS[resource].add(arg_name)
+
         logger.warning(
             "SCHEMA TYPE CONFLICT "
             "resource=%s arg=%s "
@@ -159,3 +164,17 @@ def tf_type_to_hcl(tf_type) -> str | None:
         if kind == "object":
             return "map(any)"
     return "any"
+
+def print_conflict_summary():
+
+    if not SCHEMA_CONFLICTS:
+        logger.info("SCHEMA CONFLICT SUMMARY={} ")
+        return
+
+    logger.info(
+        "SCHEMA CONFLICT SUMMARY=%s",
+        {
+            k: sorted(v)
+            for k, v in SCHEMA_CONFLICTS.items()
+        }
+    )

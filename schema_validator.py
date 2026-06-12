@@ -54,6 +54,8 @@ def validate_resource(entity: str, hcl: str, generated_types: set[str] | None = 
                     ))
         depth += line.count("{") - line.count("}")
 
+    logger.info("REQUIRED BLOCKS FOR %s = %s", entity, schema_index.required_blocks(entity))   
+
     # 2. MISSING_REQUIRED_BLOCK
     for block_name in schema_index.required_blocks(entity):
         if not re.search(rf"\b{re.escape(block_name)}\s*\{{", hcl):
@@ -66,12 +68,19 @@ def validate_resource(entity: str, hcl: str, generated_types: set[str] | None = 
 
     # 3. INVALID_ATTRIBUTE_REF (only if generated_types provided)
     if generated_types:
-        for rtype, label, attr in re.findall(
-            r"\b(aws_[a-z0-9_]+)\.([a-z0-9_]+)\.([a-z0-9_]+)", hcl
-        ):
+
+        logger.info("VALIDATING ATTR REFS entity=%s generated_types=%s", entity, len(generated_types))
+
+        for rtype, label, attr in re.findall(r"\b(aws_[a-z0-9_]+)\.([a-z0-9_]+)\.([a-z0-9_]+)", hcl):
+            
+            logger.info("ATTR REF %s.%s.%s", rtype, label, attr)
+
             if rtype not in generated_types:
                 continue
             valid = schema_index.valid_attributes(rtype)
+
+            logger.info("VALID ATTRS FOR %s = %s", rtype, sorted(list(valid))[:15])
+            
             if valid and attr not in valid:
                 findings.append(Finding(
                     kind="INVALID_ATTRIBUTE_REF",

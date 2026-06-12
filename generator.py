@@ -36,7 +36,7 @@ from schema_normalizer import normalize_block_vs_argument
 from schema_index import find_argument_type
 from schema_typing import terraform_type_to_hcl
 from schema_validator import validate_resource
-
+from schema_index import print_conflict_summary
 ###########################################################################################################
 
 load_dotenv()
@@ -1010,7 +1010,7 @@ def _extract_var_sources(entity: str, hcl: str) -> dict[str, tuple[str, str]]:
     return dict(result)
 
 
-def generate_resource(query: str, node: ResourceNode, context: str, symbol_table: dict[str, str]) -> GeneratedBlock:
+def generate_resource(query: str, node: ResourceNode, context: str, symbol_table: dict[str, str], generated_types) -> GeneratedBlock:
   
     client = _get_client()
 
@@ -1094,7 +1094,10 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
 
     #11 June
     logger.info("RUNNING VALIDATOR FOR %s", node.entity)
-    findings = validate_resource(entity=node.entity, hcl=raw)
+    #findings = validate_resource(entity=node.entity, hcl=raw)
+
+    findings = validate_resource(entity=node.entity, hcl=raw, generated_types=generated_types)
+
     logger.info("VALIDATOR RETURNED %s FINDINGS FOR %s", len(findings), node.entity)
 
     for finding in findings:
@@ -2069,6 +2072,9 @@ def _generate_variables_tf(all_var_refs: list[str], all_var_sources) -> str:
     logger.info("Entered _generate_variables_tf")
     logger.info("All_VAR_SOURCES=%s", all_var_sources)
 
+    schema_hits = 0
+    heuristic_hits = 0
+
     blocks: list[str] = []
 
     for var_name in sorted(set(all_var_refs)):
@@ -2081,25 +2087,19 @@ def _generate_variables_tf(all_var_refs: list[str], all_var_sources) -> str:
             schema_type = infer_variable_type_from_schema(source)
 
         if schema_type:
+            schema_hits += 1
 
-            logger.info(
-                "SCHEMA TYPE %s -> %s",
-                var_name,
-                schema_type,
-            )
+            logger.info("SCHEMA TYPE %s -> %s", var_name, schema_type)
 
             inferred_type = schema_type
             default = None
-
+            
         else:
+            heuristic_hits += 1
 
             inferred_type, default = infer_variable_type(var_name)
 
-            logger.info(
-                "HEURISTIC TYPE %s -> %s",
-                var_name,
-                inferred_type,
-            )
+            logger.info("HEURISTIC TYPE %s -> %s", var_name, inferred_type)
 
         block = (
             f'variable "{var_name}" {{\n'
@@ -2113,7 +2113,10 @@ def _generate_variables_tf(all_var_refs: list[str], all_var_sources) -> str:
         block += "}"
 
         blocks.append(block)
-
+    
+    total = schema_hits + heuristic_hits
+    pct = (schema_hits*100/total if total else 0)
+    logger.info("TYPE COVERAGE schema=%s heuristic=%s pct=%.1f%%", schema_hits, heuristic_hits, pct)
     return "\n\n".join(blocks) + "\n" if blocks else "# No variables required\n"
 
 
@@ -2353,9 +2356,10 @@ def generate(query: str) -> GenerationResult:
     symbol_table: dict[str, str] = {}
     blocks: list[GeneratedBlock] = []
 
+    generated_types = {node.entity for node in plan.ordered_nodes}
     for node in plan.ordered_nodes:
         context = assemble_context(query=query, node=node, symbol_table=symbol_table, global_rows=global_rows)
-        block = generate_resource(query, node, context, symbol_table)
+        block = generate_resource(query, node, context, symbol_table, generated_types=generated_types)
         blocks.append(block)
 
     # 3. Stitch into files
@@ -2409,6 +2413,7 @@ def generate(query: str) -> GenerationResult:
         for w in warnings:
             logger.warning("Validation: %s", w)
 
+    print_conflict_summary()
     return GenerationResult(query=query, plan=plan, files=files, warnings=warnings)
 
 
