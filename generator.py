@@ -371,6 +371,40 @@ def remove_conflicting_entities(entities: list[str], query: str) -> list[str]:
         if removed:
             logger.info("REMOVED ECS/EC2 CONFLICT ENTITIES=%s", sorted(removed))
 
+    ec2_autoscaling_present = (
+            "aws_autoscaling_group" in entities
+            or
+            "aws_launch_template" in entities
+        )
+
+    ecs_intent = any(
+            signal in q
+            for signal in (
+                "ecs",
+                "fargate",
+                "capacity provider",
+                "ecs service",
+                "ecs cluster",
+            )
+        )
+
+    if ec2_autoscaling_present and not ecs_intent:
+
+            forbidden = {
+                "aws_appautoscaling_target",
+                "aws_appautoscaling_policy",
+            }
+
+            removed = forbidden & set(entities)
+
+            entities = [e for e in entities if e not in forbidden]
+
+            if removed:
+                logger.info(
+                    "REMOVED EC2/ECS AUTOSCALING CONFLICT ENTITIES=%s",
+                    sorted(removed)
+                )        
+        
     return entities
 
 def _get_client() -> OpenAI:
