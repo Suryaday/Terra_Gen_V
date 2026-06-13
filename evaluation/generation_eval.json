@@ -1,20 +1,43 @@
 [
   {
-    "query": "rest api gateway with lambda backend",
+    "query": "rds mysql database",
     "required_resources": [
-      "aws_api_gateway_rest_api",
-      "aws_lambda_function",
-      "aws_lambda_permission",
-      "aws_iam_role"
+      "aws_db_instance",
+      "aws_db_subnet_group",
+      "aws_security_group",
+      "aws_subnet",
+      "aws_vpc"
     ]
   },
+
   {
-    "query": "cloudwatch metric alarm for ec2 cpu",
+    "query": "lambda function with api gateway",
     "required_resources": [
-      "aws_cloudwatch_metric_alarm",
-      "aws_instance"
+      "aws_lambda_function",
+      "aws_iam_role",
+      "aws_apigatewayv2_api",
+      "aws_apigatewayv2_stage",
+      "aws_apigatewayv2_integration"
     ]
   },
+
+  {
+    "query": "jump box ec2 ssh",
+    "required_resources": [
+      "aws_instance",
+      "aws_security_group"
+    ]
+  },
+
+  {
+    "query": "nat gateway private subnet",
+    "required_resources": [
+      "aws_nat_gateway",
+      "aws_route_table",
+      "aws_eip"
+    ]
+  },
+
   {
     "query": "ec2 autoscaling group with launch template",
     "required_resources": [
@@ -25,27 +48,11 @@
       "aws_subnet"
     ]
   },
+
   {
-    "query": "waf web acl for cloudfront",
+    "query": "dynamodb table with global secondary index",
     "required_resources": [
-      "aws_wafv2_web_acl",
-      "aws_cloudfront_distribution"
-    ]
-  },
-  {
-    "query": "transit gateway with vpc attachment",
-    "required_resources": [
-      "aws_ec2_transit_gateway",
-      "aws_ec2_transit_gateway_vpc_attachment",
-      "aws_vpc",
-      "aws_subnet"
-    ]
-  },
-  {
-    "query": "iam user with inline policy",
-    "required_resources": [
-      "aws_iam_user",
-      "aws_iam_user_policy"
+      "aws_dynamodb_table"
     ]
   }
 ]

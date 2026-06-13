@@ -9,7 +9,6 @@ from typing import Any
 from rapidfuzz import fuzz
 from rapidfuzz import process
 
-
 logger=logging.getLogger(__name__)
 
 MIN_SCORE=92
@@ -78,6 +77,8 @@ class QueryCorrector:
 
             "ec2 instance":"aws_instance",
 
+            "ec2":"aws_instance",
+
             "eventbridge":"aws_cloudwatch_event_rule",
 
             "eventbridge trigger":"aws_lambda_permission aws_cloudwatch_event_rule",
@@ -114,9 +115,15 @@ class QueryCorrector:
 
             "nlb":"aws_lb",
 
-            "api gateway":"aws_api_gateway_rest_api",
+            "rest api" : "aws_api_gateway_rest_api",
 
-            "api gateway":"aws_apigatewayv2_api",
+            "rest api gateway" : "aws_api_gateway_rest_api",
+
+            "http api" : "aws_apigatewayv2_api",
+
+            "http api gateway" : "aws_apigatewayv2_api",
+
+            "api gateway": "aws_apigatewayv2_api",
 
             "ecs autoscaling": "aws_appautoscaling_target",
 
@@ -134,18 +141,24 @@ class QueryCorrector:
 
             "rds database": "aws_db_instance",
 
-            "rds instance": "aws_db_instance"
+            "rds instance": "aws_db_instance",
 
+            "wafv2": "aws_wafv2_web_acl",
+
+            "waf web acl": "aws_wafv2_web_acl",
+
+            "waf for cloudfront": "aws_wafv2_web_acl",
     }
 
     AWS_SHORT_TOKENS = {
         "iam","rds","ecs","eks",
         "s3","ec2","vpc","sns",
         "sqs","kms","alb","nlb",
-        "elb","waf","acm",
+        "elb","elbv2","waf","acm",
         "efs", "emr", "ebs",
         "ddb", "asg", "api",
-        "fsx", "glue", "mq"
+        "fsx", "glue", "mq", 
+        "wafv2", "apigatewayv2"
     }
 
     CORRECTION_STOPWORDS = {
@@ -212,7 +225,18 @@ class QueryCorrector:
         "ssh",
         "user",
         "enable",
-        "disable"
+        "disable",
+        "with",
+        "for",
+        "using",
+        "an",
+        "a",
+        "the",
+        "and",
+        "on",
+        "in",
+        "to",
+        "of",
     }
 
     PROTECTED_PHRASES={
@@ -295,7 +319,11 @@ class QueryCorrector:
 
         "eks cluster",
 
-        "nat gateway"
+        "nat gateway",
+
+        "rest api",
+
+        "http api"
 
     }
 

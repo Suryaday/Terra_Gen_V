@@ -42,6 +42,9 @@ def available() -> bool:
 def get_resource_schema(entity: str) -> dict | None:
     return _load().get(entity)
 
+def is_known(entity: str) -> bool:
+    return get_resource_schema(entity) is not None
+
 def is_block(entity: str, field: str) -> bool:
     """True if `field` is a nested block (at top level) for this resource."""
     r = get_resource_schema(entity)
@@ -301,29 +304,6 @@ def block_object_type(entity: str, block_path: str) -> str | None:
     if not fields:
         return "list(any)"
     return f"list(object({{{', '.join(fields)}}}))"
-
-
-def is_block_at_path(entity: str, block_path: str, field: str) -> bool:
-
-    schema = get_resource_schema(entity)
-
-    if not schema:
-        return False
-
-    node = schema
-
-    if block_path:
-
-        for part in block_path.split("."):
-
-            blocks = node.get("blocks", {})
-
-            if part not in blocks:
-                return False
-
-            node = blocks[part]
-
-    return field in node.get("blocks", {})
 
 def print_conflict_summary():
 

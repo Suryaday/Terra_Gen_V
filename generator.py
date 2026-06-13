@@ -17,8 +17,7 @@ from collections import defaultdict
 from openai import OpenAI
 from dotenv import load_dotenv
 
-#from auto_dependency_map import RESOURCE_DEPENDENCIES
-from auto_dependency_map_candidate import RESOURCE_DEPENDENCIES
+from auto_dependency_map import RESOURCE_DEPENDENCIES
 
 from dependency_expander import expand_entities
 from architecture_expander import extract_architecture
@@ -32,6 +31,7 @@ from retrieval_types import RetrievalResult
 
 from context_builder import build_xml_context
 
+import schema_index
 from schema_normalizer import normalize_block_vs_argument
 from schema_index import (find_argument_type, find_argument_type_by_path, block_object_type)
 from schema_typing import terraform_type_to_hcl
@@ -572,6 +572,8 @@ def build_plan(query: str) -> GenerationPlan:
 
     valid = validate_entities(arch_entities, known)
 
+    valid = [e for e in valid if schema_index.is_known(e)]
+
     dropped = set(arch_entities) - set(valid)
 
     if dropped:
@@ -580,6 +582,8 @@ def build_plan(query: str) -> GenerationPlan:
     arch_entities = valid
 
     arch_entities = validate_entities(arch_entities, known)
+
+    logger.info("PRE VALIDATION=%s", arch_entities)
 
     # Step 3: Also extract entity names directly from the corrected query
     # (any aws_xxx tokens in clean_query are valid entity hints)
@@ -605,6 +609,8 @@ def build_plan(query: str) -> GenerationPlan:
 
     root_entities = validate_entities(root_entities, known)
 
+    root_entities = [e for e in root_entities if schema_index.is_known(e)]
+
     root_entities = remove_conflicting_entities(root_entities, clean)
 
     logger.info("ROOT AFTER COMPLETION=%s", root_entities)
@@ -621,7 +627,8 @@ def build_plan(query: str) -> GenerationPlan:
 
     # Step 4: Expand to full dependency closure (hard deps only)
     all_entities = expand_entities(root_entities, depth=2, hard_only=True)
-    all_entities = [e for e in all_entities if e in known]
+
+    all_entities = [e for e in all_entities if schema_index.is_known(e)]
 
     all_entities = remove_conflicting_entities(all_entities, clean)
 
@@ -1652,6 +1659,15 @@ _KNOWN_VARS: dict[str, tuple[str, str, str]] = {
 
 def infer_variable_type_from_schema(sources):
 
+    _FIELD_TYPE_OVERRIDES = {
+        "cidr_blocks": "list(string)",
+        "ipv6_cidr_blocks": "list(string)",
+        "prefix_list_ids": "list(string)",
+        "security_groups": "list(string)",
+        "subnet_ids": "list(string)",
+        "availability_zones": "list(string)",
+    }
+
     candidate_types = []
 
     for entity, path in sources:
@@ -1659,17 +1675,26 @@ def infer_variable_type_from_schema(sources):
         if path.endswith("[]"):
             block_path = path[:-2]
             hcl_type = block_object_type(entity, block_path)
-            logger.info(
-                "SCHEMA LOOKUP entity=%s block=%s type=%s",
-                entity, block_path, hcl_type,
-            )
+            logger.info("SCHEMA LOOKUP entity=%s block=%s type=%s",
+                        entity, block_path, hcl_type)
         else:
+            field = path.split(".")[-1]
+
+            # 1) precise path lookup
             raw_type = find_argument_type_by_path(entity, path)
+
+            # 2) fallback: global search by leaf field name
+            if raw_type is None:
+                raw_type = find_argument_type(entity, field)
+
             hcl_type = terraform_type_to_hcl(raw_type)
-            logger.info(
-                "SCHEMA LOOKUP entity=%s path=%s type=%s",
-                entity, path, hcl_type,
-            )
+
+            # 3) fallback: deterministic field-name override (already HCL strings)
+            if hcl_type is None:
+                hcl_type = _FIELD_TYPE_OVERRIDES.get(field)
+
+            logger.info("SCHEMA LOOKUP entity=%s path=%s type=%s",
+                        entity, path, hcl_type)
 
         if hcl_type:
             candidate_types.append(hcl_type)
@@ -1678,11 +1703,8 @@ def infer_variable_type_from_schema(sources):
         return None
 
     unique = set(candidate_types)
-
     if len(unique) > 1:
-
         logger.warning("VAR TYPE CONFLICT=%s", candidate_types)
-
         return None
 
     return candidate_types[0]
@@ -2011,7 +2033,9 @@ def _normalize_ecs_cluster_arguments(entity: str, hcl: str) -> str:
 
 def _remove_invalid_resource_types(terraform: str) -> str:
 
-    known = _get_known_entities()
+    #known = _get_known_entities()
+
+    known = {entity for entity in _get_known_entities() if schema_index.is_known(entity)}
 
     lines = terraform.splitlines()
 

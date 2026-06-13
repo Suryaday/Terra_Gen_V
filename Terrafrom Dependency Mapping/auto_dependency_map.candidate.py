@@ -55,6 +55,7 @@ RESOURCE_DEPENDENCIES = {
     "aws_alb": {
         "hard": [],
         "optional": [
+            "aws_eip",
             "aws_security_group",
             "aws_subnet"
         ]
@@ -2961,12 +2962,15 @@ RESOURCE_DEPENDENCIES = {
     "aws_eip_association": {
         "hard": [],
         "optional": [
+            "aws_eip",
             "aws_instance",
             "aws_network_interface"
         ]
     },
     "aws_eip_domain_name": {
-        "hard": [],
+        "hard": [
+            "aws_eip"
+        ],
         "optional": []
     },
     "aws_eks_access_entry": {
@@ -4308,6 +4312,7 @@ RESOURCE_DEPENDENCIES = {
             "aws_subnet"
         ],
         "optional": [
+            "aws_eip",
             "aws_security_group"
         ]
     },
@@ -4821,7 +4826,9 @@ RESOURCE_DEPENDENCIES = {
         ]
     },
     "aws_nat_gateway": {
-        "hard": [],
+        "hard": [
+            "aws_eip"
+        ],
         "optional": [
             "aws_subnet",
             "aws_vpc"
@@ -4829,6 +4836,7 @@ RESOURCE_DEPENDENCIES = {
     },
     "aws_nat_gateway_eip_association": {
         "hard": [
+            "aws_eip",
             "aws_nat_gateway"
         ],
         "optional": []

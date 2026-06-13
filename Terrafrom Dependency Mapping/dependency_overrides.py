@@ -38,6 +38,10 @@ ADD_EDGES = {
     "aws_acm_certificate": [
         ("aws_acmpca_certificate_authority", "optional"),
     ],
+
+    "aws_nat_gateway": [          
+        ("aws_eip", "hard"),
+    ],
 }
 
 # src -> [dst, ...]   remove these edges entirely

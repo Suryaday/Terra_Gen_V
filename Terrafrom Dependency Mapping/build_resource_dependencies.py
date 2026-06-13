@@ -30,6 +30,7 @@ STEM_ALIASES = {
     "db_subnet_group": "aws_db_subnet_group",
     "load_balancer": "aws_lb", "lb": "aws_lb",
     "target_group": "aws_lb_target_group",
+    "allocation": "aws_eip",
 }
 
 INLINE_TARGET_BLOCKS = {

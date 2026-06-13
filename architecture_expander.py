@@ -93,6 +93,11 @@ ARCHITECTURE_COMPLETIONS = {
         "aws_apigatewayv2_stage"
     ],
 
+    "aws_api_gateway_rest_api": [
+        "aws_api_gateway_resource",
+        "aws_api_gateway_method"
+    ],
+
     "aws_sqs_queue": [
         "aws_sqs_queue_policy",
     ],
@@ -109,7 +114,15 @@ ARCHITECTURE_COMPLETIONS = {
     "aws_internet_gateway": [
         "aws_route_table",
         "aws_route_table_association"
-    ]
+    ],
+
+    "aws_ec2_transit_gateway": [
+        "aws_ec2_transit_gateway_vpc_attachment"
+    ],
+
+    "aws_iam_user": [
+        "aws_iam_user_policy"
+    ],
 }
 
 SYSTEM_PROMPT = """

@@ -78,6 +78,9 @@ def normalize_block_vs_argument(entity: str, hcl: str) -> str:
             if m:
                 field = m.group(1)
                 block_path = ".".join(n for n in block_stack if n)
+
+                logger.info("NORMALIZER path=%s field=%s", block_path, field)
+                
                 if (schema_index.is_block_at_path(entity, block_path, field) and not schema_index.is_argument_at_path(entity, block_path, field)):
                     logger.info("SCHEMA: dropped block-as-arg %s.%s", entity, ".".join(p for p in (block_path, field) if p))
                     logger.info("NORMALIZER DROP entity=%s path=%s field=%s", entity, block_path, field,)

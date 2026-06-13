@@ -1,16 +1,19 @@
-from schema_index import required_arguments, argument_type
+import schema_index
 
 print(
-    required_arguments(
-        "aws_lb_listener",
-        "default_action"
-    )
+    schema_index.get_resource_schema(
+        "aws_dynamodb_global_secondary_index"
+    ) is not None
 )
 
 print(
-    argument_type(
-        "aws_lb_listener",
-        "default_action",
-        "type"
-    )
+    schema_index.get_resource_schema(
+        "aws_dynamodb_table"
+    ) is not None
 )
+
+schema = schema_index.get_resource_schema(
+    "aws_dynamodb_global_secondary_index"
+)
+
+print(schema["arguments"].keys())
