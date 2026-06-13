@@ -70,6 +70,8 @@ def validate_resource(entity: str, hcl: str, generated_types: set[str] | None = 
                     is_argument_at_path(entity, block_path, field),
                 )
 
+            logger.info("IS_BLOCK? entity=%s path=%s field=%s result=%s", entity, block_path, field, schema_index.is_block_at_path(entity, block_path, field))
+
             if (schema_index.is_block_at_path(entity, block_path, field)
                 and
                 not schema_index.is_argument_at_path(entity, block_path, field)):

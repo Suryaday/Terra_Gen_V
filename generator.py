@@ -33,11 +33,10 @@ from retrieval_types import RetrievalResult
 from context_builder import build_xml_context
 
 from schema_normalizer import normalize_block_vs_argument
-from schema_index import (find_argument_type, find_argument_type_by_path)
+from schema_index import (find_argument_type, find_argument_type_by_path, block_object_type)
 from schema_typing import terraform_type_to_hcl
 from schema_validator import validate_resource
 from schema_index import print_conflict_summary
-from schema_block_corrector import correct_block_as_argument
 
 ###########################################################################################################
 
@@ -993,11 +992,29 @@ Rules:
 def _extract_var_refs(hcl: str) -> list[str]:
     return sorted(set(re.findall(r"var\.([a-z0-9_]+)", hcl)))
 
-def _extract_var_sources(entity: str, hcl: str):
+_DYNAMIC_OPEN = re.compile(r'^dynamic\s+"([A-Za-z0-9_]+)"')
+_FOR_EACH     = re.compile(r'^for_each\s*=\s*var\.([A-Za-z0-9_]+)')
+_VAR_ASSIGN   = re.compile(r'^([A-Za-z0-9_]+)\s*=\s*var\.([A-Za-z0-9_]+)')
 
+def _extract_var_sources(entity: str, hcl: str):
+    """
+    Map var.NAME -> (entity, schema_path).
+
+    Dynamic blocks are unwrapped so provenance points at the REAL nested block:
+      dynamic "metric_dimension" {        -> path segment 'metric_dimension'
+        for_each = var.metric_dimensions  -> recorded against the BLOCK path
+                                             with a '[]' marker => collection
+        content {                         -> transparent (no path segment)
+          name = var.x                    -> '<...>.metric_dimension.name'
+        }
+      }
+    """
     result = defaultdict(list)
 
-    block_stack = []
+    stack = []
+
+    def path_names():
+        return [n for (n, _dyn) in stack if n]
 
     for line in hcl.splitlines():
 
@@ -1012,46 +1029,53 @@ def _extract_var_sources(entity: str, hcl: str):
         opens = code.count("{")
         closes = code.count("}")
 
-        m = re.match(
-            r"\s*([A-Za-z0-9_]+)\s*=\s*var\.([A-Za-z0-9_]+)",
-            line
-        )
+        fe = _FOR_EACH.match(stripped)
+        if fe:
+            var_name = fe.group(1)
+            path = ".".join(path_names())          # tail is the dynamic block label
+            if path:
+                result[var_name].append((entity, path + "[]"))   # '[]' => list(object)
+                logger.info(
+                    "VAR SOURCE var=%s entity=%s path=%s (for_each)",
+                    var_name,
+                    entity,
+                    path + "[]",
+                )
+        elif opens == 0:
+            m = _VAR_ASSIGN.match(stripped)
+            if m:
+                arg_name = m.group(1)
+                var_name = m.group(2)
+                path = ".".join(path_names() + [arg_name])
+                result[var_name].append((entity, path))
+                logger.info(
+                    "VAR SOURCE var=%s entity=%s path=%s",
+                    var_name,
+                    entity,
+                    path,
+                )
 
-        if m:
-
-            arg_name = m.group(1)
-            var_name = m.group(2)
-
-            path = ".".join(block_stack + [arg_name])
-
-            result[var_name].append((entity, path))
-
-            logger.info(
-                "VAR SOURCE var=%s entity=%s path=%s",
-                var_name,
-                entity,
-                path
-            )
-
-        if (
-            opens > closes
-            and code.endswith("{")
-            and "=" not in code
-        ):
-
-            block_name = code[:-1].strip()
-
-            if (
-                block_name
-                and not block_name.startswith("resource")
-            ):
-                block_stack.append(block_name)
-
-        net_closes = closes - opens
-
-        for _ in range(max(0, net_closes)):
-            if block_stack:
-                block_stack.pop()
+        if (opens > closes and code.endswith("{") and "=" not in code):
+            d = _DYNAMIC_OPEN.match(stripped)
+            if d:
+                stack.append((d.group(1), True))              # dynamic "X" -> push X
+            else:
+                head = code[:-1].strip()
+                name = head.split()[0] if head else ""
+                if not name or name.startswith("resource"):
+                    stack.append((None, False))
+                elif name == "content" and any(is_dyn for (_n, is_dyn) in stack):
+                    stack.append((None, False))               # content -> transparent
+                else:
+                    stack.append((name, False))
+        else:
+            net = opens - closes
+            if net > 0:
+                stack.extend([(None, False)] * net)
+            elif net < 0:
+                for _ in range(-net):
+                    if stack:
+                        stack.pop()
 
     return dict(result)
 
@@ -1136,6 +1160,8 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = _normalize_cidr_block_lists(raw)
     raw = _remove_fake_reference_segments(raw)
     raw = _normalize_attribute_aliases(raw)
+    raw = _remove_invalid_resource_types(raw)
+    raw = normalize_block_vs_argument(node.entity, raw)
 
     #11 June
     logger.info("RUNNING VALIDATOR FOR %s", node.entity)
@@ -1158,15 +1184,8 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
 
         SCHEMA_FINDING_COUNTS[finding.kind] += 1
 
-    #11 JUNE 
-    raw = _remove_invalid_resource_types(raw)
-    raw = normalize_block_vs_argument(node.entity, raw)
-    
-    raw = correct_block_as_argument(node.entity, raw)
-
     var_refs = _extract_var_refs(raw)
     var_sources = _extract_var_sources(node.entity, raw)
-
 
     symbol_table[node.entity] = node.label
     logger.info("SYMBOL TABLE NOW=%s", symbol_table)
@@ -1637,17 +1656,26 @@ def infer_variable_type_from_schema(sources):
 
     for entity, path in sources:
 
-        raw_type = find_argument_type_by_path(entity, path)
-
-        hcl_type = terraform_type_to_hcl(raw_type)
+        if path.endswith("[]"):
+            block_path = path[:-2]
+            hcl_type = block_object_type(entity, block_path)
+            logger.info(
+                "SCHEMA LOOKUP entity=%s block=%s type=%s",
+                entity, block_path, hcl_type,
+            )
+        else:
+            raw_type = find_argument_type_by_path(entity, path)
+            hcl_type = terraform_type_to_hcl(raw_type)
+            logger.info(
+                "SCHEMA LOOKUP entity=%s path=%s type=%s",
+                entity, path, hcl_type,
+            )
 
         if hcl_type:
             candidate_types.append(hcl_type)
 
     if not candidate_types:
         return None
-    
-    logger.info("SCHEMA LOOKUP entity=%s arg=%s type=%s", entity, path, candidate_types)
 
     unique = set(candidate_types)
 

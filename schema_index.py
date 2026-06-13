@@ -274,6 +274,35 @@ def is_argument_at_path(entity: str, block_path: str, field: str) -> bool:
 
     return field in node.get("arguments", {})
 
+def block_object_type(entity: str, block_path: str) -> str | None:
+    """
+    Build an HCL `list(object({...}))` type for a nested block so a dynamic
+    block's `for_each` collection variable is typed as a list of the block's
+    shape instead of falling back to string.
+
+    Kept intentionally SHALLOW: nested sub-blocks are represented as
+    `optional(list(any))` (they are repeatable blocks) rather than recursing
+    into full nested object types. Returns None if the path doesn't resolve.
+    """
+    schema = get_resource_schema(entity)
+    if not schema:
+        return None
+    node = schema
+    for part in block_path.split("."):
+        node = node.get("blocks", {}).get(part)
+        if not node:
+            return None
+    fields = []
+    for name, arg in node.get("arguments", {}).items():
+        hcl = tf_type_to_hcl(arg.get("type")) or "any"
+        fields.append(f"{name} = optional({hcl})")
+    for name in node.get("blocks", {}):
+        fields.append(f"{name} = optional(list(any))")
+    if not fields:
+        return "list(any)"
+    return f"list(object({{{', '.join(fields)}}}))"
+
+
 def is_block_at_path(entity: str, block_path: str, field: str) -> bool:
 
     schema = get_resource_schema(entity)
