@@ -13,8 +13,8 @@ from __future__ import annotations
 import re
 import logging
 from dataclasses import dataclass
-
 import schema_index
+from schema_index import (is_block_at_path, is_argument_at_path)
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +62,14 @@ def validate_resource(entity: str, hcl: str, generated_types: set[str] | None = 
 
             logger.info("VALIDATOR CHECK path=%s field=%s", block_path, field)
 
+            if field in ("metric_data_queries", "metric_dimension", "metrics"):
+                logger.info("BLOCK CHECK path=%s field=%s is_block=%s is_arg=%s",
+                    block_path,
+                    field,
+                    is_block_at_path(entity, block_path, field),
+                    is_argument_at_path(entity, block_path, field),
+                )
+
             if (schema_index.is_block_at_path(entity, block_path, field)
                 and
                 not schema_index.is_argument_at_path(entity, block_path, field)):
@@ -94,8 +102,6 @@ def validate_resource(entity: str, hcl: str, generated_types: set[str] | None = 
         for _ in range(max(0, net_closes)):
             if block_stack:
                 block_stack.pop()
-
-        logger.info("REQUIRED BLOCKS FOR %s = %s", entity, schema_index.required_blocks(entity))   
 
     # 2. MISSING_REQUIRED_BLOCK
     for block_name in schema_index.required_blocks(entity):

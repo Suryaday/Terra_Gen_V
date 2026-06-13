@@ -274,6 +274,28 @@ def is_argument_at_path(entity: str, block_path: str, field: str) -> bool:
 
     return field in node.get("arguments", {})
 
+def is_block_at_path(entity: str, block_path: str, field: str) -> bool:
+
+    schema = get_resource_schema(entity)
+
+    if not schema:
+        return False
+
+    node = schema
+
+    if block_path:
+
+        for part in block_path.split("."):
+
+            blocks = node.get("blocks", {})
+
+            if part not in blocks:
+                return False
+
+            node = blocks[part]
+
+    return field in node.get("blocks", {})
+
 def print_conflict_summary():
 
     if not SCHEMA_CONFLICTS:

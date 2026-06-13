@@ -37,6 +37,8 @@ from schema_index import (find_argument_type, find_argument_type_by_path)
 from schema_typing import terraform_type_to_hcl
 from schema_validator import validate_resource
 from schema_index import print_conflict_summary
+from schema_block_corrector import correct_block_as_argument
+
 ###########################################################################################################
 
 load_dotenv()
@@ -1159,6 +1161,8 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     #11 JUNE 
     raw = _remove_invalid_resource_types(raw)
     raw = normalize_block_vs_argument(node.entity, raw)
+    
+    raw = correct_block_as_argument(node.entity, raw)
 
     var_refs = _extract_var_refs(raw)
     var_sources = _extract_var_sources(node.entity, raw)
