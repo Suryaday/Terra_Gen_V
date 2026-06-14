@@ -79,7 +79,8 @@ ARCHITECTURE_COMPLETIONS = {
     ],
 
     "aws_db_instance": [
-        "aws_db_subnet_group"
+        "aws_db_subnet_group",
+        "aws_security_group"
     ],
 
     "aws_rds_cluster": [
@@ -123,6 +124,21 @@ ARCHITECTURE_COMPLETIONS = {
     "aws_iam_user": [
         "aws_iam_user_policy"
     ],
+
+    "aws_launch_template" : [
+        "aws_security_group",
+        "aws_subnet"
+    ],
+
+    "aws_instance" : [
+        "aws_security_group",
+        "aws_subnet"
+    ],
+
+    "aws_elasticache_cluster": [
+        "aws_elasticache_subnet_group",
+        "aws_security_group"
+    ]
 }
 
 SYSTEM_PROMPT = """

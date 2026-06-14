@@ -387,6 +387,21 @@ def remove_conflicting_entities(entities: list[str], query: str) -> list[str]:
                 "ecs cluster",
             )
         )
+    
+    scaling_policy_intent = any(
+        s in q
+        for s in (
+            "scaling policy",
+            "scale out",
+            "scale in",
+            "scale up",
+            "scale down",
+            "target tracking",
+            "step scaling",
+            "cpu utilization",
+            "scaling adjustment",
+        )
+    )
 
     if ec2_autoscaling_present and not ecs_intent:
 
@@ -403,7 +418,39 @@ def remove_conflicting_entities(entities: list[str], query: str) -> list[str]:
                 logger.info(
                     "REMOVED EC2/ECS AUTOSCALING CONFLICT ENTITIES=%s",
                     sorted(removed)
-                )        
+                )      
+
+    if ec2_autoscaling_present and not scaling_policy_intent:
+
+        forbidden = {
+            "aws_autoscaling_policy",
+            "aws_autoscaling_attachment",
+        }
+
+        removed = forbidden & set(entities)
+
+        entities = [e for e in entities if e not in forbidden]
+
+        if removed:
+            logger.info(
+                "REMOVED UNREQUESTED AUTOSCALING POLICY=%s",
+                sorted(removed)
+            )  
+    
+    if "aws_dynamodb_table" in entities:
+
+        if "aws_dynamodb_global_secondary_index" in entities:
+
+            entities = [
+                e
+                for e in entities
+                if e != "aws_dynamodb_global_secondary_index"
+            ]
+
+            logger.info(
+                "REMOVED DYNAMODB INLINE/STANDALONE CONFLICT=%s",
+                ["aws_dynamodb_global_secondary_index"]
+            )
         
     return entities
 
@@ -578,6 +625,26 @@ def _normalize_cloudfront_required_blocks(entity: str, hcl: str) -> str:
         return hcl
 
     return hcl[:pos] + block + "\n}" + hcl[pos + 1:]
+
+def _normalize_malformed_var_refs(terraform: str) -> str:
+
+    def repl(m):
+        old = f"var_{m.group(2)}"
+        new = f"var.{m.group(2)}"
+
+        logger.info(
+            "NORMALIZED MALFORMED VAR REF %s -> %s",
+            old,
+            new,
+        )
+
+        return f"{m.group(1)}{new}"
+
+    return re.sub(
+        r'(?m)^(\s*[A-Za-z0-9_]+\s*=\s*)var_([a-z][a-z0-9_]*)\s*$',
+        repl,
+        terraform,
+    )
 
 # ======================================================
 # PLAN BUILDING
@@ -1201,6 +1268,7 @@ def generate_resource(query: str, node: ResourceNode, context: str, symbol_table
     raw = _normalize_cidr_block_lists(raw)
     raw = _remove_fake_reference_segments(raw)
     raw = _normalize_attribute_aliases(raw)
+    raw = _normalize_malformed_var_refs(raw)
     raw = _remove_invalid_resource_types(raw)
     raw = normalize_block_vs_argument(node.entity, raw)
 

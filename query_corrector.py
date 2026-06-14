@@ -158,7 +158,8 @@ class QueryCorrector:
         "efs", "emr", "ebs",
         "ddb", "asg", "api",
         "fsx", "glue", "mq", 
-        "wafv2", "apigatewayv2"
+        "wafv2", "apigatewayv2",
+        "redis", "memcached", "elasticache"
     }
 
     CORRECTION_STOPWORDS = {

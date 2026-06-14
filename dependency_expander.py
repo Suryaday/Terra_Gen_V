@@ -2,15 +2,10 @@ from __future__ import annotations
 
 from auto_dependency_map import RESOURCE_DEPENDENCIES
 
-
 MAX_DEPTH = 1
 
 
-def expand_entities(
-    entities:list[str],
-    depth:int=MAX_DEPTH,
-    hard_only:bool=True
-)->list[str]:
+def expand_entities(entities:list[str], depth:int=MAX_DEPTH, hard_only:bool=True)->list[str]:
 
     seen=set()
 
