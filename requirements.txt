@@ -13,3 +13,7 @@ pandas
 tiktoken
 langchain-text-splitters
 pyyaml
+ollama
+tenacity
+python-dotenv
+rapidfuzz
