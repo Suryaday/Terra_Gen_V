@@ -317,4 +317,4 @@ python generation_eval.py       # end-to-end generation + terraform validate
 
 ## License
 
-No license file is currently included. Add one before redistributing.
+Released under the [MIT License](LICENSE).
