@@ -4,7 +4,7 @@
 
 Terra_Gen_V is **not** a thin RAG wrapper around an LLM. It plans a resource dependency graph, retrieves the exact AWS provider documentation for each resource using a hybrid search pipeline, generates one HCL block at a time so cross-resource references resolve correctly, and repairs the output against the real Terraform provider schema before you ever see it.
 
-> **Want the deep dive?** [**TUTORIAL.md**](TUTORIAL.md) explains every concept (RAG, hybrid retrieval, RRF, HyDE, reranking, the dependency graph, schema repair) from scratch and includes a complete, step-by-step guide to running everything on your own machine.
+> **Want the deep dive?** [**TUTORIAL.md**](TUTORIAL.md) explains every concept (RAG, hybrid retrieval, RRF, HyDE, reranking, the dependency graph, schema repair) from scratch and includes a complete, step-by-step guide to running everything on your own machine. For a one-page visual, see [**ARCHITECTURE.md**](ARCHITECTURE.md).
 
 ---
 
