@@ -147,7 +147,9 @@ HyDE isn't always worth it. The pipeline **skips** HyDE when the query is very s
 
 ## 7. Reranking
 
-RRF gives a good candidate pool, but it's still based on ranks, not deep relevance. A **cross-encoder reranker** (`reranker.py`, model `BAAI/bge-reranker-v2-m3`) then re-scores the pool. Unlike the bi-encoder used for dense search (which embeds query and doc separately), a cross-encoder reads the query and each candidate *together* and outputs a precise relevance score. It's slower, so it's only run on the shortlist — not the whole corpus. The model is loaded once and cached.
+RRF gives a good candidate pool, but it's still based on ranks, not deep relevance. A **cross-encoder reranker** (`reranker.py`) then re-scores the pool. Unlike the bi-encoder used for dense search (which embeds query and doc separately), a cross-encoder reads the query and each candidate *together* and outputs a precise relevance score. It's slower, so it's only run on the shortlist — not the whole corpus. The model is loaded once and cached.
+
+The pipeline was **benchmarked with `BAAI/bge-reranker-v2-m3`**, but the **live code runs the smaller `cross-encoder/ms-marco-MiniLM-L6-v2`** — a deliberate quality-vs-latency tradeoff, since the larger model takes roughly 2 minutes per query on CPU (see `TechDebt.md`). Swap the model name at the top of `reranker.py` if you have a GPU and want maximum quality.
 
 ---
 
@@ -323,7 +325,7 @@ pip install -r requirements.txt
 
 `requirements.txt` includes the runtime packages (`fastapi`, `uvicorn`, `openai`, `chromadb`, `rank-bm25`, `sentence-transformers`, `ollama`, `tenacity`, `python-dotenv`, `rapidfuzz`, ...).
 
-> **Note:** `sentence-transformers` will download the reranker model (`BAAI/bge-reranker-v2-m3`, a few hundred MB) the first time the retriever runs. This is normal and only happens once.
+> **Note:** `sentence-transformers` will download the reranker model (`cross-encoder/ms-marco-MiniLM-L6-v2`, a small model) the first time the retriever runs. This is normal and only happens once.
 
 ---
 

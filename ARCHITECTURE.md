@@ -92,7 +92,7 @@ Most of the pipeline runs locally and free. Only two calls hit a paid API — em
 | Model | Where it runs | Used for | Cost |
 |---|---|---|---|
 | `qwen3` (Ollama) | Local | Resource planning + HyDE expansion | Free |
-| `bge-reranker-v2-m3` | Local | Reranking retrieved docs | Free |
+| `ms-marco-MiniLM-L6-v2` (live; bge-reranker-v2-m3 benchmarked) | Local | Reranking retrieved docs | Free |
 | `text-embedding-3-small` (OpenAI) | API | Embeddings (mostly one-time index build) | Paid |
 | `gpt-4.1-mini` (OpenAI) | API | Generating each HCL block | Paid |
 

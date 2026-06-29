@@ -93,7 +93,7 @@ Blocks are assembled into `main.tf`; any `var.x` referenced but not declared is 
 | Embeddings | OpenAI `text-embedding-3-small` |
 | Vector store | ChromaDB (persistent) |
 | Sparse retrieval | BM25 (`rank-bm25`) |
-| Reranking | `BAAI/bge-reranker-v2-m3` (sentence-transformers, local) |
+| Reranking | `cross-encoder/ms-marco-MiniLM-L6-v2` live (benchmarked with `BAAI/bge-reranker-v2-m3`); sentence-transformers, local |
 | Local LLM (planning + HyDE) | Ollama (`qwen3:latest`) |
 | Chunking | LangChain text splitters + tiktoken |
 | Frontend | React 19 + Vite + TypeScript + Tailwind + React Flow |
