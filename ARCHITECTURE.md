@@ -1,131 +1,101 @@
 # Terra_Gen_V — Architecture
 
-A one-page view of how a natural-language request becomes valid, deployable Terraform.
-
-**Legend:** 🟩 runs **locally / free** (Ollama + local cross-encoder) · 🟧 **OpenAI API (paid)** · 🟦 **data stores / ground truth**. Only two components are paid — embeddings and final generation — which is why the project runs lean.
-
-```mermaid
-flowchart TB
-    subgraph CLIENT[" "]
-        UI["React + Vite SPA<br/>(frontend/)"]
-    end
-
-    UI -->|"POST /generate {query}"| API["FastAPI · app.py<br/>generator.generate(query)"]
-
-    subgraph ONLINE["ONLINE PIPELINE — per request (generator.py)"]
-        direction TB
-
-        subgraph PLAN["1 · PLAN — build_plan()"]
-            P1["query_corrector<br/>fuzzy correct + expand"]
-            P2["architecture_expander<br/>LLM resource proposal"]
-            P3["validate + de-conflict<br/>ECS vs EC2, aliases"]
-            P4["dependency_expander<br/>graph closure"]
-            P5["_topo_sort<br/>Kahn's algorithm"]
-            P1 --> P2 --> P3 --> P4 --> P5
-        end
-
-        subgraph RETR["2 · RETRIEVE — hybrid_retrieve()"]
-            R0["query_router · hyde<br/>intent + HyDE expand"]
-            R1["dense (ChromaDB)"]
-            R2["sparse (BM25)"]
-            R3["RRF fusion<br/>1/(60+rank)"]
-            R4["cross-encoder rerank"]
-            R5["budget alloc<br/>breadth→depth · ARGREF_FLOOR"]
-            R6["dependency_retriever<br/>inject dep docs"]
-            R0 --> R1 & R2
-            R1 --> R3
-            R2 --> R3
-            R3 --> R4 --> R5 --> R6
-        end
-
-        subgraph GEN["3 · GENERATE — per resource, in order"]
-            G1["context_builder<br/>U-shape XML context"]
-            G2["LLM emits ONE block<br/>+ symbol table of prior resources"]
-            G1 --> G2
-        end
-
-        subgraph REP["4 · REPAIR — schema layer"]
-            X1["~18 _normalize_/_fix_ passes"]
-            X2["schema_normalizer<br/>block vs argument"]
-            X3["schema_validator<br/>findings"]
-            X4["reference_corrector<br/>fix bad refs"]
-            X1 --> X2 --> X3 --> X4
-        end
-
-        subgraph STITCH["5 · STITCH — stitch() + validate()"]
-            S1["assemble main.tf"]
-            S2["infer + declare variables.tf"]
-            S3["final validation → warnings"]
-            S1 --> S2 --> S3
-        end
-
-        PLAN --> RETR --> GEN --> REP --> STITCH
-    end
-
-    API --> ONLINE
-    STITCH -->|"{architecture[], terraform, warnings, time}"| UI
-
-    subgraph STORES["DATA / GROUND TRUTH"]
-        DB1[("ChromaDB<br/>terraform_docs")]
-        DB2[("bm25.pkl")]
-        DB3[("resource_schema.json")]
-        DB4[("auto_dependency_map.py<br/>788 resources")]
-    end
-
-    subgraph MODELS["MODELS"]
-        M1["Ollama qwen3<br/>LOCAL · free"]
-        M2["bge-reranker-v2-m3<br/>LOCAL · free"]
-        M3["OpenAI embeddings<br/>text-embedding-3-small"]
-        M4["OpenAI gpt-4.1-mini<br/>generation"]
-    end
-
-    subgraph OFFLINE["OFFLINE DATA PREP (build-time)"]
-        direction LR
-        O1["extract.py<br/>parse AWS docs"]
-        O2["chunker.py<br/>split + tag"]
-        O3["embed.py<br/>embed batches"]
-        O4["bm25_retriever.py<br/>build index"]
-        O5["generate_dependency_map.py<br/>terraform schema -json"]
-        O1 --> O2 --> O3
-        O2 --> O4
-    end
-
-    O3 --> DB1
-    O4 --> DB2
-    O5 --> DB3
-    O5 --> DB4
-
-    P2 -.-> M1
-    R0 -.-> M1
-    R1 -.-> M3
-    R1 -.-> DB1
-    R2 -.-> DB2
-    R4 -.-> M2
-    G2 -.-> M4
-    P4 -.-> DB4
-    REP -.-> DB3
-
-    classDef local fill:#d4f5d4,stroke:#2d8a2d,color:#000;
-    classDef api fill:#ffe0cc,stroke:#cc5500,color:#000;
-    classDef store fill:#e0e8ff,stroke:#3355cc,color:#000;
-    class M1,M2 local;
-    class M3,M4 api;
-    class DB1,DB2,DB3,DB4 store;
-```
-
-## Reading the diagram
+How a plain-English request becomes valid, deployable Terraform.
 
 The system has two pipelines:
 
-- **Online (per request):** the five numbered stages — Plan, Retrieve, Generate, Repair, Stitch — run for every `POST /generate` call.
-- **Offline (build-time):** the data-prep pipeline builds the ChromaDB vector store, the BM25 index, the provider schema ground truth, and the dependency map that the online pipeline reads from.
+- **Request pipeline** (Diagram 1) — runs on every `POST /generate` call. Five ordered stages: Plan → Retrieve → Generate → Repair → Stitch.
+- **Build pipeline** (Diagram 2) — runs once, ahead of time, to prepare the search indexes and ground-truth data the request pipeline reads from.
 
-### The five stages
+---
 
-1. **Plan** — correct the query, propose resources with a local LLM, drop unknowns and resolve conflicts, close the dependency graph, then topologically sort with Kahn's algorithm so dependencies come before dependents.
-2. **Retrieve** — optional HyDE expansion, parallel dense + sparse search, Reciprocal Rank Fusion, cross-encoder reranking, breadth-then-depth budget allocation, and dependency-doc injection.
-3. **Generate** — for each resource in dependency order, build a U-shaped XML context and emit a single HCL block, passing a symbol table of already-generated resources so references resolve.
-4. **Repair** — run targeted normalization passes plus schema-grounded normalization, validation, and reference correction against the real provider schema.
-5. **Stitch** — assemble `main.tf`, infer and declare any missing variables in `variables.tf`, and run a final validation pass that emits warnings.
+## Diagram 1 — The request pipeline
 
-For a full narrative walkthrough of each component, see the [TUTORIAL](TUTORIAL.md). For setup and usage, see the [README](README.md).
+Read top to bottom. Each stage finishes before the next begins, and the steps inside each box run in the listed order.
+
+```mermaid
+flowchart TD
+    Q["USER QUERY<br/>e.g. 'an HA web app with autoscaling and a managed database'"]
+    API["FastAPI — POST /generate"]
+
+    S1["STAGE 1 — PLAN  (decide WHAT to build)<br/>　<br/>1. correct and expand the query<br/>2. propose resources&nbsp;&nbsp;→ Ollama, local<br/>3. drop unknowns and resolve conflicts<br/>4. add missing dependencies&nbsp;&nbsp;→ dependency map<br/>5. order them with Kahn's topological sort"]
+
+    S2["STAGE 2 — RETRIEVE  (gather the RIGHT docs)<br/>　<br/>1. optional HyDE query expansion&nbsp;&nbsp;→ Ollama, local<br/>2. dense + sparse search in parallel&nbsp;&nbsp;→ ChromaDB, BM25<br/>3. fuse both rankings with RRF<br/>4. rerank the shortlist&nbsp;&nbsp;→ cross-encoder, local<br/>5. share the doc budget across all resources"]
+
+    S3["STAGE 3 — GENERATE  (write HCL, one block at a time)<br/>　<br/>for each resource, in dependency order:<br/>1. build a U-shaped context from its docs<br/>2. generate one resource block&nbsp;&nbsp;→ OpenAI gpt-4.1-mini<br/>3. feed it a symbol table of already-built resources"]
+
+    S4["STAGE 4 — REPAIR  (make it VALID)<br/>　<br/>1. run ~18 targeted normalization passes<br/>2. fix block-vs-argument mistakes&nbsp;&nbsp;→ provider schema<br/>3. correct invalid resource references"]
+
+    S5["STAGE 5 — STITCH  (assemble and verify)<br/>　<br/>1. assemble main.tf<br/>2. infer and declare any missing variables.tf<br/>3. run final validation and collect warnings"]
+
+    OUT["TERRAFORM OUTPUT<br/>main.tf + variables.tf · resource list · warnings"]
+
+    Q --> API --> S1 --> S2 --> S3 --> S4 --> S5 --> OUT
+
+    classDef io fill:#e8eefc,stroke:#3355cc,color:#000,font-weight:bold;
+    classDef stage fill:#f5f7fb,stroke:#5a6b8c,color:#000;
+    class Q,API,OUT io;
+    class S1,S2,S3,S4,S5 stage;
+```
+
+**The two key ideas, visible in the order above:**
+
+- **Plan before generate.** Stage 1 produces a *dependency-ordered* list. By the time Stage 3 writes `aws_subnet`, the `aws_vpc` it references already exists — so it can reference it correctly via the symbol table.
+- **Repair before output.** The model's first draft (Stage 3) is never trusted as-is. Stage 4 validates and fixes it against the real Terraform provider schema, which is what makes the output pass `terraform validate`.
+
+---
+
+## Diagram 2 — The build pipeline (runs once, offline)
+
+This prepares the four data assets the request pipeline depends on.
+
+```mermaid
+flowchart LR
+    subgraph DOCS["Document indexing"]
+        direction TB
+        A1["AWS provider docs"] --> A2["extract.py"] --> A3["corpus.json"]
+        A3 --> A4["chunker.py"] --> A5["chunks.json"]
+        A5 --> A6["embed.py"] --> DB1[("ChromaDB<br/>dense vectors")]
+        A5 --> A7["bm25_retriever.py"] --> DB2[("bm25.pkl<br/>keyword index")]
+    end
+
+    subgraph SCHEMA["Schema and dependency mapping"]
+        direction TB
+        B1["terraform providers<br/>schema -json"] --> B2["generate_dependency_map.py"]
+        B2 --> DB3[("resource_schema.json<br/>field ground truth")]
+        B2 --> DB4[("auto_dependency_map.py<br/>788 resource edges")]
+    end
+
+    classDef store fill:#e0e8ff,stroke:#3355cc,color:#000;
+    class DB1,DB2,DB3,DB4 store;
+```
+
+---
+
+## Who uses what
+
+Which request stage reads which build-time asset:
+
+| Build-time asset | Built by | Used by request stage |
+|---|---|---|
+| ChromaDB (dense vectors) | `embed.py` | Stage 2 — Retrieve |
+| `bm25.pkl` (keyword index) | `bm25_retriever.py` | Stage 2 — Retrieve |
+| `resource_schema.json` (field ground truth) | `generate_dependency_map.py` | Stage 4 — Repair |
+| `auto_dependency_map.py` (788 edges) | `generate_dependency_map.py` | Stage 1 — Plan |
+
+---
+
+## Models and cost
+
+Most of the pipeline runs locally and free. Only two calls hit a paid API — embeddings and final generation — which is why the project runs lean.
+
+| Model | Where it runs | Used for | Cost |
+|---|---|---|---|
+| `qwen3` (Ollama) | Local | Resource planning + HyDE expansion | Free |
+| `bge-reranker-v2-m3` | Local | Reranking retrieved docs | Free |
+| `text-embedding-3-small` (OpenAI) | API | Embeddings (mostly one-time index build) | Paid |
+| `gpt-4.1-mini` (OpenAI) | API | Generating each HCL block | Paid |
+
+---
+
+For a full narrative walkthrough of every component, see the [TUTORIAL](TUTORIAL.md). For setup and usage, see the [README](README.md).
